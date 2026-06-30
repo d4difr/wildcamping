@@ -4,13 +4,24 @@ import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 
-const markerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34]
-})
+function makePinIcon(color = '#1b4332', dotColor = '#fff') {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 0C6.27 0 0 6.27 0 14c0 9.25 12.18 21.12 13.16 22.06a1.18 1.18 0 0 0 1.68 0C15.82 35.12 28 23.25 28 14 28 6.27 21.73 0 14 0z"
+        fill="${color}" />
+      <circle cx="14" cy="14" r="5" fill="${dotColor}" opacity="0.9" />
+    </svg>`
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -38]
+  })
+}
+
+const markerIcon = makePinIcon()
+const pendingIcon = makePinIcon('#d98e04')
 
 function ClickHandler({ onMapClick }) {
   useMapEvents({
@@ -89,7 +100,7 @@ export default function CampingMap() {
           </Marker>
         ))}
         {pendingPosition && (
-          <Marker position={pendingPosition} icon={markerIcon} opacity={0.6} />
+          <Marker position={pendingPosition} icon={pendingIcon} />
         )}
       </MapContainer>
 
