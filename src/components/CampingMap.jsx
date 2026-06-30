@@ -4,6 +4,19 @@ import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 
+const LAYERS = {
+  satellite: {
+    label: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+  },
+  terrain: {
+    label: 'Terrain',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+  }
+}
+
 function makePinIcon(color = '#1b4332', dotColor = '#fff') {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
@@ -48,6 +61,7 @@ export default function CampingMap() {
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [layerKey, setLayerKey] = useState('satellite')
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -65,6 +79,8 @@ export default function CampingMap() {
   }, [])
 
   const activeSpot = spots.find((s) => s.id === activeId) || null
+  const layer = LAYERS[layerKey]
+  const nextKey = layerKey === 'satellite' ? 'terrain' : 'satellite'
 
   function handleCardClick(spot) {
     setActiveId(spot.id)
@@ -74,12 +90,8 @@ export default function CampingMap() {
 
   return (
     <div className="map-root">
-      {/* Full-screen map */}
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} />
         <ClickHandler onMapClick={setPendingPosition} />
         <FlyToSpot target={activeSpot} />
         {spots.map((spot) => (
@@ -110,15 +122,24 @@ export default function CampingMap() {
         <span className="wordmark-title">Wild Camping</span>
       </div>
 
-      {/* Sidebar toggle button */}
-      <button
-        className="sidebar-toggle"
-        onClick={() => setSidebarOpen((o) => !o)}
-        aria-label={sidebarOpen ? 'Close spots list' : 'Open spots list'}
-      >
-        <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
-        <span>{sidebarOpen ? 'Close' : `${spots.length} spots`}</span>
-      </button>
+      {/* Top-right controls */}
+      <div className="controls">
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen((o) => !o)}
+          aria-label={sidebarOpen ? 'Close spots list' : 'Open spots list'}
+        >
+          <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
+          <span>{sidebarOpen ? 'Close' : `${spots.length} spots`}</span>
+        </button>
+        <button
+          className="layer-toggle"
+          onClick={() => setLayerKey(nextKey)}
+          aria-label={`Switch to ${LAYERS[nextKey].label}`}
+        >
+          {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '⛰'} {LAYERS[nextKey].label}
+        </button>
+      </div>
 
       {/* Floating sidebar */}
       <aside className={`sidebar${sidebarOpen ? ' sidebar--open' : ''}`}>
@@ -143,7 +164,6 @@ export default function CampingMap() {
         </div>
       </aside>
 
-      {/* Hint + add form */}
       {pendingPosition && (
         <div className="floating-form">
           <p className="hint">
@@ -157,7 +177,6 @@ export default function CampingMap() {
         </div>
       )}
 
-      {/* Click-to-add hint when no pin */}
       {!pendingPosition && (
         <div className="map-hint">
           Click the map to submit a wild camping spot
