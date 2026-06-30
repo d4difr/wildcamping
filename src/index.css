@@ -1,6 +1,5 @@
 :root {
   --forest: #1b4332;
-  --forest-dark: #11302330;
   --granite: #3a3f3b;
   --birch: #f4f1ea;
   --birch-card: #fffdf9;
@@ -8,117 +7,150 @@
   --amber-dark: #a96b02;
   --fjord: #5c8a8c;
   --border: #e1dacb;
+  --shadow: 0 4px 24px rgba(0,0,0,0.13);
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--birch);
+  background: #000;
   color: var(--granite);
-}
-
-.app {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 1.25rem 2rem;
-}
-
-/* Header with topographic contour motif */
-.app-header {
-  position: relative;
   overflow: hidden;
-  background: var(--forest);
-  color: var(--birch);
-  border-radius: 0 0 18px 18px;
-  margin: 0 -1.25rem 1.5rem;
-  padding: 2.25rem 1.75rem 1.75rem;
 }
 
-.app-header svg.contours {
-  position: absolute;
+/* Full-screen map */
+.map-root {
+  position: fixed;
   inset: 0;
+}
+
+#map {
   width: 100%;
   height: 100%;
-  opacity: 0.16;
+}
+
+/* Floating wordmark — top left */
+.wordmark {
+  position: absolute;
+  top: 1.1rem;
+  left: 1.1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--forest);
+  color: var(--birch);
+  border-radius: 12px;
+  padding: 0.55rem 0.9rem 0.6rem;
   pointer-events: none;
+  box-shadow: var(--shadow);
 }
 
-.app-header-inner {
-  position: relative;
-  z-index: 1;
-}
-
-.eyebrow {
-  font-family: var(--font-body);
-  font-size: 0.72rem;
+.wordmark-eyebrow {
+  font-size: 0.62rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #cfe3d4;
-  margin: 0 0 0.4rem;
+  color: #a8cbb2;
+  line-height: 1;
+  margin-bottom: 0.15rem;
 }
 
-.app-header h1 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 2.1rem;
-  margin: 0 0 0.4rem;
-  letter-spacing: -0.01em;
-}
-
-.app-header p {
-  margin: 0;
-  color: #d9e5da;
-  font-size: 0.95rem;
-  max-width: 38rem;
-}
-
-/* Layout: sidebar + map */
-.layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-@media (max-width: 760px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.sidebar {
-  background: var(--birch-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 0.9rem;
-  max-height: 560px;
-  overflow-y: auto;
-}
-
-.sidebar h2 {
+.wordmark-title {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;
-  margin: 0.2rem 0 0.75rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* Sidebar toggle — top right */
+.sidebar-toggle {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--forest);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sidebar-toggle:hover {
+  background: var(--birch);
+  border-color: var(--fjord);
+}
+
+.sidebar-toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Floating sidebar */
+.sidebar {
+  position: absolute;
+  top: 4.5rem;
+  right: 1.1rem;
+  z-index: 1000;
+  width: 300px;
+  max-height: calc(100vh - 6rem);
+  background: var(--birch-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar--open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.sidebar-header {
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
   color: var(--forest);
 }
 
+.sidebar-body {
+  overflow-y: auto;
+  padding: 0.6rem;
+}
+
 .spot-card {
-  position: relative;
-  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.7rem 0.8rem;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
   cursor: pointer;
   background: #fff;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s, transform 0.15s;
 }
 
 .spot-card:hover,
@@ -127,69 +159,71 @@ body {
   transform: translateX(2px);
 }
 
-.spot-card:hover .card-contours {
-  opacity: 0.18;
-}
-
-.card-contours {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
 .spot-card h3 {
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   margin: 0 0 0.2rem;
   color: var(--forest);
-  position: relative;
 }
 
 .spot-card p {
   font-size: 0.8rem;
   color: #6b6f6a;
   margin: 0;
-  position: relative;
   line-height: 1.4;
 }
 
 .empty-state {
   font-size: 0.85rem;
   color: #8a8d87;
-  padding: 1rem 0.25rem;
+  padding: 0.75rem 0.25rem;
 }
 
-/* Map */
-.map-pane {
-  background: var(--birch-card);
+/* Bottom hint */
+.map-hint {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(255,255,255,0.92);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 0.6rem;
+  border-radius: 99px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--fjord);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Floating add-spot form */
+.floating-form {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
 }
 
 .hint {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--fjord);
-  margin: 0.1rem 0.3rem 0.6rem;
   font-weight: 500;
+  margin: 0 0 0.4rem 0.2rem;
 }
 
-#map {
-  width: 100%;
-  height: 480px;
-  border-radius: 10px;
-}
-
-/* Add spot form */
+/* Add spot form panel */
 .panel {
-  margin-top: 0.75rem;
   background: var(--birch-card);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1.1rem;
+  box-shadow: var(--shadow);
 }
 
 .panel label {
@@ -216,7 +250,7 @@ body {
 .panel textarea:focus {
   outline: none;
   border-color: var(--fjord);
-  box-shadow: 0 0 0 3px rgba(92, 138, 140, 0.15);
+  box-shadow: 0 0 0 3px rgba(92,138,140,0.15);
 }
 
 .panel .actions {
@@ -234,7 +268,7 @@ button {
   font-size: 0.88rem;
   font-weight: 500;
   color: var(--granite);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 button:hover:not(:disabled) {
@@ -272,4 +306,20 @@ button.primary:hover:not(:disabled) {
   font-family: var(--font-display);
   margin: 0 0 4px;
   color: var(--forest);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .sidebar {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+
+  .floating-form {
+    left: 0.75rem;
+    right: 0.75rem;
+    transform: none;
+    width: auto;
+  }
 }
