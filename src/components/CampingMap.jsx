@@ -93,7 +93,7 @@ export default function CampingMap() {
   return (
     <div className="map-root">
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} />
+        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
         <ClickHandler onMapClick={setPendingPosition} />
         <FlyToSpot target={activeSpot} />
         {spots.map((spot) => (
