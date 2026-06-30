@@ -4,16 +4,18 @@ import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 
+const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
+
 const LAYERS = {
+  outdoors: {
+    label: 'Outdoors',
+    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  },
   satellite: {
     label: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
-  },
-  terrain: {
-    label: 'Terrain',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }
 }
 
@@ -61,7 +63,7 @@ export default function CampingMap() {
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [layerKey, setLayerKey] = useState('satellite')
+  const [layerKey, setLayerKey] = useState('outdoors')
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -80,7 +82,7 @@ export default function CampingMap() {
 
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
-  const nextKey = layerKey === 'satellite' ? 'terrain' : 'satellite'
+  const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
 
   function handleCardClick(spot) {
     setActiveId(spot.id)
@@ -137,7 +139,7 @@ export default function CampingMap() {
           onClick={() => setLayerKey(nextKey)}
           aria-label={`Switch to ${LAYERS[nextKey].label}`}
         >
-          {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '⛰'} {LAYERS[nextKey].label}
+          {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '🗺'} {LAYERS[nextKey].label}
         </button>
       </div>
 
