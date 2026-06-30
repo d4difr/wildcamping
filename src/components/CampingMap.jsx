@@ -38,10 +38,17 @@ function makePinIcon(color = '#1b4332', dotColor = '#fff') {
 const markerIcon = makePinIcon()
 const pendingIcon = makePinIcon('#d98e04')
 
-function ClickHandler({ onMapClick }) {
+function ClickHandler({ dropMode, onMapClick }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const container = map.getContainer()
+    container.style.cursor = dropMode ? 'crosshair' : ''
+  }, [dropMode, map])
+
   useMapEvents({
     click(e) {
-      onMapClick(e.latlng)
+      if (dropMode) onMapClick(e.latlng)
     }
   })
   return null
@@ -64,6 +71,7 @@ export default function CampingMap() {
   const [activeId, setActiveId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [layerKey, setLayerKey] = useState('outdoors')
+  const [dropMode, setDropMode] = useState(false)
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -80,6 +88,17 @@ export default function CampingMap() {
     loadSpots()
   }, [])
 
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        setDropMode(false)
+        setPendingPosition(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
@@ -90,11 +109,21 @@ export default function CampingMap() {
     if (marker) marker.openPopup()
   }
 
+  function handleMapClick(latlng) {
+    setPendingPosition(latlng)
+    setDropMode(false)
+  }
+
+  function handleCancel() {
+    setPendingPosition(null)
+    setDropMode(false)
+  }
+
   return (
     <div className="map-root">
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
         <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
-        <ClickHandler onMapClick={setPendingPosition} />
+        <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
         <FlyToSpot target={activeSpot} />
         {spots.map((spot) => (
           <Marker
@@ -129,7 +158,6 @@ export default function CampingMap() {
         <button
           className="sidebar-toggle"
           onClick={() => setSidebarOpen((o) => !o)}
-          aria-label={sidebarOpen ? 'Close spots list' : 'Open spots list'}
         >
           <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
           <span>{sidebarOpen ? 'Close' : `${spots.length} spots`}</span>
@@ -137,9 +165,14 @@ export default function CampingMap() {
         <button
           className="layer-toggle"
           onClick={() => setLayerKey(nextKey)}
-          aria-label={`Switch to ${LAYERS[nextKey].label}`}
         >
           {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '🗺'} {LAYERS[nextKey].label}
+        </button>
+        <button
+          className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
+          onClick={() => { setDropMode((d) => !d); setPendingPosition(null) }}
+        >
+          {dropMode ? '✕ Cancel' : '＋ Submit a spot'}
         </button>
       </div>
 
@@ -151,7 +184,7 @@ export default function CampingMap() {
         <div className="sidebar-body">
           {loading && <p className="empty-state">Loading spots…</p>}
           {!loading && spots.length === 0 && (
-            <p className="empty-state">No approved spots yet. Click the map to submit one.</p>
+            <p className="empty-state">No approved spots yet.</p>
           )}
           {spots.map((spot) => (
             <div
@@ -166,6 +199,14 @@ export default function CampingMap() {
         </div>
       </aside>
 
+      {/* Drop mode hint */}
+      {dropMode && !pendingPosition && (
+        <div className="map-hint map-hint--active">
+          Click anywhere on the map to place your spot
+        </div>
+      )}
+
+      {/* Add spot form */}
       {pendingPosition && (
         <div className="floating-form">
           <p className="hint">
@@ -173,15 +214,9 @@ export default function CampingMap() {
           </p>
           <AddSpotForm
             position={pendingPosition}
-            onCancel={() => setPendingPosition(null)}
+            onCancel={handleCancel}
             onSaved={() => { setPendingPosition(null); loadSpots() }}
           />
-        </div>
-      )}
-
-      {!pendingPosition && (
-        <div className="map-hint">
-          Click the map to submit a wild camping spot
         </div>
       )}
     </div>
