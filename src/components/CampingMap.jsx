@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+import { useEffect, useRef, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
+import Contours from './Contours'
 
-// Default Leaflet marker icons don't load correctly with bundlers; point at CDN assets.
 const markerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -22,10 +22,22 @@ function ClickHandler({ onMapClick }) {
   return null
 }
 
+function FlyToSpot({ target }) {
+  const map = useMap()
+  useEffect(() => {
+    if (target) {
+      map.flyTo([target.latitude, target.longitude], 11, { duration: 0.8 })
+    }
+  }, [target, map])
+  return null
+}
+
 export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeId, setActiveId] = useState(null)
+  const markerRefs = useRef({})
 
   async function loadSpots() {
     setLoading(true)
@@ -41,47 +53,85 @@ export default function CampingMap() {
     loadSpots()
   }, [])
 
-  return (
-    <div>
-      <p className="hint">
-        {pendingPosition
-          ? `Pin dropped at ${pendingPosition.lat.toFixed(3)}, ${pendingPosition.lng.toFixed(3)}. Fill in details below.`
-          : loading
-          ? 'Loading spots…'
-          : 'Click anywhere on the map to drop a pin and submit a wild camping spot.'}
-      </p>
-      <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <ClickHandler onMapClick={setPendingPosition} />
-        {spots.map((spot) => (
-          <Marker key={spot.id} position={[spot.latitude, spot.longitude]} icon={markerIcon}>
-            <Popup>
-              <strong>{spot.name}</strong>
-              {spot.photo_url && (
-                <img src={spot.photo_url} alt={spot.name} className="popup-photo" />
-              )}
-              <div style={{ fontSize: '0.85rem', color: '#555' }}>{spot.description}</div>
-            </Popup>
-          </Marker>
-        ))}
-        {pendingPosition && (
-          <Marker position={pendingPosition} icon={markerIcon} opacity={0.6} />
-        )}
-      </MapContainer>
+  const activeSpot = spots.find((s) => s.id === activeId) || null
 
-      {pendingPosition && (
-        <AddSpotForm
-          position={pendingPosition}
-          onCancel={() => setPendingPosition(null)}
-          onSaved={() => {
-            setPendingPosition(null)
-            loadSpots()
-          }}
-        />
-      )}
+  function handleCardClick(spot) {
+    setActiveId(spot.id)
+    const marker = markerRefs.current[spot.id]
+    if (marker) marker.openPopup()
+  }
+
+  return (
+    <div className="layout">
+      <aside className="sidebar">
+        <h2>{spots.length} spot{spots.length === 1 ? '' : 's'}</h2>
+        {loading && <p className="empty-state">Loading spots…</p>}
+        {!loading && spots.length === 0 && (
+          <p className="empty-state">
+            No approved spots yet. Click the map to submit one.
+          </p>
+        )}
+        {spots.map((spot) => (
+          <div
+            key={spot.id}
+            className={`spot-card${activeId === spot.id ? ' active' : ''}`}
+            onClick={() => handleCardClick(spot)}
+          >
+            <Contours className="card-contours" />
+            <h3>{spot.name}</h3>
+            <p>{spot.description}</p>
+          </div>
+        ))}
+      </aside>
+
+      <div className="map-pane">
+        <p className="hint">
+          {pendingPosition
+            ? `Pin dropped at ${pendingPosition.lat.toFixed(3)}, ${pendingPosition.lng.toFixed(3)}. Fill in details below.`
+            : 'Click anywhere on the map to drop a pin and submit a wild camping spot.'}
+        </p>
+        <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <ClickHandler onMapClick={setPendingPosition} />
+          <FlyToSpot target={activeSpot} />
+          {spots.map((spot) => (
+            <Marker
+              key={spot.id}
+              position={[spot.latitude, spot.longitude]}
+              icon={markerIcon}
+              ref={(ref) => {
+                if (ref) markerRefs.current[spot.id] = ref
+              }}
+              eventHandlers={{ click: () => setActiveId(spot.id) }}
+            >
+              <Popup>
+                <h3>{spot.name}</h3>
+                {spot.photo_url && (
+                  <img src={spot.photo_url} alt={spot.name} className="popup-photo" />
+                )}
+                <div style={{ fontSize: '0.85rem', color: '#555' }}>{spot.description}</div>
+              </Popup>
+            </Marker>
+          ))}
+          {pendingPosition && (
+            <Marker position={pendingPosition} icon={markerIcon} opacity={0.6} />
+          )}
+        </MapContainer>
+
+        {pendingPosition && (
+          <AddSpotForm
+            position={pendingPosition}
+            onCancel={() => setPendingPosition(null)}
+            onSaved={() => {
+              setPendingPosition(null)
+              loadSpots()
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }

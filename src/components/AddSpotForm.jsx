@@ -46,19 +46,25 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
 
   return (
     <div className="panel">
+      <label htmlFor="spot-name">Spot name</label>
       <input
+        id="spot-name"
         type="text"
-        placeholder="Spot name (e.g. Preikestolen ridge)"
+        placeholder="e.g. Preikestolen ridge"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+      <label htmlFor="spot-desc">Why is it worth visiting?</label>
       <textarea
+        id="spot-desc"
         rows={2}
-        placeholder="Why is it worth visiting?"
+        placeholder="Flat tent spots, sweeping views, near fresh water…"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+      <label htmlFor="spot-photo">Photo (optional)</label>
       <input
+        id="spot-photo"
         type="file"
         accept="image/*"
         onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
@@ -72,7 +78,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
           Cancel
         </button>
       </div>
-      <p className="hint" style={{ marginTop: '0.5rem' }}>
+      <p className="hint" style={{ marginTop: '0.6rem' }}>
         Submitted spots are reviewed before they appear publicly.
       </p>
     </div>
