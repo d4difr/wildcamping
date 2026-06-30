@@ -72,6 +72,8 @@ export default function CampingMap() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [layerKey, setLayerKey] = useState('outdoors')
   const [dropMode, setDropMode] = useState(false)
+  const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
+  const [coordError, setCoordError] = useState('')
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -117,6 +119,22 @@ export default function CampingMap() {
   function handleCancel() {
     setPendingPosition(null)
     setDropMode(false)
+    setCoordInput({ lat: '', lng: '' })
+    setCoordError('')
+  }
+
+  function handleCoordSubmit(e) {
+    e.preventDefault()
+    const lat = parseFloat(coordInput.lat)
+    const lng = parseFloat(coordInput.lng)
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setCoordError('Enter valid coordinates (lat −90→90, lng −180→180)')
+      return
+    }
+    setPendingPosition({ lat, lng })
+    setDropMode(false)
+    setCoordInput({ lat: '', lng: '' })
+    setCoordError('')
   }
 
   return (
@@ -199,10 +217,27 @@ export default function CampingMap() {
         </div>
       </aside>
 
-      {/* Drop mode hint */}
+      {/* Drop mode panel */}
       {dropMode && !pendingPosition && (
-        <div className="map-hint map-hint--active">
-          Click anywhere on the map to place your spot
+        <div className="drop-panel">
+          <p className="drop-panel-hint">Click the map to place your spot</p>
+          <div className="drop-panel-divider"><span>or enter coordinates</span></div>
+          <form className="coord-form" onSubmit={handleCoordSubmit}>
+            <input
+              type="text"
+              placeholder="Latitude (e.g. 61.234)"
+              value={coordInput.lat}
+              onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }}
+            />
+            <input
+              type="text"
+              placeholder="Longitude (e.g. 8.567)"
+              value={coordInput.lng}
+              onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }}
+            />
+            {coordError && <p className="coord-error">{coordError}</p>}
+            <button type="submit" className="primary">Place pin</button>
+          </form>
         </div>
       )}
 

@@ -209,6 +209,74 @@ body {
   padding: 0.75rem 0.25rem;
 }
 
+/* Drop mode panel */
+.drop-panel {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+  background: var(--birch-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.drop-panel-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--forest);
+  text-align: center;
+}
+
+.drop-panel-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #aaa;
+  font-size: 0.75rem;
+}
+
+.drop-panel-divider::before,
+.drop-panel-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.coord-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.coord-form input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.88rem;
+  background: #fff;
+}
+
+.coord-form input:focus {
+  outline: none;
+  border-color: var(--fjord);
+  box-shadow: 0 0 0 3px rgba(92,138,140,0.15);
+}
+
+.coord-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #a32d2d;
+}
+
 /* Bottom hint */
 .map-hint {
   position: absolute;
