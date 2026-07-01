@@ -475,6 +475,34 @@ button.primary:hover:not(:disabled) {
   border-color: var(--amber-dark);
 }
 
+/* Campsite marker: circular tent badge + name label */
+.spot-marker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.spot-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.spot-marker-label {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #202124;
+  text-shadow: 0 1px 1px #fff, 0 -1px 1px #fff, 1px 0 1px #fff, -1px 0 1px #fff;
+}
+
 .popup-photo {
   width: 180px;
   border-radius: 6px;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
@@ -19,24 +19,46 @@ const LAYERS = {
   }
 }
 
-function makePinIcon(color = '#1b4332', dotColor = '#fff') {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-      <path d="M14 0C6.27 0 0 6.27 0 14c0 9.25 12.18 21.12 13.16 22.06a1.18 1.18 0 0 0 1.68 0C15.82 35.12 28 23.25 28 14 28 6.27 21.73 0 14 0z"
-        fill="${color}" />
-      <circle cx="14" cy="14" r="5" fill="${dotColor}" opacity="0.9" />
-    </svg>`
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ))
+}
+
+const TENT_SVG = `
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 4L22 20H2L12 4Z" fill="#fff" />
+    <path d="M12 4V20" stroke="currentColor" stroke-width="1.6" />
+    <path d="M4 20H20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+  </svg>`
+
+function makeBadgeIcon(color = '#1b4332') {
+  const html = `<span class="spot-badge" style="background:${color};color:${color}">${TENT_SVG}</span>`
   return L.divIcon({
-    html: svg,
+    html,
     className: '',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -38]
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
   })
 }
 
-const markerIcon = makePinIcon()
-const pendingIcon = makePinIcon('#d98e04')
+function makeSpotIcon(name, color = '#1b4332') {
+  const html = `
+    <span class="spot-marker">
+      <span class="spot-badge" style="background:${color};color:${color}">${TENT_SVG}</span>
+      <span class="spot-marker-label">${escapeHtml(name)}</span>
+    </span>`
+  return L.divIcon({
+    html,
+    className: '',
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
+  })
+}
+
+const markerIcon = makeBadgeIcon()
+const pendingIcon = makeBadgeIcon('#d98e04')
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -125,6 +147,12 @@ export default function CampingMap() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const spotIcons = useMemo(() => {
+    const icons = {}
+    spots.forEach((spot) => { icons[spot.id] = makeSpotIcon(spot.name) })
+    return icons
+  }, [spots])
+
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
@@ -202,7 +230,7 @@ export default function CampingMap() {
           <Marker
             key={spot.id}
             position={[spot.latitude, spot.longitude]}
-            icon={markerIcon}
+            icon={spotIcons[spot.id] || markerIcon}
             ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
             eventHandlers={{ click: () => setActiveId(spot.id) }}
           >
