@@ -13,8 +13,8 @@ create table if not exists spots (
   created_at timestamptz not null default now()
 );
 
--- Row Level Security: public can read approved spots and insert new (pending) ones,
--- but cannot read pending/rejected spots or approve their own submissions.
+-- Row Level Security: public can read approved spots and insert new ones as
+-- approved (no moderation queue for now, while the site has little traffic).
 alter table spots enable row level security;
 
 create policy "Public can read approved spots"
@@ -23,7 +23,7 @@ create policy "Public can read approved spots"
 
 create policy "Public can submit new spots"
   on spots for insert
-  with check (status = 'pending');
+  with check (status = 'approved');
 
 -- Storage bucket for photos. Create it via the Supabase dashboard
 -- (Storage > New bucket > name: spot-photos > Public bucket: on)

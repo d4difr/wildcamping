@@ -30,10 +30,12 @@ npm run dev
 Open the local URL it prints (usually http://localhost:5173).
 
 ## 4. Moderating submissions
-New spots are inserted with `status = 'pending'` and won't show on the public
-map. To approve one: open your Supabase project > Table Editor > `spots`,
-find the row, and change `status` to `approved`. (A simple admin page that
-does this in-app is a natural next step once you outgrow doing it by hand.)
+New spots are currently inserted with `status = 'approved'` and go live
+immediately — there's no review queue while the site has little traffic.
+Once that changes, switch new submissions back to `status = 'pending'` in
+`AddSpotForm.jsx` and update the `Public can submit new spots` RLS policy
+in `supabase/schema.sql` to match, then approve rows by hand in Supabase's
+Table Editor (or build an admin page for it).
 
 ## 5. Deploy
 Push this folder to a GitHub repo, then connect it to Vercel or Netlify
