@@ -132,6 +132,7 @@ export default function CampingMap() {
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
   const [coordError, setCoordError] = useState('')
+  const [coordExpanded, setCoordExpanded] = useState(false)
   const [userPosition, setUserPosition] = useState(null)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
@@ -189,6 +190,7 @@ export default function CampingMap() {
     setDropMode(false)
     setCoordInput({ lat: '', lng: '' })
     setCoordError('')
+    setCoordExpanded(false)
   }
 
   function handleLocate() {
@@ -289,7 +291,7 @@ export default function CampingMap() {
         </button>
         <button
           className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
-          onClick={() => { setDropMode((d) => !d); setPendingPosition(null) }}
+          onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
         >
           {dropMode ? '✕ Cancel' : '＋ Submit a spot'}
         </button>
@@ -337,24 +339,34 @@ export default function CampingMap() {
       {/* Drop mode panel */}
       {dropMode && !pendingPosition && (
         <div className="drop-panel">
-          <p className="drop-panel-hint">Click the map to place your spot</p>
-          <div className="drop-panel-divider"><span>or enter coordinates</span></div>
-          <form className="coord-form" onSubmit={handleCoordSubmit}>
-            <input
-              type="text"
-              placeholder="Latitude (e.g. 61.234)"
-              value={coordInput.lat}
-              onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }}
-            />
-            <input
-              type="text"
-              placeholder="Longitude (e.g. 8.567)"
-              value={coordInput.lng}
-              onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }}
-            />
-            {coordError && <p className="coord-error">{coordError}</p>}
-            <button type="submit" className="primary">Place pin</button>
-          </form>
+          <p className="drop-panel-hint">Click the map to submit a spot</p>
+          <button
+            type="button"
+            className="coord-toggle"
+            onClick={() => setCoordExpanded((e) => !e)}
+            aria-expanded={coordExpanded}
+          >
+            <span>or enter coordinates</span>
+            <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
+          </button>
+          {coordExpanded && (
+            <form className="coord-form" onSubmit={handleCoordSubmit}>
+              <input
+                type="text"
+                placeholder="Latitude (e.g. 61.234)"
+                value={coordInput.lat}
+                onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }}
+              />
+              <input
+                type="text"
+                placeholder="Longitude (e.g. 8.567)"
+                value={coordInput.lng}
+                onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }}
+              />
+              {coordError && <p className="coord-error">{coordError}</p>}
+              <button type="submit" className="primary">Place pin</button>
+            </form>
+          )}
         </div>
       )}
 
