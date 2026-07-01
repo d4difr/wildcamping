@@ -38,6 +38,17 @@ function makePinIcon(color = '#1b4332', dotColor = '#fff') {
 const markerIcon = makePinIcon()
 const pendingIcon = makePinIcon('#d98e04')
 
+const userLocationIcon = L.divIcon({
+  html: `
+    <span class="user-location-dot">
+      <span class="user-location-dot-pulse"></span>
+      <span class="user-location-dot-core"></span>
+    </span>`,
+  className: '',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
+})
+
 function ClickHandler({ dropMode, onMapClick }) {
   const map = useMap()
 
@@ -64,6 +75,16 @@ function FlyToSpot({ target }) {
   return null
 }
 
+function FlyToUser({ target }) {
+  const map = useMap()
+  useEffect(() => {
+    if (target) {
+      map.flyTo([target.lat, target.lng], 14, { duration: 0.8 })
+    }
+  }, [target, map])
+  return null
+}
+
 export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
@@ -74,6 +95,9 @@ export default function CampingMap() {
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
   const [coordError, setCoordError] = useState('')
+  const [userPosition, setUserPosition] = useState(null)
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState('')
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -121,6 +145,28 @@ export default function CampingMap() {
     setDropMode(false)
     setCoordInput({ lat: '', lng: '' })
     setCoordError('')
+  }
+
+  function handleLocate() {
+    if (!navigator.geolocation) {
+      setLocateError("Your browser doesn't support location.")
+      return
+    }
+    setLocating(true)
+    setLocateError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        setLocateError(err.code === err.PERMISSION_DENIED
+          ? 'Location permission denied.'
+          : 'Could not get your location.')
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   function handleCoordSubmit(e) {
@@ -172,6 +218,10 @@ export default function CampingMap() {
         {pendingPosition && (
           <Marker position={pendingPosition} icon={pendingIcon} />
         )}
+        {userPosition && (
+          <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />
+        )}
+        <FlyToUser target={userPosition} />
       </MapContainer>
 
       {/* Top-right controls */}
@@ -219,6 +269,22 @@ export default function CampingMap() {
           ))}
         </div>
       </aside>
+
+      {/* Locate me */}
+      {!dropMode && !pendingPosition && (
+        <div className="locate-wrap">
+          {locateError && <p className="locate-error">{locateError}</p>}
+          <button
+            className="locate-btn"
+            onClick={handleLocate}
+            disabled={locating}
+            aria-label="Show my location"
+            title="Show my location"
+          >
+            {locating ? '…' : '⌖'}
+          </button>
+        </div>
+      )}
 
       {/* Drop mode panel */}
       {dropMode && !pendingPosition && (
