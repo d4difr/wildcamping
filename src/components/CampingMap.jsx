@@ -138,7 +138,16 @@ export default function CampingMap() {
   }
 
   return (
-    <div className="map-root">
+    <div className="app-root">
+      {/* Top navigation bar */}
+      <header className="topnav">
+        <span className="topnav-logo">
+          <span className="topnav-logo-eyebrow">Norway</span>
+          <span className="topnav-logo-title">Wild Camping</span>
+        </span>
+      </header>
+
+      <div className="map-root">
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
         <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
         <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
@@ -164,12 +173,6 @@ export default function CampingMap() {
           <Marker position={pendingPosition} icon={pendingIcon} />
         )}
       </MapContainer>
-
-      {/* Floating wordmark */}
-      <div className="wordmark">
-        <span className="wordmark-eyebrow">Norway</span>
-        <span className="wordmark-title">Wild Camping</span>
-      </div>
 
       {/* Top-right controls */}
       <div className="controls">
@@ -254,6 +257,7 @@ export default function CampingMap() {
           />
         </div>
       )}
+      </div>
     </div>
   )
 }
