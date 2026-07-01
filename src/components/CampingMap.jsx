@@ -9,12 +9,12 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 const LAYERS = {
   outdoors: {
     label: 'Outdoors',
-    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
     attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   },
   satellite: {
     label: 'Satellite',
-    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
     attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }
 }
@@ -239,7 +239,7 @@ export default function CampingMap() {
 
       <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
+        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={true} />
         <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
         <FlyToSpot target={activeSpot} />
         <ZoomWatcher onZoomChange={setZoom} />
