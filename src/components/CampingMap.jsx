@@ -231,10 +231,13 @@ export default function CampingMap() {
     <div className="app-root">
       {/* Top navigation bar */}
       <header className="topnav">
-        <span className="topnav-logo">
-          <span className="topnav-logo-eyebrow">Norway</span>
-          <span className="topnav-logo-title">Wild Camping</span>
-        </span>
+        <svg className="topnav-logo" width="126" height="34" viewBox="0 0 210 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vilda">
+          <circle cx="34" cy="10" r="9" fill="#d98e04" />
+          <polygon points="22,2  42,26   2,26" fill="#f4f1ea" />
+          <polygon points="22,14 46,40  -2,40" fill="#f4f1ea" />
+          <polygon points="22,26 48,54  -4,54" fill="#f4f1ea" />
+          <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
+        </svg>
       </header>
 
       <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
