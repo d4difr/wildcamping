@@ -26,11 +26,10 @@ function escapeHtml(str) {
 }
 
 const TENT_SVG = `
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 1L15 7M15 1L9 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" />
-    <path d="M12 4L2 20M12 4L22 20" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M8.5 20L12 13L15.5 20" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M2 20.5Q12 19 22 20.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" />
+  <svg width="17" height="17" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 1L15 5M15 1L9 5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" />
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 5L22 19H2L12 5ZM12 13L15.6 19H8.4L12 13Z" fill="#fff" />
+    <rect x="1.5" y="19.6" width="21" height="1.4" rx="0.7" fill="#fff" />
   </svg>`
 
 function makeBadgeIcon(color = '#1b4332') {
