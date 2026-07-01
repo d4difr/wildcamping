@@ -32,7 +32,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         latitude: position.lat,
         longitude: position.lng,
         photo_url,
-        status: 'pending'
+        status: 'approved'
       })
       if (insertError) throw insertError
 
@@ -79,7 +79,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         </button>
       </div>
       <p className="hint" style={{ marginTop: '0.6rem' }}>
-        Submitted spots are reviewed before they appear publicly.
+        Your spot will appear on the map right away.
       </p>
     </div>
   )
