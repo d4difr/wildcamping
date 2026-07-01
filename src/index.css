@@ -219,6 +219,83 @@ body {
   padding: 0.75rem 0.25rem;
 }
 
+/* Locate me */
+.locate-wrap {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.locate-btn {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--forest);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.locate-btn:hover:not(:disabled) {
+  background: var(--birch);
+  border-color: var(--fjord);
+}
+
+.locate-error {
+  margin: 0;
+  max-width: 220px;
+  background: var(--birch-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+  color: #a32d2d;
+  box-shadow: var(--shadow);
+}
+
+/* User location dot */
+.user-location-dot {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.user-location-dot-core {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2b6cb0;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+.user-location-dot-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(43,108,176,0.35);
+  animation: user-location-pulse 1.8s ease-out infinite;
+}
+
+@keyframes user-location-pulse {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
 /* Drop mode panel */
 .drop-panel {
   position: absolute;
@@ -396,6 +473,42 @@ button.primary {
 button.primary:hover:not(:disabled) {
   background: var(--amber-dark);
   border-color: var(--amber-dark);
+}
+
+/* Campsite marker: circular tent badge + name label */
+.spot-marker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.spot-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.spot-marker-label {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #202124;
+  text-shadow: 0 1px 1px #fff, 0 -1px 1px #fff, 1px 0 1px #fff, -1px 0 1px #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.map-root.labels-visible .spot-marker-label {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .popup-photo {

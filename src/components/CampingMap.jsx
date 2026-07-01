@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
@@ -9,34 +9,67 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 const LAYERS = {
   outdoors: {
     label: 'Outdoors',
-    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
     attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   },
   satellite: {
     label: 'Satellite',
-    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=${TOKEN}`,
+    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
     attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }
 }
 
-function makePinIcon(color = '#1b4332', dotColor = '#fff') {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-      <path d="M14 0C6.27 0 0 6.27 0 14c0 9.25 12.18 21.12 13.16 22.06a1.18 1.18 0 0 0 1.68 0C15.82 35.12 28 23.25 28 14 28 6.27 21.73 0 14 0z"
-        fill="${color}" />
-      <circle cx="14" cy="14" r="5" fill="${dotColor}" opacity="0.9" />
-    </svg>`
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ))
+}
+
+const TENT_SVG = `
+  <svg width="17" height="17" viewBox="0 0 24 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 0L14 3M14 0L10 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" />
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.2L22.4 17.8H1.6L12 2.2ZM12 10.6L16.5 17.8H7.4L12 10.6Z" fill="#fff" />
+    <rect x="0" y="17.8" width="24" height="1" fill="#fff" />
+  </svg>`
+
+function makeBadgeIcon(color = '#1b4332') {
+  const html = `<span class="spot-badge" style="background:${color}">${TENT_SVG}</span>`
   return L.divIcon({
-    html: svg,
+    html,
     className: '',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -38]
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
   })
 }
 
-const markerIcon = makePinIcon()
-const pendingIcon = makePinIcon('#d98e04')
+function makeSpotIcon(name, color = '#1b4332') {
+  const html = `
+    <span class="spot-marker">
+      <span class="spot-badge" style="background:${color}">${TENT_SVG}</span>
+      <span class="spot-marker-label">${escapeHtml(name)}</span>
+    </span>`
+  return L.divIcon({
+    html,
+    className: '',
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
+  })
+}
+
+const markerIcon = makeBadgeIcon()
+const pendingIcon = makeBadgeIcon('#d98e04')
+
+const userLocationIcon = L.divIcon({
+  html: `
+    <span class="user-location-dot">
+      <span class="user-location-dot-pulse"></span>
+      <span class="user-location-dot-core"></span>
+    </span>`,
+  className: '',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
+})
 
 function ClickHandler({ dropMode, onMapClick }) {
   const map = useMap()
@@ -64,6 +97,31 @@ function FlyToSpot({ target }) {
   return null
 }
 
+function FlyToUser({ target }) {
+  const map = useMap()
+  useEffect(() => {
+    if (target) {
+      map.flyTo([target.lat, target.lng], 14, { duration: 0.8 })
+    }
+  }, [target, map])
+  return null
+}
+
+const LABEL_ZOOM_THRESHOLD = 11
+
+function ZoomWatcher({ onZoomChange }) {
+  const map = useMap()
+  useEffect(() => {
+    onZoomChange(map.getZoom())
+  }, [map, onZoomChange])
+  useMapEvents({
+    zoomend() {
+      onZoomChange(map.getZoom())
+    }
+  })
+  return null
+}
+
 export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
@@ -74,6 +132,10 @@ export default function CampingMap() {
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
   const [coordError, setCoordError] = useState('')
+  const [userPosition, setUserPosition] = useState(null)
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState('')
+  const [zoom, setZoom] = useState(5)
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -101,6 +163,12 @@ export default function CampingMap() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const spotIcons = useMemo(() => {
+    const icons = {}
+    spots.forEach((spot) => { icons[spot.id] = makeSpotIcon(spot.name) })
+    return icons
+  }, [spots])
+
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
@@ -121,6 +189,28 @@ export default function CampingMap() {
     setDropMode(false)
     setCoordInput({ lat: '', lng: '' })
     setCoordError('')
+  }
+
+  function handleLocate() {
+    if (!navigator.geolocation) {
+      setLocateError("Your browser doesn't support location.")
+      return
+    }
+    setLocating(true)
+    setLocateError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        setLocateError(err.code === err.PERMISSION_DENIED
+          ? 'Location permission denied.'
+          : 'Could not get your location.')
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   function handleCoordSubmit(e) {
@@ -147,16 +237,17 @@ export default function CampingMap() {
         </span>
       </header>
 
-      <div className="map-root">
+      <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
+        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={true} />
         <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
         <FlyToSpot target={activeSpot} />
+        <ZoomWatcher onZoomChange={setZoom} />
         {spots.map((spot) => (
           <Marker
             key={spot.id}
             position={[spot.latitude, spot.longitude]}
-            icon={markerIcon}
+            icon={spotIcons[spot.id] || markerIcon}
             ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
             eventHandlers={{ click: () => setActiveId(spot.id) }}
           >
@@ -172,6 +263,10 @@ export default function CampingMap() {
         {pendingPosition && (
           <Marker position={pendingPosition} icon={pendingIcon} />
         )}
+        {userPosition && (
+          <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />
+        )}
+        <FlyToUser target={userPosition} />
       </MapContainer>
 
       {/* Top-right controls */}
@@ -219,6 +314,22 @@ export default function CampingMap() {
           ))}
         </div>
       </aside>
+
+      {/* Locate me */}
+      {!dropMode && !pendingPosition && (
+        <div className="locate-wrap">
+          {locateError && <p className="locate-error">{locateError}</p>}
+          <button
+            className="locate-btn"
+            onClick={handleLocate}
+            disabled={locating}
+            aria-label="Show my location"
+            title="Show my location"
+          >
+            {locating ? '…' : '⌖'}
+          </button>
+        </div>
+      )}
 
       {/* Drop mode panel */}
       {dropMode && !pendingPosition && (
