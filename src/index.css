@@ -429,4 +429,12 @@ button.primary:hover:not(:disabled) {
     transform: none;
     width: auto;
   }
+
+  /* Move the Leaflet zoom control out from under the top toolbar,
+     tucking it under the "Submit a spot" button on the right instead. */
+  .leaflet-top.leaflet-left {
+    top: 5.6rem;
+    left: auto;
+    right: 0.75rem;
+  }
 }
