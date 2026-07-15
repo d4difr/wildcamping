@@ -311,7 +311,7 @@ export default function CampingMap() {
       <div className="main-area">
         {/* Sidebar collapse button — lives outside the sidebar so it's never clipped */}
         <button
-          className="sidebar-collapse-btn"
+          className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
           style={{ left: sidebarOpen ? 300 : 0 }}
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
