@@ -98,7 +98,8 @@ function FlyToSpot({ target }) {
   const map = useMap()
   useEffect(() => {
     if (target) {
-      map.flyTo([target.latitude, target.longitude], 11, { duration: 0.8 })
+      const currentZoom = map.getZoom()
+      map.flyTo([target.latitude, target.longitude], Math.max(currentZoom, 11), { duration: 0.8 })
     }
   }, [target, map])
   return null
@@ -204,11 +205,13 @@ export default function CampingMap() {
   }, [spots])
 
   const activeSpot = spots.find((s) => s.id === activeId) || null
+  const [flyTarget, setFlyTarget] = useState(null)
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
 
   function handleCardClick(spot) {
     setActiveId(spot.id)
+    setFlyTarget(spot)
     const marker = markerRefs.current[spot.id]
     if (marker) marker.openPopup()
   }
@@ -279,7 +282,7 @@ export default function CampingMap() {
       <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
         <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={true} />
         <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
-        <FlyToSpot target={activeSpot} />
+        <FlyToSpot target={flyTarget} />
         <ZoomWatcher onZoomChange={setZoom} />
         {spots.map((spot) => (
           <Marker
