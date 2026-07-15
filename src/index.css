@@ -286,6 +286,84 @@ body {
 .access-badge--remote     { background: #fce4ec; color: #880e4f; }
 .access-badge--type-tent    { background: #e8f5e9; color: #1b4332; }
 .access-badge--type-hammock { background: #fdf3e3; color: #5c4a1e; }
+.access-badge--region     { background: #e8eaf6; color: #283593; }
+
+/* Filter panel */
+.filter-panel {
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.filter-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+}
+
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filter-pill {
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--granite);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.filter-pill:hover {
+  border-color: var(--fjord);
+}
+
+.filter-pill--on {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fff;
+}
+
+.filter-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--fjord);
+}
+
+.filter-clear {
+  align-self: flex-start;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  color: #a32d2d;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.filter-clear:hover {
+  background: #fce4ec;
+  border-color: #e57373;
+  color: #a32d2d;
+}
 
 /* Spot type toggle in form */
 .spot-type-toggle {

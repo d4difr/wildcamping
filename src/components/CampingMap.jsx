@@ -122,6 +122,9 @@ function SpotBadges({ spot }) {
       {spot.access && (
         <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>
       )}
+      {spot.region && (
+        <span className="access-badge access-badge--region">📍 {spot.region}</span>
+      )}
     </div>
   )
 }
@@ -158,6 +161,7 @@ export default function CampingMap() {
   })
   const [flyTarget, setFlyTarget] = useState(null)
   const [layerKey, setLayerKey] = useState('outdoors')
+  const [filters, setFilters] = useState({ types: [], access: [], regions: [] })
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
   const [coordError, setCoordError] = useState('')
@@ -209,6 +213,29 @@ export default function CampingMap() {
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
+
+  const allRegions = useMemo(() => {
+    const set = new Set(spots.map((s) => s.region).filter(Boolean))
+    return [...set].sort()
+  }, [spots])
+
+  const filteredSpots = useMemo(() => {
+    return spots.filter((s) => {
+      if (filters.types.length && !filters.types.includes(s.spot_type || 'tent')) return false
+      if (filters.access.length && !filters.access.includes(s.access)) return false
+      if (filters.regions.length && !filters.regions.includes(s.region)) return false
+      return true
+    })
+  }, [spots, filters])
+
+  function toggleFilter(key, value) {
+    setFilters((f) => {
+      const arr = f[key]
+      return { ...f, [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] }
+    })
+  }
+
+  const hasFilters = filters.types.length || filters.access.length || filters.regions.length
 
   function openSpot(spot, fly = false) {
     setActiveId(spot.id)
@@ -288,13 +315,58 @@ export default function CampingMap() {
           ) : (
             <>
               <div className="sidebar-header">
-                <h2>{loading ? 'Loading…' : `${spots.length} spot${spots.length === 1 ? '' : 's'}`}</h2>
+                <h2>
+                  {loading ? 'Loading…' : `${filteredSpots.length} spot${filteredSpots.length === 1 ? '' : 's'}`}
+                  {hasFilters ? <span className="filter-count"> · filtered</span> : null}
+                </h2>
               </div>
-              <div className="sidebar-body">
-                {!loading && spots.length === 0 && (
-                  <p className="empty-state">No spots yet. Submit the first one!</p>
+
+              {/* Filters */}
+              <div className="filter-panel">
+                <div className="filter-group">
+                  <span className="filter-label">Type</span>
+                  <div className="filter-pills">
+                    {['tent', 'hammock'].map((t) => (
+                      <button key={t} className={`filter-pill${filters.types.includes(t) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('types', t)}>
+                        {t === 'tent' ? '⛺ Tent' : '🪢 Hammock'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="filter-group">
+                  <span className="filter-label">Access</span>
+                  <div className="filter-pills">
+                    {['road', 'short-hike', 'day-hike', 'remote'].map((a) => (
+                      <button key={a} className={`filter-pill${filters.access.includes(a) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('access', a)}>
+                        {ACCESS_LABELS[a]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {allRegions.length > 0 && (
+                  <div className="filter-group">
+                    <span className="filter-label">Region</span>
+                    <div className="filter-pills">
+                      {allRegions.map((r) => (
+                        <button key={r} className={`filter-pill${filters.regions.includes(r) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('regions', r)}>
+                          📍 {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-                {spots.map((spot) => (
+                {hasFilters && (
+                  <button className="filter-clear" onClick={() => setFilters({ types: [], access: [], regions: [] })}>
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              <div className="sidebar-body">
+                {!loading && filteredSpots.length === 0 && (
+                  <p className="empty-state">{spots.length === 0 ? 'No spots yet. Submit the first one!' : 'No spots match your filters.'}</p>
+                )}
+                {filteredSpots.map((spot) => (
                   <div key={spot.id} className="spot-card">
                     <h3>{spot.name}</h3>
                     <SpotBadges spot={spot} />
