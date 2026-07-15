@@ -103,7 +103,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
       if (insertError) throw insertError
       onSaved()
     } catch (err) {
-      setError(err.message || 'Something went wrong saving this spot.')
+      setError(err.message || 'Something went wrong saving this camp.')
     } finally {
       setSaving(false)
     }
@@ -120,7 +120,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         </button>
       </div>
 
-      <label htmlFor="spot-name">Spot name</label>
+      <label htmlFor="spot-name">Camp name</label>
       <input id="spot-name" type="text" placeholder="e.g. Preikestolen ridge" value={name} onChange={(e) => setName(e.target.value)} />
 
       <label htmlFor="spot-desc">Why is it worth visiting?</label>
@@ -162,10 +162,10 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
 
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
       <div className="actions">
-        <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Save spot'}</button>
+        <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Save camp'}</button>
         <button onClick={onCancel} disabled={saving}>Cancel</button>
       </div>
-      <p className="hint" style={{ marginTop: '0.6rem' }}>Your spot will appear on the map right away.</p>
+      <p className="hint" style={{ marginTop: '0.6rem' }}>Your camp will appear on the map right away.</p>
     </div>
   )
 }

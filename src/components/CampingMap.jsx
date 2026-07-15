@@ -374,7 +374,7 @@ export default function CampingMap() {
 
               <div className="sidebar-body">
                 {!loading && filteredSpots.length === 0 && (
-                  <p className="empty-state">{spots.length === 0 ? 'No spots yet. Submit the first one!' : 'No spots match your filters.'}</p>
+                  <p className="empty-state">{spots.length === 0 ? 'No camps yet. Add the first one!' : 'No camps match your filters.'}</p>
                 )}
                 {filteredSpots.map((spot) => (
                   <div key={spot.id} className="spot-card">
@@ -426,7 +426,7 @@ export default function CampingMap() {
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
               onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
             >
-              {dropMode ? '✕ Cancel' : '＋ Submit a spot'}
+              {dropMode ? '✕ Cancel' : '＋ Add a camp'}
             </button>
           </div>
 
@@ -443,7 +443,7 @@ export default function CampingMap() {
           {/* Drop mode panel */}
           {dropMode && !pendingPosition && (
             <div className="drop-panel">
-              <p className="drop-panel-hint">Click the map to submit a spot</p>
+              <p className="drop-panel-hint">Click the map to place your camp</p>
               <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
                 <span>or enter coordinates</span>
                 <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
