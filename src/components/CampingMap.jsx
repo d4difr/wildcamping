@@ -316,7 +316,10 @@ export default function CampingMap() {
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          {sidebarOpen ? '‹' : '›'}
+          {sidebarOpen
+            ? <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="8,2 2,8 8,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            : <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="2,2 8,8 2,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          }
         </button>
 
         {/* Left sidebar */}
