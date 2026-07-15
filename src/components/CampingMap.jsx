@@ -292,9 +292,16 @@ export default function CampingMap() {
             <Popup>
               <h3>{spot.name}</h3>
               {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
-              {spot.photo_url && (
-                <img src={spot.photo_url} alt={spot.name} className="popup-photo" />
-              )}
+              {(() => {
+                const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
+                return photos.length > 0 && (
+                  <div className="popup-photo-strip">
+                    {photos.map((url, i) => (
+                      <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="popup-photo" />
+                    ))}
+                  </div>
+                )
+              })()}
               <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.3rem' }}>{spot.description}</div>
             </Popup>
           </Marker>

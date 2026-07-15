@@ -9,38 +9,54 @@ const ACCESS_OPTIONS = [
   { value: 'remote', label: '🏔 Remote (3 hr+)' },
 ]
 
+const MAX_PHOTOS = 3
+
 export default function AddSpotForm({ position, onCancel, onSaved }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [access, setAccess] = useState('')
-  const [photoFile, setPhotoFile] = useState(null)
+  const [photoFiles, setPhotoFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  function handleFileChange(e) {
+    const selected = Array.from(e.target.files || []).slice(0, MAX_PHOTOS)
+    setPhotoFiles(selected)
+    e.target.value = ''
+  }
+
+  function removePhoto(index) {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  async function uploadPhoto(file) {
+    const fileExt = file.name.split('.').pop()
+    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+    const { error: uploadError } = await supabase.storage
+      .from('spot-photos')
+      .upload(filePath, file)
+    if (uploadError) throw uploadError
+    const { data } = supabase.storage.from('spot-photos').getPublicUrl(filePath)
+    return data.publicUrl
+  }
 
   async function handleSave() {
     if (!name.trim()) return
     setSaving(true)
     setError('')
 
-    let photo_url = null
     try {
-      if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop()
-        const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
-        const { error: uploadError } = await supabase.storage
-          .from('spot-photos')
-          .upload(filePath, photoFile)
-        if (uploadError) throw uploadError
-        const { data } = supabase.storage.from('spot-photos').getPublicUrl(filePath)
-        photo_url = data.publicUrl
-      }
+      const photo_urls = photoFiles.length
+        ? await Promise.all(photoFiles.map(uploadPhoto))
+        : []
 
       const { error: insertError } = await supabase.from('spots').insert({
         name: name.trim(),
         description: description.trim(),
         latitude: position.lat,
         longitude: position.lng,
-        photo_url,
+        photo_url: photo_urls[0] || null,
+        photo_urls,
         access: access || null,
         status: 'approved'
       })
@@ -82,13 +98,38 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <label htmlFor="spot-photo">Photo (optional)</label>
-      <input
-        id="spot-photo"
-        type="file"
-        accept="image/*"
-        onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-      />
+
+      <label>
+        Photos (optional, up to {MAX_PHOTOS})
+      </label>
+      {photoFiles.length < MAX_PHOTOS && (
+        <label className="photo-upload-btn">
+          + Add photo
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+        </label>
+      )}
+      {photoFiles.length > 0 && (
+        <div className="photo-preview-strip">
+          {photoFiles.map((file, i) => (
+            <div key={i} className="photo-preview-item">
+              <img src={URL.createObjectURL(file)} alt="" />
+              <button
+                type="button"
+                className="photo-remove-btn"
+                onClick={() => removePhoto(i)}
+                aria-label="Remove photo"
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
       <div className="actions">
         <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>
