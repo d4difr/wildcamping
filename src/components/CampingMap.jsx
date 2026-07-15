@@ -314,15 +314,16 @@ export default function CampingMap() {
             <SpotDetail spot={activeSpot} onBack={handleBack} />
           ) : (
             <>
-              <div className="sidebar-header">
-                <h2>
-                  {loading ? 'Loading…' : `${filteredSpots.length} spot${filteredSpots.length === 1 ? '' : 's'}`}
-                  {hasFilters ? <span className="filter-count"> · filtered</span> : null}
-                </h2>
-              </div>
-
               {/* Filters */}
               <div className="filter-panel">
+                <div className="filter-panel-header">
+                  <span className="filter-panel-title">Filters</span>
+                  {hasFilters && (
+                    <button className="filter-clear" onClick={() => setFilters({ types: [], access: [], regions: [] })}>
+                      Clear all
+                    </button>
+                  )}
+                </div>
                 <div className="filter-group">
                   <span className="filter-label">Type</span>
                   <div className="filter-pills">
@@ -343,23 +344,17 @@ export default function CampingMap() {
                     ))}
                   </div>
                 </div>
-                {allRegions.length > 0 && (
-                  <div className="filter-group">
-                    <span className="filter-label">Region</span>
-                    <div className="filter-pills">
-                      {allRegions.map((r) => (
-                        <button key={r} className={`filter-pill${filters.regions.includes(r) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('regions', r)}>
-                          📍 {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {hasFilters && (
-                  <button className="filter-clear" onClick={() => setFilters({ types: [], access: [], regions: [] })}>
-                    Clear filters
-                  </button>
-                )}
+                <div className="filter-group">
+                  <span className="filter-label">Region</span>
+                  <select
+                    className="filter-region-select"
+                    value={filters.regions[0] || ''}
+                    onChange={(e) => setFilters((f) => ({ ...f, regions: e.target.value ? [e.target.value] : [] }))}
+                  >
+                    <option value="">All regions</option>
+                    {allRegions.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div className="sidebar-body">
