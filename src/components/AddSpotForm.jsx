@@ -1,9 +1,18 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 
+const ACCESS_OPTIONS = [
+  { value: '', label: 'Select access type…' },
+  { value: 'road', label: '🚗 Road access' },
+  { value: 'short-hike', label: '🥾 Short hike (< 1 hr)' },
+  { value: 'day-hike', label: '⛰ Day hike (1–3 hr)' },
+  { value: 'remote', label: '🏔 Remote (3 hr+)' },
+]
+
 export default function AddSpotForm({ position, onCancel, onSaved }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [access, setAccess] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -32,6 +41,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         latitude: position.lat,
         longitude: position.lng,
         photo_url,
+        access: access || null,
         status: 'approved'
       })
       if (insertError) throw insertError
@@ -62,6 +72,16 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+      <label htmlFor="spot-access">Access</label>
+      <select
+        id="spot-access"
+        value={access}
+        onChange={(e) => setAccess(e.target.value)}
+      >
+        {ACCESS_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
       <label htmlFor="spot-photo">Photo (optional)</label>
       <input
         id="spot-photo"

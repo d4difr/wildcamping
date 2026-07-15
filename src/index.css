@@ -195,6 +195,22 @@ body {
   line-height: 1.4;
 }
 
+.access-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  margin-bottom: 0.35rem;
+  background: #eef2ee;
+  color: var(--forest);
+}
+
+.access-badge--road      { background: #e8f5e9; color: #2e7d32; }
+.access-badge--short-hike { background: #fff8e1; color: #f57f17; }
+.access-badge--day-hike  { background: #fff3e0; color: #e65100; }
+.access-badge--remote    { background: #fce4ec; color: #880e4f; }
+
 .empty-state {
   font-size: 0.85rem;
   color: #8a8d87;
@@ -414,6 +430,7 @@ body {
   margin: 0 0 0.3rem;
 }
 
+.panel select,
 .panel input,
 .panel textarea {
   width: 100%;
@@ -426,6 +443,7 @@ body {
   background: #fff;
 }
 
+.panel select:focus,
 .panel input:focus,
 .panel textarea:focus {
   outline: none;

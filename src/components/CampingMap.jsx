@@ -6,6 +6,13 @@ import AddSpotForm from './AddSpotForm'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
+const ACCESS_LABELS = {
+  'road': '🚗 Road access',
+  'short-hike': '🥾 Short hike',
+  'day-hike': '⛰ Day hike',
+  'remote': '🏔 Remote',
+}
+
 const LAYERS = {
   outdoors: {
     label: 'Outdoors',
@@ -126,7 +133,10 @@ export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeId, setActiveId] = useState(null)
+  const [activeId, setActiveId] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('spot') || null
+  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [layerKey, setLayerKey] = useState('outdoors')
   const [dropMode, setDropMode] = useState(false)
@@ -145,13 +155,36 @@ export default function CampingMap() {
       .from('spots')
       .select('*')
       .eq('status', 'approved')
-    if (!error && data) setSpots(data)
+    if (!error && data) {
+      setSpots(data)
+      // If URL had ?spot=id, open that spot once data arrives
+      const params = new URLSearchParams(window.location.search)
+      const spotId = params.get('spot')
+      if (spotId) {
+        const spot = data.find((s) => String(s.id) === spotId)
+        if (spot) {
+          setActiveId(spot.id)
+          setSidebarOpen(true)
+        }
+      }
+    }
     setLoading(false)
   }
 
   useEffect(() => {
     loadSpots()
   }, [])
+
+  // Sync activeId → URL
+  useEffect(() => {
+    const url = new URL(window.location)
+    if (activeId) {
+      url.searchParams.set('spot', activeId)
+    } else {
+      url.searchParams.delete('spot')
+    }
+    window.history.replaceState({}, '', url)
+  }, [activeId])
 
   useEffect(() => {
     function onKey(e) {
@@ -258,10 +291,11 @@ export default function CampingMap() {
           >
             <Popup>
               <h3>{spot.name}</h3>
+              {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
               {spot.photo_url && (
                 <img src={spot.photo_url} alt={spot.name} className="popup-photo" />
               )}
-              <div style={{ fontSize: '0.85rem', color: '#555' }}>{spot.description}</div>
+              <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.3rem' }}>{spot.description}</div>
             </Popup>
           </Marker>
         ))}
@@ -314,6 +348,7 @@ export default function CampingMap() {
               onClick={() => handleCardClick(spot)}
             >
               <h3>{spot.name}</h3>
+              {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
               <p>{spot.description}</p>
             </div>
           ))}
