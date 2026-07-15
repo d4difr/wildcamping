@@ -171,6 +171,15 @@ export default function CampingMap() {
   const [locateError, setLocateError] = useState('')
   const [zoom, setZoom] = useState(5)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [editingCamp, setEditingCamp] = useState(null)
+  const [ownerToken] = useState(() => {
+    let token = localStorage.getItem('vilda_owner_token')
+    if (!token) {
+      token = crypto.randomUUID()
+      localStorage.setItem('vilda_owner_token', token)
+    }
+    return token
+  })
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -256,6 +265,14 @@ export default function CampingMap() {
   function handleBack() {
     setActiveId(null)
     setFlyTarget(null)
+    setEditingCamp(null)
+  }
+
+  async function handleDelete(camp) {
+    if (!window.confirm(`Delete "${camp.name}"? This cannot be undone.`)) return
+    await supabase.from('spots').delete().eq('id', camp.id).eq('owner_token', ownerToken)
+    setActiveId(null)
+    loadSpots()
   }
 
   function handleMapClick(latlng) {
@@ -325,8 +342,26 @@ export default function CampingMap() {
         {/* Left sidebar */}
         <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
           <div className="sidebar-inner">
-          {activeSpot ? (
-            <SpotDetail spot={activeSpot} onBack={handleBack} />
+          {editingCamp ? (
+            <div className="spot-detail" style={{ padding: '0.75rem' }}>
+              <AddSpotForm
+                position={{ lat: editingCamp.latitude, lng: editingCamp.longitude }}
+                camp={editingCamp}
+                ownerToken={ownerToken}
+                onCancel={() => setEditingCamp(null)}
+                onSaved={() => { setEditingCamp(null); loadSpots() }}
+              />
+            </div>
+          ) : activeSpot ? (
+            <>
+              <SpotDetail spot={activeSpot} onBack={handleBack} />
+              {activeSpot.owner_token === ownerToken && (
+                <div className="owner-actions">
+                  <button className="owner-btn owner-btn--edit" onClick={() => setEditingCamp(activeSpot)}>✏️ Edit</button>
+                  <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(activeSpot)}>🗑 Delete</button>
+                </div>
+              )}
+            </>
           ) : (
             <>
               {/* Filters */}
@@ -380,9 +415,15 @@ export default function CampingMap() {
                   <div key={spot.id} className="spot-card">
                     <h3>{spot.name}</h3>
                     <SpotBadges spot={spot} />
-                    <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>
-                      See more →
-                    </button>
+                    <div className="spot-card-footer">
+                      <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>See more →</button>
+                      {spot.owner_token === ownerToken && (
+                        <div className="owner-actions owner-actions--inline">
+                          <button className="owner-btn owner-btn--edit" onClick={() => { setEditingCamp(spot); setActiveId(null) }}>✏️</button>
+                          <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(spot)}>🗑</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -467,6 +508,7 @@ export default function CampingMap() {
               <p className="hint">Pin at {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
               <AddSpotForm
                 position={pendingPosition}
+                ownerToken={ownerToken}
                 onCancel={handleCancel}
                 onSaved={() => { setPendingPosition(null); loadSpots() }}
               />

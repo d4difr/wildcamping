@@ -481,6 +481,48 @@ body {
   background: #fdf3e3;
 }
 
+.spot-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.owner-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.owner-actions--inline {
+  padding: 0;
+  border-top: none;
+}
+
+.owner-btn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.owner-btn--edit:hover {
+  background: #e8f5e9;
+  border-color: var(--forest);
+  color: var(--forest);
+}
+
+.owner-btn--delete:hover {
+  background: #fce4ec;
+  border-color: #c62828;
+  color: #c62828;
+}
+
 .empty-state {
   font-size: 0.85rem;
   color: #8a8d87;

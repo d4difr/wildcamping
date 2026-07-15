@@ -37,23 +37,29 @@ async function detectRegion(lat, lng) {
   return data.features?.[0]?.text || null
 }
 
-export default function AddSpotForm({ position, onCancel, onSaved }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [spotType, setSpotType] = useState('tent')
-  const [access, setAccess] = useState('')
-  const [region, setRegion] = useState('')
+// position: { lat, lng } — required for new camps, optional for edits
+// camp: existing camp object — set when editing
+// ownerToken: the device's localStorage token
+export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSaved }) {
+  const isEditing = !!camp
+
+  const [name, setName] = useState(camp?.name || '')
+  const [description, setDescription] = useState(camp?.description || '')
+  const [spotType, setSpotType] = useState(camp?.spot_type || 'tent')
+  const [access, setAccess] = useState(camp?.access || '')
+  const [region, setRegion] = useState(camp?.region || '')
   const [regionLoading, setRegionLoading] = useState(false)
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState(camp?.photo_urls || [])
   const [photoFiles, setPhotoFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (isEditing) return // region already set from camp data
     setRegionLoading(true)
     detectRegion(position.lat, position.lng)
       .then((detected) => {
         if (!detected) return
-        // Find closest match in our list (case-insensitive substring)
         const match = REGIONS.find((r) => r.toLowerCase() === detected.toLowerCase())
           || REGIONS.find((r) => r.toLowerCase().includes(detected.toLowerCase()))
           || REGIONS.find((r) => detected.toLowerCase().includes(r.toLowerCase()))
@@ -61,16 +67,21 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
       })
       .catch(() => setRegion(''))
       .finally(() => setRegionLoading(false))
-  }, [position.lat, position.lng])
+  }, [position?.lat, position?.lng, isEditing])
 
   function handleFileChange(e) {
     const incoming = Array.from(e.target.files || [])
-    setPhotoFiles((prev) => [...prev, ...incoming].slice(0, MAX_PHOTOS))
+    const totalAllowed = MAX_PHOTOS - existingPhotoUrls.length
+    setPhotoFiles((prev) => [...prev, ...incoming].slice(0, totalAllowed))
     e.target.value = ''
   }
 
-  function removePhoto(index) {
+  function removeNewPhoto(index) {
     setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function removeExistingPhoto(index) {
+    setExistingPhotoUrls((prev) => prev.filter((_, i) => i !== index))
   }
 
   async function uploadPhoto(file) {
@@ -87,20 +98,40 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
     setSaving(true)
     setError('')
     try {
-      const photo_urls = photoFiles.length ? await Promise.all(photoFiles.map(uploadPhoto)) : []
-      const { error: insertError } = await supabase.from('spots').insert({
-        name: name.trim(),
-        description: description.trim(),
-        latitude: position.lat,
-        longitude: position.lng,
-        photo_url: photo_urls[0] || null,
-        photo_urls,
-        spot_type: spotType,
-        access: access || null,
-        region: region || null,
-        status: 'approved'
-      })
-      if (insertError) throw insertError
+      const newUrls = photoFiles.length ? await Promise.all(photoFiles.map(uploadPhoto)) : []
+      const photo_urls = [...existingPhotoUrls, ...newUrls]
+
+      if (isEditing) {
+        const { error: updateError } = await supabase
+          .from('spots')
+          .update({
+            name: name.trim(),
+            description: description.trim(),
+            photo_url: photo_urls[0] || null,
+            photo_urls,
+            spot_type: spotType,
+            access: access || null,
+            region: region || null,
+          })
+          .eq('id', camp.id)
+          .eq('owner_token', ownerToken)
+        if (updateError) throw updateError
+      } else {
+        const { error: insertError } = await supabase.from('spots').insert({
+          name: name.trim(),
+          description: description.trim(),
+          latitude: position.lat,
+          longitude: position.lng,
+          photo_url: photo_urls[0] || null,
+          photo_urls,
+          spot_type: spotType,
+          access: access || null,
+          region: region || null,
+          status: 'approved',
+          owner_token: ownerToken,
+        })
+        if (insertError) throw insertError
+      }
       onSaved()
     } catch (err) {
       setError(err.message || 'Something went wrong saving this camp.')
@@ -109,8 +140,12 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
     }
   }
 
+  const totalPhotos = existingPhotoUrls.length + photoFiles.length
+
   return (
     <div className="panel">
+      {isEditing && <p className="hint" style={{ marginBottom: '0.6rem' }}>Editing: <strong>{camp.name}</strong></p>}
+
       <div className="spot-type-toggle">
         <button type="button" className={`spot-type-btn${spotType === 'tent' ? ' spot-type-btn--active' : ''}`} onClick={() => setSpotType('tent')}>
           ⛺ Tent
@@ -132,40 +167,52 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
       </select>
 
       <label htmlFor="spot-region">Region</label>
-      <select
-        id="spot-region"
-        value={region}
-        onChange={(e) => setRegion(e.target.value)}
-        disabled={regionLoading}
-      >
+      <select id="spot-region" value={region} onChange={(e) => setRegion(e.target.value)} disabled={regionLoading}>
         <option value="">{regionLoading ? 'Detecting…' : 'Select region…'}</option>
         {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
       </select>
 
       <label>Photos (optional, up to {MAX_PHOTOS})</label>
-      {photoFiles.length < MAX_PHOTOS && (
-        <label className="photo-upload-btn">
-          + Add photo
-          <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
-        </label>
-      )}
-      {photoFiles.length > 0 && (
+
+      {/* Existing photos (edit mode) */}
+      {existingPhotoUrls.length > 0 && (
         <div className="photo-preview-strip">
-          {photoFiles.map((file, i) => (
-            <div key={i} className="photo-preview-item">
-              <img src={URL.createObjectURL(file)} alt="" />
-              <button type="button" className="photo-remove-btn" onClick={() => removePhoto(i)} aria-label="Remove photo">✕</button>
+          {existingPhotoUrls.map((url, i) => (
+            <div key={url} className="photo-preview-item">
+              <img src={url} alt="" />
+              <button type="button" className="photo-remove-btn" onClick={() => removeExistingPhoto(i)} aria-label="Remove photo">✕</button>
             </div>
           ))}
         </div>
       )}
 
+      {/* New photos being added */}
+      {photoFiles.length > 0 && (
+        <div className="photo-preview-strip">
+          {photoFiles.map((file, i) => (
+            <div key={i} className="photo-preview-item">
+              <img src={URL.createObjectURL(file)} alt="" />
+              <button type="button" className="photo-remove-btn" onClick={() => removeNewPhoto(i)} aria-label="Remove photo">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {totalPhotos < MAX_PHOTOS && (
+        <label className="photo-upload-btn">
+          + Add photo
+          <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
+        </label>
+      )}
+
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
       <div className="actions">
-        <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Save camp'}</button>
+        <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>
+          {saving ? 'Saving…' : isEditing ? 'Update camp' : 'Save camp'}
+        </button>
         <button onClick={onCancel} disabled={saving}>Cancel</button>
       </div>
-      <p className="hint" style={{ marginTop: '0.6rem' }}>Your camp will appear on the map right away.</p>
+      {!isEditing && <p className="hint" style={{ marginTop: '0.6rem' }}>Your camp will appear on the map right away.</p>}
     </div>
   )
 }
