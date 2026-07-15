@@ -314,6 +314,7 @@ export default function CampingMap() {
           <button className="sidebar-collapse-btn" onClick={() => setSidebarOpen((o) => !o)} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
             {sidebarOpen ? '‹' : '›'}
           </button>
+          <div className="sidebar-inner">
           {activeSpot ? (
             <SpotDetail spot={activeSpot} onBack={handleBack} />
           ) : (
@@ -377,6 +378,7 @@ export default function CampingMap() {
               </div>
             </>
           )}
+          </div>
         </aside>
 
         {/* Map */}

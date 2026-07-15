@@ -59,7 +59,7 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   z-index: 10;
   position: relative;
   transition: width 0.2s ease;
@@ -70,8 +70,16 @@ body {
   border-right: none;
 }
 
-.left-sidebar--collapsed > *:not(.sidebar-collapse-btn) {
-  display: none;
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  width: 300px;
+}
+
+.left-sidebar--collapsed .sidebar-inner {
+  visibility: hidden;
 }
 
 .sidebar-collapse-btn {
