@@ -84,10 +84,10 @@ body {
 }
 
 .sidebar-collapse-btn {
-  position: absolute;
-  top: 50%;
+  position: fixed;
+  top: calc(3.5rem + (100vh - 3.5rem) / 2);
   transform: translateY(-50%) translateX(-50%);
-  z-index: 100;
+  z-index: 2000;
   width: 28px;
   height: 28px;
   padding: 0;
