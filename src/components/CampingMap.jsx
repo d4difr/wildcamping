@@ -39,8 +39,22 @@ const TENT_SVG = `
     <rect x="0" y="17.8" width="24" height="1" fill="#fff" />
   </svg>`
 
-function makeBadgeIcon(color = '#1b4332') {
-  const html = `<span class="spot-badge" style="background:${color}">${TENT_SVG}</span>`
+const HAMMOCK_SVG = `
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <line x1="4" y1="3" x2="4" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="20" y1="3" x2="20" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M4 9 Q12 18 20 9" stroke="#fff" stroke-width="2" fill="#fff" fill-opacity="0.25" stroke-linecap="round"/>
+    <line x1="4" y1="7.5" x2="8" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="20" y1="7.5" x2="16" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`
+
+const SPOT_ICONS = { tent: TENT_SVG, hammock: HAMMOCK_SVG }
+const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
+
+function makeBadgeIcon(type = 'tent', color) {
+  const bg = color ?? SPOT_COLORS[type] ?? SPOT_COLORS.tent
+  const svg = SPOT_ICONS[type] ?? TENT_SVG
+  const html = `<span class="spot-badge" style="background:${bg}">${svg}</span>`
   return L.divIcon({
     html,
     className: '',
@@ -50,10 +64,12 @@ function makeBadgeIcon(color = '#1b4332') {
   })
 }
 
-function makeSpotIcon(name, color = '#1b4332') {
+function makeSpotIcon(name, type = 'tent') {
+  const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
+  const svg = SPOT_ICONS[type] ?? TENT_SVG
   const html = `
     <span class="spot-marker">
-      <span class="spot-badge" style="background:${color}">${TENT_SVG}</span>
+      <span class="spot-badge" style="background:${bg}">${svg}</span>
       <span class="spot-marker-label">${escapeHtml(name)}</span>
     </span>`
   return L.divIcon({
@@ -64,8 +80,7 @@ function makeSpotIcon(name, color = '#1b4332') {
   })
 }
 
-const markerIcon = makeBadgeIcon()
-const pendingIcon = makeBadgeIcon('#d98e04')
+const pendingIcon = makeBadgeIcon('tent', '#d98e04')
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -200,7 +215,7 @@ export default function CampingMap() {
 
   const spotIcons = useMemo(() => {
     const icons = {}
-    spots.forEach((spot) => { icons[spot.id] = makeSpotIcon(spot.name) })
+    spots.forEach((spot) => { icons[spot.id] = makeSpotIcon(spot.name, spot.spot_type) })
     return icons
   }, [spots])
 
@@ -294,7 +309,12 @@ export default function CampingMap() {
           >
             <Popup>
               <h3>{spot.name}</h3>
-              {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
+                <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
+                  {spot.spot_type === 'hammock' ? '🪢 Hammock spot' : '⛺ Tent spot'}
+                </span>
+                {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+              </div>
               {(() => {
                 const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
                 return photos.length > 0 && (
@@ -358,7 +378,12 @@ export default function CampingMap() {
               onClick={() => handleCardClick(spot)}
             >
               <h3>{spot.name}</h3>
-              {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
+                <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
+                  {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
+                </span>
+                {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+              </div>
               <p>{spot.description}</p>
             </div>
           ))}

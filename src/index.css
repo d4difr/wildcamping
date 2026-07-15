@@ -201,15 +201,49 @@ body {
   font-weight: 600;
   padding: 0.15rem 0.5rem;
   border-radius: 99px;
-  margin-bottom: 0.35rem;
   background: #eef2ee;
   color: var(--forest);
 }
 
-.access-badge--road      { background: #e8f5e9; color: #2e7d32; }
+.access-badge--road       { background: #e8f5e9; color: #2e7d32; }
 .access-badge--short-hike { background: #fff8e1; color: #f57f17; }
-.access-badge--day-hike  { background: #fff3e0; color: #e65100; }
-.access-badge--remote    { background: #fce4ec; color: #880e4f; }
+.access-badge--day-hike   { background: #fff3e0; color: #e65100; }
+.access-badge--remote     { background: #fce4ec; color: #880e4f; }
+.access-badge--type-tent    { background: #e8f5e9; color: #1b4332; }
+.access-badge--type-hammock { background: #fdf3e3; color: #5c4a1e; }
+
+/* Spot type toggle in form */
+.spot-type-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.spot-type-btn {
+  flex: 1;
+  padding: 0.55rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.spot-type-btn--active {
+  border-color: var(--forest);
+  color: var(--forest);
+  background: #e8f5e9;
+}
+
+.spot-type-btn--active.hammock {
+  border-color: #5c4a1e;
+  color: #5c4a1e;
+  background: #fdf3e3;
+}
 
 .empty-state {
   font-size: 0.85rem;

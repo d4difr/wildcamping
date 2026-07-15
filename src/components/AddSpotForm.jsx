@@ -14,6 +14,7 @@ const MAX_PHOTOS = 3
 export default function AddSpotForm({ position, onCancel, onSaved }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [spotType, setSpotType] = useState('tent')
   const [access, setAccess] = useState('')
   const [photoFiles, setPhotoFiles] = useState([])
   const [saving, setSaving] = useState(false)
@@ -57,6 +58,7 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
         longitude: position.lng,
         photo_url: photo_urls[0] || null,
         photo_urls,
+        spot_type: spotType,
         access: access || null,
         status: 'approved'
       })
@@ -72,6 +74,22 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
 
   return (
     <div className="panel">
+      <div className="spot-type-toggle">
+        <button
+          type="button"
+          className={`spot-type-btn${spotType === 'tent' ? ' spot-type-btn--active' : ''}`}
+          onClick={() => setSpotType('tent')}
+        >
+          ⛺ Tent spot
+        </button>
+        <button
+          type="button"
+          className={`spot-type-btn${spotType === 'hammock' ? ' spot-type-btn--active hammock' : ''}`}
+          onClick={() => setSpotType('hammock')}
+        >
+          🪢 Hammock spot
+        </button>
+      </div>
       <label htmlFor="spot-name">Spot name</label>
       <input
         id="spot-name"
