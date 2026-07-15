@@ -61,6 +61,47 @@ body {
   flex-direction: column;
   overflow: hidden;
   z-index: 10;
+  position: relative;
+  transition: width 0.2s ease;
+}
+
+.left-sidebar--collapsed {
+  width: 0;
+  border-right: none;
+}
+
+.left-sidebar--collapsed > *:not(.sidebar-collapse-btn) {
+  display: none;
+}
+
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 28px;
+  height: 48px;
+  padding: 0;
+  border-radius: 0 8px 8px 0;
+  border: 1px solid var(--border);
+  border-left: none;
+  background: var(--birch-card);
+  color: var(--granite);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--birch);
+  border-color: var(--fjord);
+  color: var(--forest);
 }
 
 .map-root {

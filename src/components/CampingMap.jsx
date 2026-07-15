@@ -170,6 +170,7 @@ export default function CampingMap() {
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
   const [zoom, setZoom] = useState(5)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const markerRefs = useRef({})
 
   async function loadSpots() {
@@ -309,7 +310,10 @@ export default function CampingMap() {
 
       <div className="main-area">
         {/* Left sidebar */}
-        <aside className="left-sidebar">
+        <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
+          <button className="sidebar-collapse-btn" onClick={() => setSidebarOpen((o) => !o)} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+            {sidebarOpen ? '‹' : '›'}
+          </button>
           {activeSpot ? (
             <SpotDetail spot={activeSpot} onBack={handleBack} />
           ) : (
