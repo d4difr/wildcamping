@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
+const REGIONS = [
+  'Agder',
+  'Akershus',
+  'Buskerud',
+  'Innlandet',
+  'Møre og Romsdal',
+  'Nordland',
+  'Oslo',
+  'Rogaland',
+  'Telemark',
+  'Troms og Finnmark',
+  'Trøndelag',
+  'Vestfold',
+  'Vestland',
+  'Østfold',
+  'Øvrige Norge',
+]
+
 const ACCESS_OPTIONS = [
   { value: '', label: 'Select access type…' },
   { value: 'road', label: '🚗 Road access' },
@@ -33,7 +51,14 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
   useEffect(() => {
     setRegionLoading(true)
     detectRegion(position.lat, position.lng)
-      .then((r) => setRegion(r || ''))
+      .then((detected) => {
+        if (!detected) return
+        // Find closest match in our list (case-insensitive substring)
+        const match = REGIONS.find((r) => r.toLowerCase() === detected.toLowerCase())
+          || REGIONS.find((r) => r.toLowerCase().includes(detected.toLowerCase()))
+          || REGIONS.find((r) => detected.toLowerCase().includes(r.toLowerCase()))
+        setRegion(match || '')
+      })
       .catch(() => setRegion(''))
       .finally(() => setRegionLoading(false))
   }, [position.lat, position.lng])
@@ -107,14 +132,15 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
       </select>
 
       <label htmlFor="spot-region">Region</label>
-      <input
+      <select
         id="spot-region"
-        type="text"
-        placeholder={regionLoading ? 'Detecting…' : 'e.g. Vestland'}
         value={region}
         onChange={(e) => setRegion(e.target.value)}
         disabled={regionLoading}
-      />
+      >
+        <option value="">{regionLoading ? 'Detecting…' : 'Select region…'}</option>
+        {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+      </select>
 
       <label>Photos (optional, up to {MAX_PHOTOS})</label>
       {photoFiles.length < MAX_PHOTOS && (
