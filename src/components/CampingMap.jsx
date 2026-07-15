@@ -311,7 +311,7 @@ export default function CampingMap() {
               <h3>{spot.name}</h3>
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
                 <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
-                  {spot.spot_type === 'hammock' ? '🪢 Hammock spot' : '⛺ Tent spot'}
+                  {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
                 </span>
                 {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
               </div>
