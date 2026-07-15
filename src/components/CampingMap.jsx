@@ -55,13 +55,7 @@ function makeBadgeIcon(type = 'tent', color) {
   const bg = color ?? SPOT_COLORS[type] ?? SPOT_COLORS.tent
   const svg = SPOT_ICONS[type] ?? TENT_SVG
   const html = `<span class="spot-badge" style="background:${bg}">${svg}</span>`
-  return L.divIcon({
-    html,
-    className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16]
-  })
+  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16] })
 }
 
 function makeSpotIcon(name, type = 'tent') {
@@ -72,40 +66,22 @@ function makeSpotIcon(name, type = 'tent') {
       <span class="spot-badge" style="background:${bg}">${svg}</span>
       <span class="spot-marker-label">${escapeHtml(name)}</span>
     </span>`
-  return L.divIcon({
-    html,
-    className: '',
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16]
-  })
+  return L.divIcon({ html, className: '', iconAnchor: [14, 14], popupAnchor: [0, -16] })
 }
 
 const pendingIcon = makeBadgeIcon('tent', '#d98e04')
 
 const userLocationIcon = L.divIcon({
-  html: `
-    <span class="user-location-dot">
-      <span class="user-location-dot-pulse"></span>
-      <span class="user-location-dot-core"></span>
-    </span>`,
-  className: '',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10]
+  html: `<span class="user-location-dot"><span class="user-location-dot-pulse"></span><span class="user-location-dot-core"></span></span>`,
+  className: '', iconSize: [20, 20], iconAnchor: [10, 10]
 })
 
 function ClickHandler({ dropMode, onMapClick }) {
   const map = useMap()
-
   useEffect(() => {
-    const container = map.getContainer()
-    container.style.cursor = dropMode ? 'crosshair' : ''
+    map.getContainer().style.cursor = dropMode ? 'crosshair' : ''
   }, [dropMode, map])
-
-  useMapEvents({
-    click(e) {
-      if (dropMode) onMapClick(e.latlng)
-    }
-  })
+  useMapEvents({ click(e) { if (dropMode) onMapClick(e.latlng) } })
   return null
 }
 
@@ -123,9 +99,7 @@ function FlyToSpot({ target }) {
 function FlyToUser({ target }) {
   const map = useMap()
   useEffect(() => {
-    if (target) {
-      map.flyTo([target.lat, target.lng], 14, { duration: 0.8 })
-    }
+    if (target) map.flyTo([target.lat, target.lng], 14, { duration: 0.8 })
   }, [target, map])
   return null
 }
@@ -134,15 +108,44 @@ const LABEL_ZOOM_THRESHOLD = 11
 
 function ZoomWatcher({ onZoomChange }) {
   const map = useMap()
-  useEffect(() => {
-    onZoomChange(map.getZoom())
-  }, [map, onZoomChange])
-  useMapEvents({
-    zoomend() {
-      onZoomChange(map.getZoom())
-    }
-  })
+  useEffect(() => { onZoomChange(map.getZoom()) }, [map, onZoomChange])
+  useMapEvents({ zoomend() { onZoomChange(map.getZoom()) } })
   return null
+}
+
+function SpotBadges({ spot }) {
+  return (
+    <div className="badge-row">
+      <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
+        {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
+      </span>
+      {spot.access && (
+        <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>
+      )}
+    </div>
+  )
+}
+
+function SpotDetail({ spot, onBack }) {
+  const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
+  return (
+    <div className="spot-detail">
+      <h2 className="spot-detail-name">{spot.name}</h2>
+      <SpotBadges spot={spot} />
+      {photos.length > 0 && (
+        <div className="detail-photo-strip">
+          {photos.map((url, i) => (
+            <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" />
+          ))}
+        </div>
+      )}
+      {spot.description && <p className="spot-detail-desc">{spot.description}</p>}
+      <p className="spot-detail-coords">
+        {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
+      </p>
+      <button className="go-back-btn" onClick={onBack}>← Go back</button>
+    </div>
+  )
 }
 
 export default function CampingMap() {
@@ -153,7 +156,7 @@ export default function CampingMap() {
     const params = new URLSearchParams(window.location.search)
     return params.get('spot') || null
   })
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [flyTarget, setFlyTarget] = useState(null)
   const [layerKey, setLayerKey] = useState('outdoors')
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
@@ -167,47 +170,31 @@ export default function CampingMap() {
 
   async function loadSpots() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('spots')
-      .select('*')
-      .eq('status', 'approved')
+    const { data, error } = await supabase.from('spots').select('*').eq('status', 'approved')
     if (!error && data) {
       setSpots(data)
-      // If URL had ?spot=id, open that spot once data arrives
       const params = new URLSearchParams(window.location.search)
       const spotId = params.get('spot')
       if (spotId) {
         const spot = data.find((s) => String(s.id) === spotId)
-        if (spot) {
-          setActiveId(spot.id)
-          setSidebarOpen(true)
-        }
+        if (spot) setActiveId(spot.id)
       }
     }
     setLoading(false)
   }
 
-  useEffect(() => {
-    loadSpots()
-  }, [])
+  useEffect(() => { loadSpots() }, [])
 
-  // Sync activeId → URL
   useEffect(() => {
     const url = new URL(window.location)
-    if (activeId) {
-      url.searchParams.set('spot', activeId)
-    } else {
-      url.searchParams.delete('spot')
-    }
+    if (activeId) url.searchParams.set('spot', activeId)
+    else url.searchParams.delete('spot')
     window.history.replaceState({}, '', url)
   }, [activeId])
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') {
-        setDropMode(false)
-        setPendingPosition(null)
-      }
+      if (e.key === 'Escape') { setDropMode(false); setPendingPosition(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -215,20 +202,32 @@ export default function CampingMap() {
 
   const spotIcons = useMemo(() => {
     const icons = {}
-    spots.forEach((spot) => { icons[spot.id] = makeSpotIcon(spot.name, spot.spot_type) })
+    spots.forEach((s) => { icons[s.id] = makeSpotIcon(s.name, s.spot_type) })
     return icons
   }, [spots])
 
   const activeSpot = spots.find((s) => s.id === activeId) || null
-  const [flyTarget, setFlyTarget] = useState(null)
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
 
-  function handleCardClick(spot) {
+  function openSpot(spot, fly = false) {
     setActiveId(spot.id)
-    setFlyTarget(spot)
+    if (fly) setFlyTarget(spot)
     const marker = markerRefs.current[spot.id]
     if (marker) marker.openPopup()
+  }
+
+  function handleMapMarkerClick(spot) {
+    openSpot(spot, true)
+  }
+
+  function handleSeeMore(spot) {
+    openSpot(spot, true)
+  }
+
+  function handleBack() {
+    setActiveId(null)
+    setFlyTarget(null)
   }
 
   function handleMapClick(latlng) {
@@ -245,23 +244,12 @@ export default function CampingMap() {
   }
 
   function handleLocate() {
-    if (!navigator.geolocation) {
-      setLocateError("Your browser doesn't support location.")
-      return
-    }
+    if (!navigator.geolocation) { setLocateError("Your browser doesn't support location."); return }
     setLocating(true)
     setLocateError('')
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setLocating(false)
-      },
-      (err) => {
-        setLocating(false)
-        setLocateError(err.code === err.PERMISSION_DENIED
-          ? 'Location permission denied.'
-          : 'Could not get your location.')
-      },
+      (pos) => { setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false) },
+      (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Location permission denied.' : 'Could not get your location.') },
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
@@ -282,7 +270,6 @@ export default function CampingMap() {
 
   return (
     <div className="app-root">
-      {/* Top navigation bar */}
       <header className="topnav">
         <svg className="topnav-logo" width="126" height="34" viewBox="0 0 210 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vilda">
           <circle cx="34" cy="10" r="9" fill="#d98e04" />
@@ -293,166 +280,116 @@ export default function CampingMap() {
         </svg>
       </header>
 
-      <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
-      <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-        <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={true} />
-        <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
-        <FlyToSpot target={flyTarget} />
-        <ZoomWatcher onZoomChange={setZoom} />
-        {spots.map((spot) => (
-          <Marker
-            key={spot.id}
-            position={[spot.latitude, spot.longitude]}
-            icon={spotIcons[spot.id] || markerIcon}
-            ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
-            eventHandlers={{ click: () => setActiveId(spot.id) }}
-          >
-            <Popup>
-              <h3>{spot.name}</h3>
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
-                <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
-                  {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
-                </span>
-                {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+      <div className="main-area">
+        {/* Left sidebar */}
+        <aside className="left-sidebar">
+          {activeSpot ? (
+            <SpotDetail spot={activeSpot} onBack={handleBack} />
+          ) : (
+            <>
+              <div className="sidebar-header">
+                <h2>{loading ? 'Loading…' : `${spots.length} spot${spots.length === 1 ? '' : 's'}`}</h2>
               </div>
-              {(() => {
-                const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
-                return photos.length > 0 && (
-                  <div className="popup-photo-strip">
-                    {photos.map((url, i) => (
-                      <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="popup-photo" />
-                    ))}
+              <div className="sidebar-body">
+                {!loading && spots.length === 0 && (
+                  <p className="empty-state">No spots yet. Submit the first one!</p>
+                )}
+                {spots.map((spot) => (
+                  <div key={spot.id} className="spot-card">
+                    <h3>{spot.name}</h3>
+                    <SpotBadges spot={spot} />
+                    <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>
+                      See more →
+                    </button>
                   </div>
-                )
-              })()}
-              <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.3rem' }}>{spot.description}</div>
-            </Popup>
-          </Marker>
-        ))}
-        {pendingPosition && (
-          <Marker position={pendingPosition} icon={pendingIcon} />
-        )}
-        {userPosition && (
-          <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />
-        )}
-        <FlyToUser target={userPosition} />
-      </MapContainer>
-
-      {/* Top-right controls */}
-      <div className="controls">
-        <button
-          className="sidebar-toggle"
-          onClick={() => setSidebarOpen((o) => !o)}
-        >
-          <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
-          <span>{sidebarOpen ? 'Close' : `${spots.length} spots`}</span>
-        </button>
-        <button
-          className="layer-toggle"
-          onClick={() => setLayerKey(nextKey)}
-        >
-          {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '🗺'} {LAYERS[nextKey].label}
-        </button>
-        <button
-          className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
-          onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
-        >
-          {dropMode ? '✕ Cancel' : '＋ Submit a spot'}
-        </button>
-      </div>
-
-      {/* Floating sidebar */}
-      <aside className={`sidebar${sidebarOpen ? ' sidebar--open' : ''}`}>
-        <div className="sidebar-header">
-          <h2>{spots.length} spot{spots.length === 1 ? '' : 's'}</h2>
-        </div>
-        <div className="sidebar-body">
-          {loading && <p className="empty-state">Loading spots…</p>}
-          {!loading && spots.length === 0 && (
-            <p className="empty-state">No approved spots yet.</p>
-          )}
-          {spots.map((spot) => (
-            <div
-              key={spot.id}
-              className={`spot-card${activeId === spot.id ? ' active' : ''}`}
-              onClick={() => handleCardClick(spot)}
-            >
-              <h3>{spot.name}</h3>
-              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
-                <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
-                  {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
-                </span>
-                {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+                ))}
               </div>
-              <p>{spot.description}</p>
+            </>
+          )}
+        </aside>
+
+        {/* Map */}
+        <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
+          <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
+            <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={true} />
+            <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
+            <FlyToSpot target={flyTarget} />
+            <ZoomWatcher onZoomChange={setZoom} />
+            {spots.map((spot) => (
+              <Marker
+                key={spot.id}
+                position={[spot.latitude, spot.longitude]}
+                icon={spotIcons[spot.id]}
+                ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
+                eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
+              >
+                <Popup>
+                  <h3>{spot.name}</h3>
+                  <SpotBadges spot={spot} />
+                </Popup>
+              </Marker>
+            ))}
+            {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
+            {userPosition && <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />}
+            <FlyToUser target={userPosition} />
+          </MapContainer>
+
+          {/* Top-right controls */}
+          <div className="controls">
+            <button className="layer-toggle" onClick={() => setLayerKey(nextKey)}>
+              {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '🗺'} {LAYERS[nextKey].label}
+            </button>
+            <button
+              className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
+              onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
+            >
+              {dropMode ? '✕ Cancel' : '＋ Submit a spot'}
+            </button>
+          </div>
+
+          {/* Locate me */}
+          {!dropMode && !pendingPosition && (
+            <div className="locate-wrap">
+              {locateError && <p className="locate-error">{locateError}</p>}
+              <button className="locate-btn" onClick={handleLocate} disabled={locating} aria-label="Show my location">
+                {locating ? '…' : '⌖'}
+              </button>
             </div>
-          ))}
-        </div>
-      </aside>
+          )}
 
-      {/* Locate me */}
-      {!dropMode && !pendingPosition && (
-        <div className="locate-wrap">
-          {locateError && <p className="locate-error">{locateError}</p>}
-          <button
-            className="locate-btn"
-            onClick={handleLocate}
-            disabled={locating}
-            aria-label="Show my location"
-            title="Show my location"
-          >
-            {locating ? '…' : '⌖'}
-          </button>
-        </div>
-      )}
+          {/* Drop mode panel */}
+          {dropMode && !pendingPosition && (
+            <div className="drop-panel">
+              <p className="drop-panel-hint">Click the map to submit a spot</p>
+              <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
+                <span>or enter coordinates</span>
+                <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
+              </button>
+              {coordExpanded && (
+                <form className="coord-form" onSubmit={handleCoordSubmit}>
+                  <input type="text" placeholder="Latitude (e.g. 61.234)" value={coordInput.lat}
+                    onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }} />
+                  <input type="text" placeholder="Longitude (e.g. 8.567)" value={coordInput.lng}
+                    onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }} />
+                  {coordError && <p className="coord-error">{coordError}</p>}
+                  <button type="submit" className="primary">Place pin</button>
+                </form>
+              )}
+            </div>
+          )}
 
-      {/* Drop mode panel */}
-      {dropMode && !pendingPosition && (
-        <div className="drop-panel">
-          <p className="drop-panel-hint">Click the map to submit a spot</p>
-          <button
-            type="button"
-            className="coord-toggle"
-            onClick={() => setCoordExpanded((e) => !e)}
-            aria-expanded={coordExpanded}
-          >
-            <span>or enter coordinates</span>
-            <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
-          </button>
-          {coordExpanded && (
-            <form className="coord-form" onSubmit={handleCoordSubmit}>
-              <input
-                type="text"
-                placeholder="Latitude (e.g. 61.234)"
-                value={coordInput.lat}
-                onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }}
+          {/* Add spot form */}
+          {pendingPosition && (
+            <div className="floating-form">
+              <p className="hint">Pin at {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
+              <AddSpotForm
+                position={pendingPosition}
+                onCancel={handleCancel}
+                onSaved={() => { setPendingPosition(null); loadSpots() }}
               />
-              <input
-                type="text"
-                placeholder="Longitude (e.g. 8.567)"
-                value={coordInput.lng}
-                onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }}
-              />
-              {coordError && <p className="coord-error">{coordError}</p>}
-              <button type="submit" className="primary">Place pin</button>
-            </form>
+            </div>
           )}
         </div>
-      )}
-
-      {/* Add spot form */}
-      {pendingPosition && (
-        <div className="floating-form">
-          <p className="hint">
-            Pin at {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}
-          </p>
-          <AddSpotForm
-            position={pendingPosition}
-            onCancel={handleCancel}
-            onSaved={() => { setPendingPosition(null); loadSpots() }}
-          />
-        </div>
-      )}
       </div>
     </div>
   )
