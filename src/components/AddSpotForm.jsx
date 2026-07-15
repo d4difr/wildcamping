@@ -80,14 +80,14 @@ export default function AddSpotForm({ position, onCancel, onSaved }) {
           className={`spot-type-btn${spotType === 'tent' ? ' spot-type-btn--active' : ''}`}
           onClick={() => setSpotType('tent')}
         >
-          ⛺ Tent spot
+          ⛺ Tent
         </button>
         <button
           type="button"
           className={`spot-type-btn${spotType === 'hammock' ? ' spot-type-btn--active hammock' : ''}`}
           onClick={() => setSpotType('hammock')}
         >
-          🪢 Hammock spot
+          🪢 Hammock
         </button>
       </div>
       <label htmlFor="spot-name">Spot name</label>
