@@ -435,7 +435,7 @@ export default function CampingMap() {
         {/* Map */}
         <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
           <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-            <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} detectRetina={false} keepBuffer={4} />
+            <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} />
             <ZoomWatcher onZoomChange={setZoom} />
