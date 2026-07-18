@@ -281,8 +281,7 @@ body {
 }
 
 .go-back-btn {
-  margin-top: auto;
-  padding-top: 1rem;
+  margin-bottom: 0.6rem;
   background: none;
   border: none;
   box-shadow: none;

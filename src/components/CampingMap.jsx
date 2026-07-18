@@ -174,6 +174,7 @@ function SpotDetail({ spot, onBack }) {
       {lightboxIndex !== null && (
         <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+      <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
       {photos.length > 0 && (
@@ -187,7 +188,6 @@ function SpotDetail({ spot, onBack }) {
       <p className="spot-detail-coords">
         {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
       </p>
-      <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
     </div>
   )
 }
