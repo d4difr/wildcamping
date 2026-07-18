@@ -129,16 +129,55 @@ function SpotBadges({ spot }) {
   )
 }
 
+function Lightbox({ photos, startIndex, onClose }) {
+  const [index, setIndex] = useState(startIndex)
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') setIndex((i) => (i + 1) % photos.length)
+      if (e.key === 'ArrowLeft') setIndex((i) => (i - 1 + photos.length) % photos.length)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [photos.length, onClose])
+
+  return (
+    <div className="lightbox-overlay" onClick={onClose}>
+      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+        <button className="lightbox-close" onClick={onClose}>✕</button>
+        <img src={photos[index]} alt="" className="lightbox-img" />
+        {photos.length > 1 && (
+          <>
+            <button className="lightbox-arrow lightbox-arrow--prev" onClick={() => setIndex((i) => (i - 1 + photos.length) % photos.length)}>‹</button>
+            <button className="lightbox-arrow lightbox-arrow--next" onClick={() => setIndex((i) => (i + 1) % photos.length)}>›</button>
+            <div className="lightbox-dots">
+              {photos.map((_, i) => (
+                <span key={i} className={`lightbox-dot${i === index ? ' lightbox-dot--active' : ''}`} onClick={() => setIndex(i)} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function SpotDetail({ spot, onBack }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+
   return (
     <div className="spot-detail">
+      {lightboxIndex !== null && (
+        <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
       {photos.length > 0 && (
         <div className="detail-photo-strip">
           {photos.map((url, i) => (
-            <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" />
+            <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" onClick={() => setLightboxIndex(i)} />
           ))}
         </div>
       )}

@@ -152,6 +152,118 @@ body {
   object-fit: cover;
   border-radius: 8px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.detail-photo:hover {
+  opacity: 0.85;
+}
+
+/* Lightbox */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 10px;
+  display: block;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  z-index: 3001;
+}
+
+.lightbox-close:hover {
+  background: rgba(255,255,255,0.3);
+  border-color: transparent;
+  color: #fff;
+}
+
+.lightbox-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 2.5rem;
+  line-height: 1;
+  width: 48px;
+  height: 64px;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  z-index: 3001;
+}
+
+.lightbox-arrow:hover {
+  background: rgba(255,255,255,0.3);
+  border-color: transparent;
+  color: #fff;
+}
+
+.lightbox-arrow--prev { left: 1rem; }
+.lightbox-arrow--next { right: 1rem; }
+
+.lightbox-dots {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 3001;
+}
+
+.lightbox-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lightbox-dot--active {
+  background: #fff;
 }
 
 .spot-detail-desc {
