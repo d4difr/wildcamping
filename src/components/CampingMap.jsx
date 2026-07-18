@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
@@ -142,7 +143,7 @@ function Lightbox({ photos, startIndex, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [photos.length, onClose])
 
-  return (
+  return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
         <button className="lightbox-close" onClick={onClose}>✕</button>
@@ -159,7 +160,8 @@ function Lightbox({ photos, startIndex, onClose }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
