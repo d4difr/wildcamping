@@ -20,11 +20,11 @@ const REGIONS = [
 ]
 
 const ACCESS_OPTIONS = [
-  { value: '', label: 'Select access type…' },
-  { value: 'road', label: '🚗 Road access' },
-  { value: 'short-hike', label: '🥾 Short hike (< 1 hr)' },
-  { value: 'day-hike', label: '⛰ Day hike (1–3 hr)' },
-  { value: 'remote', label: '🏔 Remote (3 hr+)' },
+  { value: '', label: 'Velg tilgangstype…' },
+  { value: 'road', label: '🚗 Bilvei' },
+  { value: 'short-hike', label: '🥾 Kort tur (< 1 t)' },
+  { value: 'day-hike', label: '⛰ Dagstur (1–3 t)' },
+  { value: 'remote', label: '🏔 Avsidesliggende (3 t+)' },
 ]
 
 const MAX_PHOTOS = 3
@@ -134,7 +134,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
       }
       onSaved()
     } catch (err) {
-      setError(err.message || 'Something went wrong saving this camp.')
+      setError(err.message || 'Noe gikk galt ved lagring av leirplassen.')
     } finally {
       setSaving(false)
     }
@@ -144,35 +144,35 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
 
   return (
     <div className="panel">
-      {isEditing && <p className="hint" style={{ marginBottom: '0.6rem' }}>Editing: <strong>{camp.name}</strong></p>}
+      {isEditing && <p className="hint" style={{ marginBottom: '0.6rem' }}>Redigerer: <strong>{camp.name}</strong></p>}
 
       <div className="spot-type-toggle">
         <button type="button" className={`spot-type-btn${spotType === 'tent' ? ' spot-type-btn--active' : ''}`} onClick={() => setSpotType('tent')}>
-          ⛺ Tent
+          ⛺ Telt
         </button>
         <button type="button" className={`spot-type-btn${spotType === 'hammock' ? ' spot-type-btn--active hammock' : ''}`} onClick={() => setSpotType('hammock')}>
-          🪢 Hammock
+          🪢 Hengekøye
         </button>
       </div>
 
-      <label htmlFor="spot-name">Camp name</label>
-      <input id="spot-name" type="text" placeholder="e.g. Preikestolen ridge" value={name} onChange={(e) => setName(e.target.value)} />
+      <label htmlFor="spot-name">Leirplassnavn</label>
+      <input id="spot-name" type="text" placeholder="f.eks. Preikestolen-ryggen" value={name} onChange={(e) => setName(e.target.value)} />
 
-      <label htmlFor="spot-desc">Why is it worth visiting?</label>
-      <textarea id="spot-desc" rows={2} placeholder="Flat tent spots, sweeping views, near fresh water…" value={description} onChange={(e) => setDescription(e.target.value)} />
+      <label htmlFor="spot-desc">Hvorfor er det verdt å besøke?</label>
+      <textarea id="spot-desc" rows={2} placeholder="Flate teltplasser, vid utsikt, nær ferskvann…" value={description} onChange={(e) => setDescription(e.target.value)} />
 
-      <label htmlFor="spot-access">Access</label>
+      <label htmlFor="spot-access">Tilgang</label>
       <select id="spot-access" value={access} onChange={(e) => setAccess(e.target.value)}>
         {ACCESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
 
-      <label htmlFor="spot-region">Region</label>
+      <label htmlFor="spot-region">Fylke</label>
       <select id="spot-region" value={region} onChange={(e) => setRegion(e.target.value)} disabled={regionLoading}>
-        <option value="">{regionLoading ? 'Detecting…' : 'Select region…'}</option>
+        <option value="">{regionLoading ? 'Oppdager…' : 'Velg fylke…'}</option>
         {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
       </select>
 
-      <label>Photos (optional, up to {MAX_PHOTOS})</label>
+      <label>Bilder (valgfritt, opptil {MAX_PHOTOS})</label>
 
       {/* Existing photos (edit mode) */}
       {existingPhotoUrls.length > 0 && (
@@ -200,7 +200,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
 
       {totalPhotos < MAX_PHOTOS && (
         <label className="photo-upload-btn">
-          + Add photo
+          + Legg til bilde
           <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
         </label>
       )}
@@ -208,11 +208,11 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
       <div className="actions">
         <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>
-          {saving ? 'Saving…' : isEditing ? 'Update camp' : 'Save camp'}
+          {saving ? 'Lagrer…' : isEditing ? 'Oppdater leirplass' : 'Lagre leirplass'}
         </button>
-        <button onClick={onCancel} disabled={saving}>Cancel</button>
+        <button onClick={onCancel} disabled={saving}>Avbryt</button>
       </div>
-      {!isEditing && <p className="hint" style={{ marginTop: '0.6rem' }}>Your camp will appear on the map right away.</p>}
+      {!isEditing && <p className="hint" style={{ marginTop: '0.6rem' }}>Din leirplass vil vises på kartet umiddelbart.</p>}
     </div>
   )
 }

@@ -7,10 +7,10 @@ import AddSpotForm from './AddSpotForm'
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
 const ACCESS_LABELS = {
-  'road': '🚗 Road access',
-  'short-hike': '🥾 Short hike',
-  'day-hike': '⛰ Day hike',
-  'remote': '🏔 Remote',
+  'road': '🚗 Bilvei',
+  'short-hike': '🥾 Kort tur',
+  'day-hike': '⛰ Dagstur',
+  'remote': '🏔 Avsidesliggende',
 }
 
 const LAYERS = {
@@ -117,7 +117,7 @@ function SpotBadges({ spot }) {
   return (
     <div className="badge-row">
       <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
-        {spot.spot_type === 'hammock' ? '🪢 Hammock' : '⛺ Tent'}
+        {spot.spot_type === 'hammock' ? '🪢 Hengekøye' : '⛺ Telt'}
       </span>
       {spot.access && (
         <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>
@@ -146,7 +146,7 @@ function SpotDetail({ spot, onBack }) {
       <p className="spot-detail-coords">
         {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
       </p>
-      <button className="go-back-btn" onClick={onBack}>← Go back</button>
+      <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
     </div>
   )
 }
@@ -269,7 +269,7 @@ export default function CampingMap() {
   }
 
   async function handleDelete(camp) {
-    if (!window.confirm(`Delete "${camp.name}"? This cannot be undone.`)) return
+    if (!window.confirm(`Slette "${camp.name}"? Dette kan ikke angres.`)) return
     await supabase.from('spots').delete().eq('id', camp.id).eq('owner_token', ownerToken)
     setActiveId(null)
     loadSpots()
@@ -289,12 +289,12 @@ export default function CampingMap() {
   }
 
   function handleLocate() {
-    if (!navigator.geolocation) { setLocateError("Your browser doesn't support location."); return }
+    if (!navigator.geolocation) { setLocateError('Nettleseren din støtter ikke posisjon.'); return }
     setLocating(true)
     setLocateError('')
     navigator.geolocation.getCurrentPosition(
       (pos) => { setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false) },
-      (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Location permission denied.' : 'Could not get your location.') },
+      (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Posisjonstilgang nektet.' : 'Kunne ikke hente posisjonen din.') },
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
@@ -304,7 +304,7 @@ export default function CampingMap() {
     const lat = parseFloat(coordInput.lat)
     const lng = parseFloat(coordInput.lng)
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setCoordError('Enter valid coordinates (lat −90→90, lng −180→180)')
+      setCoordError('Skriv inn gyldige koordinater (bredde −90→90, lengde −180→180)')
       return
     }
     setPendingPosition({ lat, lng })
@@ -357,8 +357,8 @@ export default function CampingMap() {
               <SpotDetail spot={activeSpot} onBack={handleBack} />
               {activeSpot.owner_token === ownerToken && (
                 <div className="owner-actions">
-                  <button className="owner-btn owner-btn--edit" onClick={() => setEditingCamp(activeSpot)}>✏️ Edit</button>
-                  <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(activeSpot)}>🗑 Delete</button>
+                  <button className="owner-btn owner-btn--edit" onClick={() => setEditingCamp(activeSpot)}>✏️ Rediger</button>
+                  <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(activeSpot)}>🗑 Slett</button>
                 </div>
               )}
             </>
@@ -367,10 +367,10 @@ export default function CampingMap() {
               {/* Filters */}
               <div className="filter-panel">
                 <div className="filter-panel-header">
-                  <span className="filter-panel-title">Filters</span>
+                  <span className="filter-panel-title">Filtre</span>
                   {hasFilters && (
                     <button className="filter-clear" onClick={() => setFilters({ types: [], access: [], regions: [] })}>
-                      Clear all
+                      Fjern alle
                     </button>
                   )}
                 </div>
@@ -379,13 +379,13 @@ export default function CampingMap() {
                   <div className="filter-pills">
                     {['tent', 'hammock'].map((t) => (
                       <button key={t} className={`filter-pill${filters.types.includes(t) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('types', t)}>
-                        {t === 'tent' ? '⛺ Tent' : '🪢 Hammock'}
+                        {t === 'tent' ? '⛺ Telt' : '🪢 Hengekøye'}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="filter-group">
-                  <span className="filter-label">Access</span>
+                  <span className="filter-label">Tilgang</span>
                   <div className="filter-pills">
                     {['road', 'short-hike', 'day-hike', 'remote'].map((a) => (
                       <button key={a} className={`filter-pill${filters.access.includes(a) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('access', a)}>
@@ -395,13 +395,13 @@ export default function CampingMap() {
                   </div>
                 </div>
                 <div className="filter-group">
-                  <span className="filter-label">Region</span>
+                  <span className="filter-label">Fylke</span>
                   <select
                     className="filter-region-select"
                     value={filters.regions[0] || ''}
                     onChange={(e) => setFilters((f) => ({ ...f, regions: e.target.value ? [e.target.value] : [] }))}
                   >
-                    <option value="">All regions</option>
+                    <option value="">Alle regioner</option>
                     {allRegions.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
@@ -409,14 +409,14 @@ export default function CampingMap() {
 
               <div className="sidebar-body">
                 {!loading && filteredSpots.length === 0 && (
-                  <p className="empty-state">{spots.length === 0 ? 'No camps yet. Add the first one!' : 'No camps match your filters.'}</p>
+                  <p className="empty-state">{spots.length === 0 ? 'Ingen leirplasser enda. Legg til den første!' : 'Ingen leirplasser matcher filtrene dine.'}</p>
                 )}
                 {filteredSpots.map((spot) => (
                   <div key={spot.id} className="spot-card">
                     <h3>{spot.name}</h3>
                     <SpotBadges spot={spot} />
                     <div className="spot-card-footer">
-                      <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>See more →</button>
+                      <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>Se mer →</button>
                       {spot.owner_token === ownerToken && (
                         <div className="owner-actions owner-actions--inline">
                           <button className="owner-btn owner-btn--edit" onClick={() => { setEditingCamp(spot); setActiveId(null) }}>✏️</button>
@@ -467,7 +467,7 @@ export default function CampingMap() {
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
               onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
             >
-              {dropMode ? '✕ Cancel' : '＋ Add a camp'}
+              {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
           </div>
 
@@ -484,19 +484,19 @@ export default function CampingMap() {
           {/* Drop mode panel */}
           {dropMode && !pendingPosition && (
             <div className="drop-panel">
-              <p className="drop-panel-hint">Click the map to place your camp</p>
+              <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
               <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
-                <span>or enter coordinates</span>
+                <span>eller skriv inn koordinater</span>
                 <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
               </button>
               {coordExpanded && (
                 <form className="coord-form" onSubmit={handleCoordSubmit}>
-                  <input type="text" placeholder="Latitude (e.g. 61.234)" value={coordInput.lat}
+                  <input type="text" placeholder="Breddegrad (f.eks. 61.234)" value={coordInput.lat}
                     onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }} />
-                  <input type="text" placeholder="Longitude (e.g. 8.567)" value={coordInput.lng}
+                  <input type="text" placeholder="Lengdegrad (f.eks. 8.567)" value={coordInput.lng}
                     onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }} />
                   {coordError && <p className="coord-error">{coordError}</p>}
-                  <button type="submit" className="primary">Place pin</button>
+                  <button type="submit" className="primary">Plasser pin</button>
                 </form>
               )}
             </div>
@@ -505,7 +505,7 @@ export default function CampingMap() {
           {/* Add spot form */}
           {pendingPosition && (
             <div className="floating-form">
-              <p className="hint">Pin at {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
+              <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
               <AddSpotForm
                 position={pendingPosition}
                 ownerToken={ownerToken}
