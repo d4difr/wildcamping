@@ -1158,14 +1158,15 @@ button.primary:hover:not(:disabled) {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #fff;
-  border: 2.5px solid var(--forest);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+  background: var(--forest);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-body);
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: var(--forest);
+  color: #fff;
+  line-height: 1;
 }
