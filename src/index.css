@@ -42,15 +42,12 @@ body {
   z-index: 1002;
 }
 
-.topnav-logo { display: block; }
+.topnav-logo { display: block; margin-left: auto; }
 
 .topnav-tagline {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 400;
   color: rgba(244, 241, 234, 0.55);
   letter-spacing: 0.01em;
