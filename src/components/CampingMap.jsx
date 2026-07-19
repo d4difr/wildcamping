@@ -195,6 +195,104 @@ function SpotDetail({ spot, onBack }) {
   )
 }
 
+function SidebarContent({
+  editingCamp, activeSpot, ownerToken, filters, hasFilters, allRegions,
+  filteredSpots, loading, spots, onBack, onEdit, onDelete, onSeeMore,
+  onFilterChange, onToggleFilter, loadSpots,
+}) {
+  if (editingCamp) {
+    return (
+      <div className="spot-detail" style={{ padding: '0.75rem' }}>
+        <AddSpotForm
+          position={{ lat: editingCamp.latitude, lng: editingCamp.longitude }}
+          camp={editingCamp}
+          ownerToken={ownerToken}
+          onCancel={() => onEdit(null)}
+          onSaved={() => { onEdit(null); loadSpots() }}
+        />
+      </div>
+    )
+  }
+  if (activeSpot) {
+    return (
+      <>
+        <SpotDetail spot={activeSpot} onBack={onBack} />
+        {activeSpot.owner_token === ownerToken && (
+          <div className="owner-actions">
+            <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activeSpot)}>✏️ Rediger</button>
+            <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activeSpot)}>🗑 Slett</button>
+          </div>
+        )}
+      </>
+    )
+  }
+  return (
+    <>
+      <div className="filter-panel">
+        <div className="filter-panel-header">
+          <span className="filter-panel-title">Filtre</span>
+          {hasFilters && (
+            <button className="filter-clear" onClick={() => onFilterChange({ types: [], access: [], regions: [] })}>
+              Fjern alle
+            </button>
+          )}
+        </div>
+        <div className="filter-group">
+          <span className="filter-label">Type</span>
+          <div className="filter-pills">
+            {['tent', 'hammock'].map((t) => (
+              <button key={t} className={`filter-pill${filters.types.includes(t) ? ' filter-pill--on' : ''}`} onClick={() => onToggleFilter('types', t)}>
+                {t === 'tent' ? '⛺ Telt' : '🪢 Hengekøye'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="filter-group">
+          <span className="filter-label">Tilgang</span>
+          <div className="filter-pills">
+            {['road', 'short-hike', 'day-hike', 'remote'].map((a) => (
+              <button key={a} className={`filter-pill${filters.access.includes(a) ? ' filter-pill--on' : ''}`} onClick={() => onToggleFilter('access', a)}>
+                {ACCESS_LABELS[a]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="filter-group">
+          <span className="filter-label">Fylke</span>
+          <select
+            className="filter-region-select"
+            value={filters.regions[0] || ''}
+            onChange={(e) => onFilterChange((f) => ({ ...f, regions: e.target.value ? [e.target.value] : [] }))}
+          >
+            <option value="">Alle regioner</option>
+            {allRegions.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="sidebar-body">
+        {!loading && filteredSpots.length === 0 && (
+          <p className="empty-state">{spots.length === 0 ? 'Ingen leirplasser enda. Legg til den første!' : 'Ingen leirplasser matcher filtrene dine.'}</p>
+        )}
+        {filteredSpots.map((spot) => (
+          <div key={spot.id} className="spot-card">
+            <h3>{spot.name}</h3>
+            <SpotBadges spot={spot} />
+            <div className="spot-card-footer">
+              <button className="see-more-btn" onClick={() => onSeeMore(spot)}>Se mer →</button>
+              {spot.owner_token === ownerToken && (
+                <div className="owner-actions owner-actions--inline">
+                  <button className="owner-btn owner-btn--edit" onClick={() => { onEdit(spot) }}>✏️</button>
+                  <button className="owner-btn owner-btn--delete" onClick={() => onDelete(spot)}>🗑</button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
@@ -217,6 +315,15 @@ export default function CampingMap() {
   const [zoom, setZoom] = useState(5)
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [editingCamp, setEditingCamp] = useState(null)
+  const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  const touchStartY = useRef(null)
+
+  useEffect(() => {
+    function onResize() { setIsMobile(window.innerWidth < 768) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const [ownerToken] = useState(() => {
     let token = localStorage.getItem('vilda_owner_token')
     if (!token) {
@@ -301,8 +408,9 @@ export default function CampingMap() {
   }
 
   function handleMapMarkerClick(spot) {
-    const isMobile = window.innerWidth < 768
-    openSpot(spot, false, isMobile)
+    const mobile = window.innerWidth < 768
+    openSpot(spot, false, mobile)
+    if (mobile) setSheetState('open')
   }
 
   function handleSeeMore(spot) {
@@ -313,6 +421,7 @@ export default function CampingMap() {
     setActiveId(null)
     setFlyTarget(null)
     setEditingCamp(null)
+    if (isMobile) setSheetState('peek')
   }
 
   async function handleDelete(camp) {
@@ -373,111 +482,46 @@ export default function CampingMap() {
       </header>
 
       <div className="main-area">
-        {/* Sidebar collapse button — lives outside the sidebar so it's never clipped */}
-        <button
-          className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
-          style={{ left: sidebarOpen ? 300 : 0 }}
-          onClick={() => setSidebarOpen((o) => !o)}
-          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          {sidebarOpen
-            ? <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="8,2 2,8 8,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            : <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="2,2 8,8 2,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          }
-        </button>
+        {/* Sidebar collapse button — desktop only */}
+        {!isMobile && (
+          <button
+            className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
+            style={{ left: sidebarOpen ? 300 : 0 }}
+            onClick={() => setSidebarOpen((o) => !o)}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {sidebarOpen
+              ? <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="8,2 2,8 8,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              : <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="2,2 8,8 2,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            }
+          </button>
+        )}
 
-        {/* Left sidebar */}
-        <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
-          <div className="sidebar-inner">
-          {editingCamp ? (
-            <div className="spot-detail" style={{ padding: '0.75rem' }}>
-              <AddSpotForm
-                position={{ lat: editingCamp.latitude, lng: editingCamp.longitude }}
-                camp={editingCamp}
-                ownerToken={ownerToken}
-                onCancel={() => setEditingCamp(null)}
-                onSaved={() => { setEditingCamp(null); loadSpots() }}
-              />
+        {/* Left sidebar — desktop only */}
+        {!isMobile && (
+          <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
+            <div className="sidebar-inner">
+            <SidebarContent
+              editingCamp={editingCamp}
+              activeSpot={activeSpot}
+              ownerToken={ownerToken}
+              filters={filters}
+              hasFilters={hasFilters}
+              allRegions={allRegions}
+              filteredSpots={filteredSpots}
+              loading={loading}
+              spots={spots}
+              onBack={handleBack}
+              onEdit={setEditingCamp}
+              onDelete={handleDelete}
+              onSeeMore={handleSeeMore}
+              onFilterChange={setFilters}
+              onToggleFilter={toggleFilter}
+              loadSpots={loadSpots}
+            />
             </div>
-          ) : activeSpot ? (
-            <>
-              <SpotDetail spot={activeSpot} onBack={handleBack} />
-              {activeSpot.owner_token === ownerToken && (
-                <div className="owner-actions">
-                  <button className="owner-btn owner-btn--edit" onClick={() => setEditingCamp(activeSpot)}>✏️ Rediger</button>
-                  <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(activeSpot)}>🗑 Slett</button>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              {/* Filters */}
-              <div className="filter-panel">
-                <div className="filter-panel-header">
-                  <span className="filter-panel-title">Filtre</span>
-                  {hasFilters && (
-                    <button className="filter-clear" onClick={() => setFilters({ types: [], access: [], regions: [] })}>
-                      Fjern alle
-                    </button>
-                  )}
-                </div>
-                <div className="filter-group">
-                  <span className="filter-label">Type</span>
-                  <div className="filter-pills">
-                    {['tent', 'hammock'].map((t) => (
-                      <button key={t} className={`filter-pill${filters.types.includes(t) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('types', t)}>
-                        {t === 'tent' ? '⛺ Telt' : '🪢 Hengekøye'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="filter-group">
-                  <span className="filter-label">Tilgang</span>
-                  <div className="filter-pills">
-                    {['road', 'short-hike', 'day-hike', 'remote'].map((a) => (
-                      <button key={a} className={`filter-pill${filters.access.includes(a) ? ' filter-pill--on' : ''}`} onClick={() => toggleFilter('access', a)}>
-                        {ACCESS_LABELS[a]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="filter-group">
-                  <span className="filter-label">Fylke</span>
-                  <select
-                    className="filter-region-select"
-                    value={filters.regions[0] || ''}
-                    onChange={(e) => setFilters((f) => ({ ...f, regions: e.target.value ? [e.target.value] : [] }))}
-                  >
-                    <option value="">Alle regioner</option>
-                    {allRegions.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="sidebar-body">
-                {!loading && filteredSpots.length === 0 && (
-                  <p className="empty-state">{spots.length === 0 ? 'Ingen leirplasser enda. Legg til den første!' : 'Ingen leirplasser matcher filtrene dine.'}</p>
-                )}
-                {filteredSpots.map((spot) => (
-                  <div key={spot.id} className="spot-card">
-                    <h3>{spot.name}</h3>
-                    <SpotBadges spot={spot} />
-                    <div className="spot-card-footer">
-                      <button className="see-more-btn" onClick={() => handleSeeMore(spot)}>Se mer →</button>
-                      {spot.owner_token === ownerToken && (
-                        <div className="owner-actions owner-actions--inline">
-                          <button className="owner-btn owner-btn--edit" onClick={() => { setEditingCamp(spot); setActiveId(null) }}>✏️</button>
-                          <button className="owner-btn owner-btn--delete" onClick={() => handleDelete(spot)}>🗑</button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* Map */}
         <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
@@ -563,6 +607,43 @@ export default function CampingMap() {
             </div>
           )}
         </div>
+
+        {/* Mobile bottom sheet */}
+        {isMobile && (
+          <div
+            className={`bottom-sheet bottom-sheet--${sheetState}`}
+            onTouchStart={(e) => { touchStartY.current = e.touches[0].clientY }}
+            onTouchEnd={(e) => {
+              if (touchStartY.current === null) return
+              const delta = touchStartY.current - e.changedTouches[0].clientY
+              if (delta > 40) setSheetState('open')
+              else if (delta < -40) setSheetState('peek')
+              touchStartY.current = null
+            }}
+          >
+            <div className="bottom-sheet-handle" onClick={() => setSheetState((s) => s === 'peek' ? 'open' : 'peek')} />
+            <div className="bottom-sheet-body">
+              <SidebarContent
+                editingCamp={editingCamp}
+                activeSpot={activeSpot}
+                ownerToken={ownerToken}
+                filters={filters}
+                hasFilters={hasFilters}
+                allRegions={allRegions}
+                filteredSpots={filteredSpots}
+                loading={loading}
+                spots={spots}
+                onBack={handleBack}
+                onEdit={setEditingCamp}
+                onDelete={handleDelete}
+                onSeeMore={(spot) => { handleSeeMore(spot); setSheetState('open') }}
+                onFilterChange={setFilters}
+                onToggleFilter={toggleFilter}
+                loadSpots={loadSpots}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
