@@ -59,26 +59,18 @@ function makeBadgeIcon(type = 'tent', color) {
   return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16] })
 }
 
-function makeSpotIcon(name, type = 'tent') {
+function makeSpotIcon(type = 'tent') {
   const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
   const svg = SPOT_ICONS[type] ?? TENT_SVG
-  const html = `
-    <span class="spot-marker">
-      <span class="spot-badge" style="background:${bg}">${svg}</span>
-      <span class="spot-marker-label">${escapeHtml(name)}</span>
-    </span>`
-  return L.divIcon({ html, className: '', iconAnchor: [14, 14], popupAnchor: [0, -16] })
+  const html = `<span class="spot-badge" style="background:${bg}">${svg}</span>`
+  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
 }
 
-function makeActiveSpotIcon(name, type = 'tent') {
+function makeActiveSpotIcon(type = 'tent') {
   const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
   const svg = SPOT_ICONS[type] ?? TENT_SVG
-  const html = `
-    <span class="spot-marker spot-marker--active">
-      <span class="spot-badge spot-badge--active" style="background:${bg}">${svg}</span>
-      <span class="spot-marker-label spot-marker-label--active">${escapeHtml(name)}</span>
-    </span>`
-  return L.divIcon({ html, className: '', iconAnchor: [18, 18], popupAnchor: [0, -20] })
+  const html = `<span class="spot-badge spot-badge--active" style="background:${bg}">${svg}</span>`
+  return L.divIcon({ html, className: '', iconSize: [36, 36], iconAnchor: [18, 18] })
 }
 
 const pendingIcon = makeBadgeIcon('tent', '#d98e04')
@@ -120,16 +112,6 @@ function FlyToUser({ target }) {
   return null
 }
 
-const LABEL_ZOOM_THRESHOLD = 11
-
-function ZoomWatcher({ onZoomChange }) {
-  const map = useMap()
-  useEffect(() => { onZoomChange(map.getZoom()) }, [map, onZoomChange])
-  useMapEvents({
-    zoomend() { onZoomChange(map.getZoom()) },
-  })
-  return null
-}
 
 function SpotBadges({ spot }) {
   return (
@@ -326,7 +308,6 @@ export default function CampingMap() {
   const [userPosition, setUserPosition] = useState(null)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
-  const [zoom, setZoom] = useState(5)
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
@@ -425,13 +406,13 @@ export default function CampingMap() {
 
   const spotIcons = useMemo(() => {
     const icons = {}
-    spots.forEach((s) => { icons[s.id] = makeSpotIcon(s.name, s.spot_type) })
+    spots.forEach((s) => { icons[s.id] = makeSpotIcon(s.spot_type) })
     return icons
   }, [spots])
 
   const activeSpotIcons = useMemo(() => {
     const icons = {}
-    spots.forEach((s) => { icons[s.id] = makeActiveSpotIcon(s.name, s.spot_type) })
+    spots.forEach((s) => { icons[s.id] = makeActiveSpotIcon(s.spot_type) })
     return icons
   }, [spots])
 
@@ -586,13 +567,12 @@ export default function CampingMap() {
         )}
 
         {/* Map */}
-        <div className={`map-root${zoom >= LABEL_ZOOM_THRESHOLD ? ' labels-visible' : ''}`}>
+        <div className="map-root">
           <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
             <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
             <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
-            <ZoomWatcher onZoomChange={setZoom} />
             {spots.map((spot) => (
               <Marker
                 key={spot.id}
