@@ -70,6 +70,17 @@ function makeSpotIcon(name, type = 'tent') {
   return L.divIcon({ html, className: '', iconAnchor: [14, 14], popupAnchor: [0, -16] })
 }
 
+function makeActiveSpotIcon(name, type = 'tent') {
+  const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
+  const svg = SPOT_ICONS[type] ?? TENT_SVG
+  const html = `
+    <span class="spot-marker spot-marker--active">
+      <span class="spot-badge spot-badge--active" style="background:${bg}">${svg}</span>
+      <span class="spot-marker-label spot-marker-label--active">${escapeHtml(name)}</span>
+    </span>`
+  return L.divIcon({ html, className: '', iconAnchor: [18, 18], popupAnchor: [0, -20] })
+}
+
 const pendingIcon = makeBadgeIcon('tent', '#d98e04')
 
 const userLocationIcon = L.divIcon({
@@ -372,6 +383,12 @@ export default function CampingMap() {
     return icons
   }, [spots])
 
+  const activeSpotIcons = useMemo(() => {
+    const icons = {}
+    spots.forEach((s) => { icons[s.id] = makeActiveSpotIcon(s.name, s.spot_type) })
+    return icons
+  }, [spots])
+
   const activeSpot = spots.find((s) => s.id === activeId) || null
   const layer = LAYERS[layerKey]
   const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
@@ -403,8 +420,10 @@ export default function CampingMap() {
     setActiveId(spot.id)
     if (fly) setFlyTarget(spot)
     if (pan) setPanTarget(spot)
-    const marker = markerRefs.current[spot.id]
-    if (marker) marker.openPopup()
+    if (!isMobile) {
+      const marker = markerRefs.current[spot.id]
+      if (marker) marker.openPopup()
+    }
   }
 
   function handleMapMarkerClick(spot) {
@@ -535,7 +554,7 @@ export default function CampingMap() {
               <Marker
                 key={spot.id}
                 position={[spot.latitude, spot.longitude]}
-                icon={spotIcons[spot.id]}
+                icon={isMobile && spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
                 ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
                 eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
               >

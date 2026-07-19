@@ -948,6 +948,21 @@ button.primary:hover:not(:disabled) {
   pointer-events: auto;
 }
 
+.spot-badge--active {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 3px var(--amber), 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.spot-marker-label--active {
+  opacity: 1;
+  pointer-events: auto;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--forest);
+}
+
 .popup-photo-strip {
   display: flex;
   gap: 6px;
