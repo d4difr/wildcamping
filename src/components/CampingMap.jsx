@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
@@ -126,7 +126,6 @@ function ZoomWatcher({ onZoomChange }) {
   const map = useMap()
   useEffect(() => { onZoomChange(map.getZoom()) }, [map, onZoomChange])
   useMapEvents({
-    zoomstart() { map.closePopup() },
     zoomend() { onZoomChange(map.getZoom()) },
   })
   return null
@@ -467,10 +466,6 @@ export default function CampingMap() {
     setActiveId(spot.id)
     if (fly) setFlyTarget(spot)
     if (pan) setPanTarget(spot)
-    if (!isMobile) {
-      const marker = markerRefs.current[spot.id]
-      if (marker) marker.openPopup()
-    }
   }
 
   function handleMapMarkerClick(spot) {
@@ -601,16 +596,10 @@ export default function CampingMap() {
               <Marker
                 key={spot.id}
                 position={[spot.latitude, spot.longitude]}
-                icon={isMobile && spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
+                icon={spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
                 ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
                 eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
               >
-                {!isMobile && (
-                  <Popup autoPan={false}>
-                    <h3>{spot.name}</h3>
-                    <SpotBadges spot={spot} />
-                  </Popup>
-                )}
               </Marker>
             ))}
             {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
