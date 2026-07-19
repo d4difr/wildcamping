@@ -97,7 +97,7 @@ function ClickHandler({ dropMode, onMapClick }) {
   return null
 }
 
-function FlyToSpot({ target, pan }) {
+function FlyToSpot({ target, pan, onDone }) {
   const map = useMap()
   useEffect(() => {
     if (!target) return
@@ -107,7 +107,8 @@ function FlyToSpot({ target, pan }) {
       const currentZoom = map.getZoom()
       map.flyTo([target.latitude, target.longitude], Math.max(currentZoom, 11), { duration: 0.8 })
     }
-  }, [target, map, pan])
+    onDone()
+  }, [target])
   return null
 }
 
@@ -590,8 +591,8 @@ export default function CampingMap() {
           <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
             <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
-            <FlyToSpot target={flyTarget} pan={false} />
-            <FlyToSpot target={panTarget} pan={true} />
+            <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
+            <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
             <ZoomWatcher onZoomChange={setZoom} />
             {spots.map((spot) => (
               <Marker
