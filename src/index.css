@@ -1087,18 +1087,19 @@ button.primary:hover:not(:disabled) {
   background: var(--birch-card);
   border-radius: 18px 18px 0 0;
   box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
-  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   touch-action: none;
 }
 
 .bottom-sheet--peek {
-  height: 72px;
+  max-height: 72px;
+  overflow: hidden;
 }
 
 .bottom-sheet--open {
-  height: 82vh;
+  max-height: 82vh;
 }
 
 .bottom-sheet-handle {
@@ -1112,12 +1113,11 @@ button.primary:hover:not(:disabled) {
 }
 
 .bottom-sheet-body {
-  flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-.bottom-sheet--peek .bottom-sheet-body {
-  overflow: hidden;
+.bottom-sheet-body .go-back-btn {
+  display: none;
 }
