@@ -603,7 +603,7 @@ export default function CampingMap() {
                 eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
               >
                 {!isMobile && (
-                  <Popup>
+                  <Popup autoPan={false}>
                     <h3>{spot.name}</h3>
                     <SpotBadges spot={spot} />
                   </Popup>
