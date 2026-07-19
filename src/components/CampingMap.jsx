@@ -125,7 +125,10 @@ const LABEL_ZOOM_THRESHOLD = 11
 function ZoomWatcher({ onZoomChange }) {
   const map = useMap()
   useEffect(() => { onZoomChange(map.getZoom()) }, [map, onZoomChange])
-  useMapEvents({ zoomend() { onZoomChange(map.getZoom()) } })
+  useMapEvents({
+    zoomstart() { map.closePopup() },
+    zoomend() { onZoomChange(map.getZoom()) },
+  })
   return null
 }
 
