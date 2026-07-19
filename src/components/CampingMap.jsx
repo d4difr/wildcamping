@@ -558,10 +558,12 @@ export default function CampingMap() {
                 ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
                 eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
               >
-                <Popup>
-                  <h3>{spot.name}</h3>
-                  <SpotBadges spot={spot} />
-                </Popup>
+                {!isMobile && (
+                  <Popup>
+                    <h3>{spot.name}</h3>
+                    <SpotBadges spot={spot} />
+                  </Popup>
+                )}
               </Marker>
             ))}
             {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
