@@ -86,14 +86,17 @@ function ClickHandler({ dropMode, onMapClick }) {
   return null
 }
 
-function FlyToSpot({ target }) {
+function FlyToSpot({ target, pan }) {
   const map = useMap()
   useEffect(() => {
-    if (target) {
+    if (!target) return
+    if (pan) {
+      map.panTo([target.latitude, target.longitude], { animate: true, duration: 0.4 })
+    } else {
       const currentZoom = map.getZoom()
       map.flyTo([target.latitude, target.longitude], Math.max(currentZoom, 11), { duration: 0.8 })
     }
-  }, [target, map])
+  }, [target, map, pan])
   return null
 }
 
@@ -201,6 +204,7 @@ export default function CampingMap() {
     return params.get('spot') || null
   })
   const [flyTarget, setFlyTarget] = useState(null)
+  const [panTarget, setPanTarget] = useState(null)
   const [layerKey, setLayerKey] = useState('outdoors')
   const [filters, setFilters] = useState({ types: [], access: [], regions: [] })
   const [dropMode, setDropMode] = useState(false)
@@ -211,7 +215,7 @@ export default function CampingMap() {
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
   const [zoom, setZoom] = useState(5)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [editingCamp, setEditingCamp] = useState(null)
   const [ownerToken] = useState(() => {
     let token = localStorage.getItem('vilda_owner_token')
@@ -288,15 +292,17 @@ export default function CampingMap() {
 
   const hasFilters = filters.types.length || filters.access.length || filters.regions.length
 
-  function openSpot(spot, fly = false) {
+  function openSpot(spot, fly = false, pan = false) {
     setActiveId(spot.id)
     if (fly) setFlyTarget(spot)
+    if (pan) setPanTarget(spot)
     const marker = markerRefs.current[spot.id]
     if (marker) marker.openPopup()
   }
 
   function handleMapMarkerClick(spot) {
-    openSpot(spot, false)
+    const isMobile = window.innerWidth < 768
+    openSpot(spot, false, isMobile)
   }
 
   function handleSeeMore(spot) {
@@ -478,7 +484,8 @@ export default function CampingMap() {
           <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
             <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
-            <FlyToSpot target={flyTarget} />
+            <FlyToSpot target={flyTarget} pan={false} />
+            <FlyToSpot target={panTarget} pan={true} />
             <ZoomWatcher onZoomChange={setZoom} />
             {spots.map((spot) => (
               <Marker
