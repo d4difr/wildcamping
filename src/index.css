@@ -1155,11 +1155,12 @@ button.primary:hover:not(:disabled) {
 
 /* Cluster badge */
 .cluster-badge {
+  box-sizing: border-box;
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: var(--forest);
-  border: 2px solid #fff;
+  border: 3px solid #fff;
   box-shadow: 0 1px 5px rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
@@ -1168,5 +1169,6 @@ button.primary:hover:not(:disabled) {
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
-  line-height: 1;
+  line-height: 30px;
+  text-align: center;
 }
