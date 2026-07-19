@@ -328,13 +328,56 @@ export default function CampingMap() {
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
-  const touchStartY = useRef(null)
+  const sheetRef = useRef(null)
+  const dragStartY = useRef(null)
+  const dragStartTranslateY = useRef(0)
 
   useEffect(() => {
     function onResize() { setIsMobile(window.innerWidth < 768) }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // Animate sheet to new state (used for programmatic state changes)
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el) return
+    el.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+    el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 72px))'
+  }, [sheetState])
+
+  function onHandleTouchStart(e) {
+    const el = sheetRef.current
+    const matrix = new DOMMatrix(getComputedStyle(el).transform)
+    dragStartTranslateY.current = matrix.m42
+    dragStartY.current = e.touches[0].clientY
+    el.style.transition = 'none'
+  }
+
+  function onHandleTouchMove(e) {
+    if (dragStartY.current === null) return
+    e.preventDefault()
+    const delta = e.touches[0].clientY - dragStartY.current
+    const newY = Math.max(0, dragStartTranslateY.current + delta)
+    sheetRef.current.style.transform = `translateY(${newY}px)`
+  }
+
+  function onHandleTouchEnd(e) {
+    if (dragStartY.current === null) return
+    const delta = e.changedTouches[0].clientY - dragStartY.current
+    const el = sheetRef.current
+    el.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
+    if (delta < -40) {
+      setSheetState('open')
+      el.style.transform = 'translateY(0)'
+    } else if (delta > 40) {
+      setSheetState('peek')
+      el.style.transform = 'translateY(calc(100% - 72px))'
+    } else {
+      el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 72px))'
+    }
+    dragStartY.current = null
+  }
   const [ownerToken] = useState(() => {
     let token = localStorage.getItem('vilda_owner_token')
     if (!token) {
@@ -631,18 +674,14 @@ export default function CampingMap() {
 
         {/* Mobile bottom sheet */}
         {isMobile && (
-          <div
-            className={`bottom-sheet bottom-sheet--${sheetState}`}
-            onTouchStart={(e) => { touchStartY.current = e.touches[0].clientY }}
-            onTouchEnd={(e) => {
-              if (touchStartY.current === null) return
-              const delta = touchStartY.current - e.changedTouches[0].clientY
-              if (delta > 40) setSheetState('open')
-              else if (delta < -40) setSheetState('peek')
-              touchStartY.current = null
-            }}
-          >
-            <div className="bottom-sheet-handle" onClick={() => setSheetState((s) => s === 'peek' ? 'open' : 'peek')} />
+          <div className="bottom-sheet" ref={sheetRef}>
+            <div
+              className="bottom-sheet-handle"
+              onClick={() => setSheetState((s) => s === 'peek' ? 'open' : 'peek')}
+              onTouchStart={onHandleTouchStart}
+              onTouchMove={onHandleTouchMove}
+              onTouchEnd={onHandleTouchEnd}
+            />
             <div className="bottom-sheet-body">
               <SidebarContent
                 editingCamp={editingCamp}
