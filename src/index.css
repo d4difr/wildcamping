@@ -44,6 +44,20 @@ body {
 
 .topnav-logo { display: block; }
 
+.topnav-tagline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(244, 241, 234, 0.55);
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* Main area: sidebar + map side by side */
 .main-area {
   flex: 1;
@@ -1081,6 +1095,8 @@ button.primary:hover:not(:disabled) {
 
 /* Push map controls above bottom sheet peek on mobile */
 @media (max-width: 767px) {
+  .topnav-tagline { display: none; }
+
   .locate-wrap {
     bottom: 90px;
   }
