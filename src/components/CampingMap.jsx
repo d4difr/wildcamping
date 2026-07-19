@@ -296,7 +296,7 @@ export default function CampingMap() {
   }
 
   function handleMapMarkerClick(spot) {
-    openSpot(spot, true)
+    openSpot(spot, false)
   }
 
   function handleSeeMore(spot) {
