@@ -1152,3 +1152,20 @@ button.primary:hover:not(:disabled) {
 .bottom-sheet-body .go-back-btn {
   display: none;
 }
+
+/* Cluster badge */
+.cluster-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid var(--forest);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--forest);
+}

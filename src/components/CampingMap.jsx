@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
@@ -71,6 +72,16 @@ function makeActiveSpotIcon(type = 'tent') {
   const svg = SPOT_ICONS[type] ?? TENT_SVG
   const html = `<span class="spot-badge spot-badge--active" style="background:${bg}">${svg}</span>`
   return L.divIcon({ html, className: '', iconSize: [36, 36], iconAnchor: [18, 18] })
+}
+
+function createClusterIcon(cluster) {
+  const count = cluster.getChildCount()
+  return L.divIcon({
+    html: `<span class="cluster-badge">${count}</span>`,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  })
 }
 
 const pendingIcon = makeBadgeIcon('tent', '#d98e04')
@@ -573,16 +584,17 @@ export default function CampingMap() {
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
             <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
-            {spots.map((spot) => (
-              <Marker
-                key={spot.id}
-                position={[spot.latitude, spot.longitude]}
-                icon={spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
-                ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
-                eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
-              >
-              </Marker>
-            ))}
+            <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={13}>
+              {spots.map((spot) => (
+                <Marker
+                  key={spot.id}
+                  position={[spot.latitude, spot.longitude]}
+                  icon={spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
+                  ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
+                  eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
+                />
+              ))}
+            </MarkerClusterGroup>
             {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
             {userPosition && <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />}
             <FlyToUser target={userPosition} />
