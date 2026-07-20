@@ -214,13 +214,13 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </button>
       </div>
 
-      <label htmlFor="spot-name">Leirplassnavn</label>
+      <label htmlFor="spot-name">Leirplassnavn <span className="required">*</span></label>
       <input id="spot-name" type="text" placeholder="f.eks. Preikestolen-ryggen" value={name} onChange={(e) => setName(e.target.value)} />
 
       <label htmlFor="spot-desc">Hvorfor er det verdt å besøke?</label>
       <textarea id="spot-desc" rows={2} placeholder="Flate teltplasser, vid utsikt, nær ferskvann…" value={description} onChange={(e) => setDescription(e.target.value)} />
 
-      <label htmlFor="spot-access">Tilgang</label>
+      <label htmlFor="spot-access">Tilgang <span className="required">*</span></label>
       <select id="spot-access" value={access} onChange={(e) => setAccess(e.target.value)}>
         {ACCESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>

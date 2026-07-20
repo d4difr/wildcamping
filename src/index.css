@@ -1350,6 +1350,10 @@ button.primary:hover:not(:disabled) {
   line-height: 1.5;
 }
 
+.required {
+  color: #a32d2d;
+}
+
 .utmark-link {
   color: var(--fjord);
   text-decoration: underline;
