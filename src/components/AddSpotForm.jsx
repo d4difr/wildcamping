@@ -52,7 +52,9 @@ async function checkNibioLandType(lat, lng) {
     const match = html.match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
     if (!match) return null // no data for this location — fail open
     const label = match[1].trim()
-    const isUtmark = UTMARK_LABELS.some(l => label.toLowerCase().includes(l))
+    const lower = label.toLowerCase()
+    if (lower.includes('ikke kartlagt')) return null // unmapped = fail open (national parks etc.)
+    const isUtmark = UTMARK_LABELS.some(l => lower.includes(l))
     return isUtmark ? null : label // null = allowed, label = blocked (shown in warning)
   } catch {
     return null // API unreachable — fail open
