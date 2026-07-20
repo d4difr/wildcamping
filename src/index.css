@@ -1480,6 +1480,91 @@ button.primary:hover:not(:disabled) {
   background: #fce4ec;
 }
 
+/* Admin traffic stats */
+.admin-stats {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: #fafaf8;
+}
+
+.admin-stat-cards {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-stat-card {
+  flex: 1;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.admin-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--forest);
+  line-height: 1;
+}
+
+.admin-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #aaa;
+}
+
+.admin-chart {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+  height: 80px;
+}
+
+.admin-chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  height: 100%;
+}
+
+.admin-chart-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--forest);
+  min-height: 0.8rem;
+}
+
+.admin-chart-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.admin-chart-bar {
+  width: 100%;
+  background: var(--forest);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  opacity: 0.75;
+  transition: height 0.3s ease;
+}
+
+.admin-chart-label {
+  font-size: 0.6rem;
+  color: #aaa;
+  white-space: nowrap;
+}
+
 /* Cluster badge */
 .cluster-badge {
   box-sizing: border-box;

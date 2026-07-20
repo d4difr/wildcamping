@@ -254,10 +254,11 @@ function AdminPanel({ onClose }) {
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [stats, setStats] = useState(null)
 
   function handleLogin(e) {
     e.preventDefault()
-    if (password === ADMIN_KEY) { setAuthed(true); fetchAll() }
+    if (password === ADMIN_KEY) { setAuthed(true); fetchAll(); fetchStats() }
     else alert('Feil passord')
   }
 
@@ -266,6 +267,25 @@ function AdminPanel({ onClose }) {
     const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
     if (data) setSpots(data)
     setLoading(false)
+  }
+
+  async function fetchStats() {
+    const { data } = await supabase.from('page_views').select('visited_at')
+    if (!data) return
+    const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+    const weekAgo = new Date(now - 7 * 864e5)
+    const today = data.filter(v => v.visited_at.slice(0, 10) === todayStr).length
+    const week = data.filter(v => new Date(v.visited_at) >= weekAgo).length
+    // Build last 7 days breakdown
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now - i * 864e5)
+      const key = d.toISOString().slice(0, 10)
+      const label = d.toLocaleDateString('no', { weekday: 'short', day: 'numeric' })
+      const count = data.filter(v => v.visited_at.slice(0, 10) === key).length
+      return { label, count }
+    }).reverse()
+    setStats({ total: data.length, today, week, days })
   }
 
   async function handleDelete(id) {
@@ -314,6 +334,39 @@ function AdminPanel({ onClose }) {
             <button className="about-close" style={{ position: 'static' }} onClick={onClose}>✕</button>
           </div>
         </div>
+        {stats && (
+          <div className="admin-stats">
+            <div className="admin-stat-cards">
+              <div className="admin-stat-card">
+                <span className="admin-stat-value">{stats.total}</span>
+                <span className="admin-stat-label">Totalt</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-value">{stats.week}</span>
+                <span className="admin-stat-label">Siste 7 dager</span>
+              </div>
+              <div className="admin-stat-card">
+                <span className="admin-stat-value">{stats.today}</span>
+                <span className="admin-stat-label">I dag</span>
+              </div>
+            </div>
+            <div className="admin-chart">
+              {(() => {
+                const max = Math.max(...stats.days.map(d => d.count), 1)
+                return stats.days.map((d, i) => (
+                  <div key={i} className="admin-chart-col">
+                    <span className="admin-chart-count">{d.count || ''}</span>
+                    <div className="admin-chart-bar-wrap">
+                      <div className="admin-chart-bar" style={{ height: `${(d.count / max) * 100}%` }} />
+                    </div>
+                    <span className="admin-chart-label">{d.label}</span>
+                  </div>
+                ))
+              })()}
+            </div>
+          </div>
+        )}
+
         {loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
           <div className="admin-list">
             {displayed.map((spot) => (
@@ -546,6 +599,12 @@ export default function CampingMap() {
   }
 
   useEffect(() => { loadSpots() }, [])
+
+  useEffect(() => {
+    if (sessionStorage.getItem('vilda_tracked')) return
+    sessionStorage.setItem('vilda_tracked', '1')
+    supabase.from('page_views').insert({ screen_width: window.innerWidth })
+  }, [])
 
   useEffect(() => {
     const url = new URL(window.location)
