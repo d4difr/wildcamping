@@ -30,37 +30,31 @@ const ACCESS_OPTIONS = [
 const MAX_PHOTOS = 3
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
-// NIBIO AR5 land classification arealtype codes that indicate innmark
-const INNMARK_TYPES = {
-  20: 'fulldyrka jord (fully cultivated farmland)',
-  21: 'overflatedyrka jord (surface cultivated land)',
-  22: 'innmarksbeite (infield pasture)',
-}
+// NIBIO AR5 arealtype text values that indicate innmark (not covered by allemannsretten)
+const INNMARK_LABELS = ['fulldyrka jord', 'overflatedyrka jord', 'innmarksbeite']
 
 async function checkNibioLandType(lat, lng) {
-  // Use a small bbox around the point and ask NIBIO WMS for the land type
   const delta = 0.0005
   const minLat = lat - delta, maxLat = lat + delta
   const minLng = lng - delta, maxLng = lng + delta
-  const width = 100, height = 100
-  const i = 50, j = 50
 
   const url =
     `https://wms.nibio.no/cgi-bin/ar5?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo` +
-    `&LAYERS=Arealressurskart_WMS&QUERY_LAYERS=Arealressurskart_WMS` +
+    `&LAYERS=Arealtype&QUERY_LAYERS=Arealtype` +
     `&CRS=EPSG:4326&BBOX=${minLat},${minLng},${maxLat},${maxLng}` +
-    `&WIDTH=${width}&HEIGHT=${height}&I=${i}&J=${j}` +
-    `&INFO_FORMAT=text/plain`
+    `&WIDTH=100&HEIGHT=100&I=50&J=50` +
+    `&INFO_FORMAT=text/html`
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
     if (!res.ok) return null
-    const text = await res.text()
-    // Extract arealtype value from plain text response e.g. "arealtype = '20'"
-    const match = text.match(/arealtype\s*=\s*'?(\d+)'?/i)
+    const html = await res.text()
+    // Parse the Arealtype row from the HTML table: <td>Arealtype</td><TD>Fulldyrka jord</TD>
+    const match = html.match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
     if (!match) return null
-    const code = parseInt(match[1], 10)
-    return INNMARK_TYPES[code] || null // returns description if innmark, null if utmark/unknown
+    const label = match[1].trim()
+    const isInnmark = INNMARK_LABELS.some(l => label.toLowerCase().includes(l))
+    return isInnmark ? label : null // returns label if innmark, null if utmark/unknown
   } catch {
     return null // API unreachable — fail open
   }
