@@ -30,8 +30,8 @@ const ACCESS_OPTIONS = [
 const MAX_PHOTOS = 3
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
-// NIBIO AR5 arealtype text values that indicate innmark (not covered by allemannsretten)
-const INNMARK_LABELS = ['fulldyrka jord', 'overflatedyrka jord', 'innmarksbeite']
+// Only these NIBIO arealtype values are legal utmark under allemannsretten
+const UTMARK_LABELS = ['skog', 'åpen fastmark', 'myr', 'snø og is', 'ferskvann', 'hav']
 
 async function checkNibioLandType(lat, lng) {
   const delta = 0.0005
@@ -49,12 +49,11 @@ async function checkNibioLandType(lat, lng) {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
     if (!res.ok) return null
     const html = await res.text()
-    // Parse the Arealtype row from the HTML table: <td>Arealtype</td><TD>Fulldyrka jord</TD>
     const match = html.match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
-    if (!match) return null
+    if (!match) return null // no data for this location — fail open
     const label = match[1].trim()
-    const isInnmark = INNMARK_LABELS.some(l => label.toLowerCase().includes(l))
-    return isInnmark ? label : null // returns label if innmark, null if utmark/unknown
+    const isUtmark = UTMARK_LABELS.some(l => label.toLowerCase().includes(l))
+    return isUtmark ? null : label // null = allowed, label = blocked (shown in warning)
   } catch {
     return null // API unreachable — fail open
   }
@@ -269,8 +268,8 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         <div className="innmark-warning">
           <span className="innmark-warning__icon">⚠️</span>
           <div>
-            <strong>Innmark — kan ikke legges til</strong>
-            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Det er ikke lov å campe her under allemannsretten. Flytt pinnen til et område i utmark for å fortsette.</p>
+            <strong>Ikke tillatt område — kan ikke legges til</strong>
+            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
             <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
               Sjekk på gardskart.nibio.no →
             </a>
