@@ -142,24 +142,24 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         setError('Koordinatene er utenfor Norge. Vildakart er kun for norske leirplasser.')
         return
       }
-      // NIBIO innmark check — runs once; if already warned, let the checkbox gate it
-      if (!nibioWarning && !nibioChecking) {
+      // NIBIO innmark check — hard block if innmark detected, no override possible
+      if (nibioWarning) {
+        setError('Denne plassen er registrert som innmark og kan ikke legges til.')
+        return
+      }
+      if (!nibioChecking) {
         setNibioChecking(true)
         const innmarkType = await checkNibioLandType(lat, lng)
         setNibioChecking(false)
         if (innmarkType) {
           setNibioWarning(innmarkType)
-          return // stop — user must read warning and tick checkbox
+          return // stop — hard block, shown in warning box
         }
       }
-      if (nibioWarning && !utmarkConfirmed) {
-        setError('Du må bekrefte at plassen er i utmark for å fortsette.')
+      if (!utmarkConfirmed) {
+        setError('Du må bekrefte at plassen er i utmark (allemannsretten).')
         return
       }
-    }
-    if (!isEditing && !utmarkConfirmed) {
-      setError('Du må bekrefte at plassen er i utmark (allemannsretten).')
-      return
     }
     setSaving(true)
     setError('')
@@ -275,8 +275,8 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         <div className="innmark-warning">
           <span className="innmark-warning__icon">⚠️</span>
           <div>
-            <strong>Mulig innmark oppdaget</strong>
-            <p>NIBIO sitt kart viser at dette området kan være klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark — ikke på dyrka mark eller beite nær bebyggelse.</p>
+            <strong>Innmark — kan ikke legges til</strong>
+            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Det er ikke lov å campe her under allemannsretten. Flytt pinnen til et område i utmark for å fortsette.</p>
             <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
               Sjekk på gardskart.nibio.no →
             </a>
@@ -284,7 +284,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </div>
       )}
 
-      {!isEditing && (
+      {!isEditing && !nibioWarning && (
         <label className="utmark-confirm">
           <input
             type="checkbox"
