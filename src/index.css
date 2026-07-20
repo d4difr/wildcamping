@@ -1213,13 +1213,13 @@ button.primary:hover:not(:disabled) {
   .topnav-tagline { display: none; }
 
   .locate-wrap {
-    bottom: 90px;
+    bottom: 48px;
   }
   .drop-panel {
-    bottom: 90px;
+    bottom: 48px;
   }
   .floating-form {
-    bottom: 90px;
+    bottom: 48px;
   }
 }
 
@@ -1238,7 +1238,7 @@ button.primary:hover:not(:disabled) {
   flex-direction: column;
   will-change: transform;
   /* JS sets transform and transition; this is the initial (peek) position */
-  transform: translateY(calc(100% - 72px));
+  transform: translateY(calc(100% - 28px));
 }
 
 .bottom-sheet-handle {

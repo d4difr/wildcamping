@@ -377,7 +377,7 @@ export default function CampingMap() {
     const el = sheetRef.current
     if (!el) return
     el.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
-    el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 72px))'
+    el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 28px))'
   }, [sheetState])
 
   function onHandleTouchStart(e) {
@@ -406,9 +406,9 @@ export default function CampingMap() {
       el.style.transform = 'translateY(0)'
     } else if (delta > 40) {
       setSheetState('peek')
-      el.style.transform = 'translateY(calc(100% - 72px))'
+      el.style.transform = 'translateY(calc(100% - 28px))'
     } else {
-      el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 72px))'
+      el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 28px))'
     }
     dragStartY.current = null
   }
