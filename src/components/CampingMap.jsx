@@ -202,6 +202,44 @@ function SpotDetail({ spot, onBack }) {
   )
 }
 
+function AboutModal({ onClose }) {
+  return createPortal(
+    <div className="about-overlay" onClick={onClose}>
+      <div className="about-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="about-close" onClick={onClose}>✕</button>
+
+        <h1 className="about-title">Om Vildakart</h1>
+
+        <section className="about-section">
+          <h2>Hvorfor Vildakart?</h2>
+          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode villcampingplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye favoritter.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Allemannsretten</h2>
+          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebygde eiendom og ikke oppholder deg mer enn to netter på samme sted uten tillatelse fra grunneier.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Slik fungerer kartet</h2>
+          <p>Alle kan legge til en leirplass uten å opprette konto. Klikk på «Legg til leirplass», plasser en pin på kartet og fyll inn det du vet. Leirplassen knyttes til enheten du brukte, så du kan redigere eller slette den igjen fra samme telefon eller datamaskin.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>La naturen være som du fant den</h2>
+          <p>Ta med deg alt du tar med deg inn. Unngå å lage ildsted der det ikke finnes fra før, og respekter dyrelivet, særlig i hekke- og yngletiden. En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
+        </section>
+
+        <section className="about-section about-section--contact">
+          <h2>Kontakt</h2>
+          <p>Spørsmål, tilbakemeldinger eller forslag? Send gjerne en e-post til <a href="mailto:dadifr@outlook.com">dadifr@outlook.com</a></p>
+        </section>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function SidebarContent({
   editingCamp, activeSpot, ownerToken, filters, hasFilters, allRegions,
   filteredSpots, loading, spots, onBack, onEdit, onDelete, onSeeMore,
@@ -322,6 +360,7 @@ export default function CampingMap() {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
   const dragStartY = useRef(null)
@@ -533,7 +572,10 @@ export default function CampingMap() {
           <polygon points="22,26 48,54  -4,54" fill="#f4f1ea" />
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
+        <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
       </header>
+
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
 
       <div className="main-area">
         {/* Sidebar collapse button — desktop only */}
