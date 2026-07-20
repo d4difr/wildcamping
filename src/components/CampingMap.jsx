@@ -212,7 +212,7 @@ function AboutModal({ onClose }) {
 
         <section className="about-section">
           <h2>Hvorfor Vildakart?</h2>
-          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode villcampingplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye favoritter.</p>
+          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode villcampingplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye leirplasser.</p>
         </section>
 
         <section className="about-section">
@@ -564,7 +564,6 @@ export default function CampingMap() {
   return (
     <div className="app-root">
       <header className="topnav">
-        <span className="topnav-tagline">La naturen være som du fant den</span>
         <svg className="topnav-logo" width="126" height="34" viewBox="0 0 210 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vilda">
           <circle cx="34" cy="10" r="9" fill="#d98e04" />
           <polygon points="22,2  42,26   2,26" fill="#f4f1ea" />
