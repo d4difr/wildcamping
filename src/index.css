@@ -1297,6 +1297,68 @@ button.primary:hover:not(:disabled) {
   text-decoration: none;
 }
 
+/* Innmark warning box */
+.innmark-warning {
+  display: flex;
+  gap: 0.7rem;
+  background: #fff8e1;
+  border: 1.5px solid #e6b800;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--granite);
+}
+
+.innmark-warning__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.innmark-warning strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #7a5900;
+}
+
+.innmark-warning p {
+  margin: 0 0 0.4rem;
+}
+
+.innmark-warning a {
+  color: var(--fjord);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.innmark-warning a:hover {
+  text-decoration: underline;
+}
+
+/* Utmark confirmation checkbox */
+.utmark-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.84rem;
+  color: var(--granite);
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.utmark-confirm input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 0.18rem;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--forest);
+  cursor: pointer;
+}
+
 /* Admin panel */
 .admin-overlay {
   position: fixed;

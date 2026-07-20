@@ -30,6 +30,42 @@ const ACCESS_OPTIONS = [
 const MAX_PHOTOS = 3
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
+// NIBIO AR5 land classification arealtype codes that indicate innmark
+const INNMARK_TYPES = {
+  20: 'fulldyrka jord (fully cultivated farmland)',
+  21: 'overflatedyrka jord (surface cultivated land)',
+  22: 'innmarksbeite (infield pasture)',
+}
+
+async function checkNibioLandType(lat, lng) {
+  // Use a small bbox around the point and ask NIBIO WMS for the land type
+  const delta = 0.0005
+  const minLat = lat - delta, maxLat = lat + delta
+  const minLng = lng - delta, maxLng = lng + delta
+  const width = 100, height = 100
+  const i = 50, j = 50
+
+  const url =
+    `https://wms.nibio.no/cgi-bin/ar5?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo` +
+    `&LAYERS=Arealressurskart_WMS&QUERY_LAYERS=Arealressurskart_WMS` +
+    `&CRS=EPSG:4326&BBOX=${minLat},${minLng},${maxLat},${maxLng}` +
+    `&WIDTH=${width}&HEIGHT=${height}&I=${i}&J=${j}` +
+    `&INFO_FORMAT=text/plain`
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return null
+    const text = await res.text()
+    // Extract arealtype value from plain text response e.g. "arealtype = '20'"
+    const match = text.match(/arealtype\s*=\s*'?(\d+)'?/i)
+    if (!match) return null
+    const code = parseInt(match[1], 10)
+    return INNMARK_TYPES[code] || null // returns description if innmark, null if utmark/unknown
+  } catch {
+    return null // API unreachable — fail open
+  }
+}
+
 async function detectRegion(lat, lng) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=region&country=no&access_token=${TOKEN}`
   const res = await fetch(url)
@@ -53,6 +89,9 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
   const [photoFiles, setPhotoFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [utmarkConfirmed, setUtmarkConfirmed] = useState(false)
+  const [nibioWarning, setNibioWarning] = useState(null) // innmark land type string if detected
+  const [nibioChecking, setNibioChecking] = useState(false)
 
   useEffect(() => {
     if (isEditing) return // region already set from camp data
@@ -103,6 +142,24 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         setError('Koordinatene er utenfor Norge. Vildakart er kun for norske leirplasser.')
         return
       }
+      // NIBIO innmark check — runs once; if already warned, let the checkbox gate it
+      if (!nibioWarning && !nibioChecking) {
+        setNibioChecking(true)
+        const innmarkType = await checkNibioLandType(lat, lng)
+        setNibioChecking(false)
+        if (innmarkType) {
+          setNibioWarning(innmarkType)
+          return // stop — user must read warning and tick checkbox
+        }
+      }
+      if (nibioWarning && !utmarkConfirmed) {
+        setError('Du må bekrefte at plassen er i utmark for å fortsette.')
+        return
+      }
+    }
+    if (!isEditing && !utmarkConfirmed) {
+      setError('Du må bekrefte at plassen er i utmark (allemannsretten).')
+      return
     }
     setSaving(true)
     setError('')
@@ -214,10 +271,34 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </label>
       )}
 
+      {!isEditing && nibioWarning && (
+        <div className="innmark-warning">
+          <span className="innmark-warning__icon">⚠️</span>
+          <div>
+            <strong>Mulig innmark oppdaget</strong>
+            <p>NIBIO sitt kart viser at dette området kan være klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark — ikke på dyrka mark eller beite nær bebyggelse.</p>
+            <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
+              Sjekk på gardskart.nibio.no →
+            </a>
+          </div>
+        </div>
+      )}
+
+      {!isEditing && (
+        <label className="utmark-confirm">
+          <input
+            type="checkbox"
+            checked={utmarkConfirmed}
+            onChange={(e) => { setUtmarkConfirmed(e.target.checked); setError('') }}
+          />
+          <span>Jeg bekrefter at denne plassen er i <strong>utmark</strong> og lovlig å campe på under allemannsretten</span>
+        </label>
+      )}
+
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
       <div className="actions">
-        <button className="primary" onClick={handleSave} disabled={saving || !name.trim()}>
-          {saving ? 'Lagrer…' : isEditing ? 'Oppdater leirplass' : 'Lagre leirplass'}
+        <button className="primary" onClick={handleSave} disabled={saving || !name.trim() || nibioChecking}>
+          {nibioChecking ? 'Sjekker område…' : saving ? 'Lagrer…' : isEditing ? 'Oppdater leirplass' : 'Lagre leirplass'}
         </button>
         <button onClick={onCancel} disabled={saving}>Avbryt</button>
       </div>
