@@ -30,8 +30,15 @@ const ACCESS_OPTIONS = [
 const MAX_PHOTOS = 3
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
-// Only these NIBIO arealtype values are legal utmark under allemannsretten
-const UTMARK_LABELS = ['skog', 'åpen fastmark', 'myr', 'snø og is', 'ferskvann', 'hav']
+// Only these NIBIO arealtype values are hard-blocked — clearly not legal to camp on.
+// Everything else (forest, bog, open land, unmapped wilderness, etc.) passes through.
+const BLOCKED_LABELS = [
+  'fulldyrka jord',
+  'overflatedyrka jord',
+  'innmarksbeite',
+  'bebygd',
+  'samferdsel',
+]
 
 async function checkNibioLandType(lat, lng) {
   const delta = 0.0005
@@ -50,12 +57,11 @@ async function checkNibioLandType(lat, lng) {
     if (!res.ok) return null
     const html = await res.text()
     const match = html.match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
-    if (!match) return null // no data for this location — fail open
+    if (!match) return null // no NIBIO data — fail open
     const label = match[1].trim()
     const lower = label.toLowerCase()
-    if (lower.includes('ikke kartlagt')) return null // unmapped = fail open (national parks etc.)
-    const isUtmark = UTMARK_LABELS.some(l => lower.includes(l))
-    return isUtmark ? null : label // null = allowed, label = blocked (shown in warning)
+    const isBlocked = BLOCKED_LABELS.some(l => lower.includes(l))
+    return isBlocked ? label : null // null = allowed, label = blocked
   } catch {
     return null // API unreachable — fail open
   }
