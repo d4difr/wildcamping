@@ -1350,6 +1350,16 @@ button.primary:hover:not(:disabled) {
   line-height: 1.5;
 }
 
+.utmark-link {
+  color: var(--fjord);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.utmark-link:hover {
+  text-decoration-style: solid;
+}
+
 .utmark-confirm input[type="checkbox"] {
   flex-shrink: 0;
   margin-top: 0.18rem;

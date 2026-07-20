@@ -291,7 +291,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
             checked={utmarkConfirmed}
             onChange={(e) => { setUtmarkConfirmed(e.target.checked); setError('') }}
           />
-          <span>Jeg bekrefter at denne plassen er i <strong>utmark</strong> og lovlig å campe på under allemannsretten</span>
+          <span>Jeg bekrefter at denne plassen er i <strong><a href="https://no.wikipedia.org/wiki/Allemannsretten" target="_blank" rel="noopener noreferrer" className="utmark-link">utmark</a></strong> og lovlig å campe på under allemannsretten</span>
         </label>
       )}
 
