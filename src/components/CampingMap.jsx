@@ -175,7 +175,7 @@ function Lightbox({ photos, startIndex, onClose }) {
   )
 }
 
-function SpotDetail({ spot, onBack }) {
+function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
 
@@ -198,6 +198,13 @@ function SpotDetail({ spot, onBack }) {
       <p className="spot-detail-coords">
         {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
       </p>
+      <button
+        className={`report-btn${alreadyReported ? ' report-btn--done' : ''}`}
+        onClick={() => !alreadyReported && onReport(spot)}
+        disabled={alreadyReported}
+      >
+        {alreadyReported ? 'Rapportert' : 'Rapporter innhold'}
+      </button>
     </div>
   )
 }
@@ -240,10 +247,104 @@ function AboutModal({ onClose }) {
   )
 }
 
+function AdminPanel({ onClose }) {
+  const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'vilda-admin'
+  const [password, setPassword] = useState('')
+  const [authed, setAuthed] = useState(false)
+  const [spots, setSpots] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState('all')
+
+  function handleLogin(e) {
+    e.preventDefault()
+    if (password === ADMIN_KEY) { setAuthed(true); fetchAll() }
+    else alert('Feil passord')
+  }
+
+  async function fetchAll() {
+    setLoading(true)
+    const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
+    if (data) setSpots(data)
+    setLoading(false)
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Slette denne leirplassen?')) return
+    await supabase.from('spots').delete().eq('id', id)
+    setSpots((s) => s.filter((x) => x.id !== id))
+  }
+
+  async function handleClearFlags(id) {
+    await supabase.from('spots').update({ flags: 0 }).eq('id', id)
+    setSpots((s) => s.map((x) => x.id === id ? { ...x, flags: 0 } : x))
+  }
+
+  const flagged = spots.filter((s) => s.flags >= 3)
+  const displayed = filter === 'flagged' ? flagged : spots
+
+  if (!authed) return createPortal(
+    <div className="admin-overlay">
+      <div className="admin-login">
+        <button className="about-close" onClick={onClose}>✕</button>
+        <h2>Admin</h2>
+        <form onSubmit={handleLogin}>
+          <input type="password" placeholder="Passord" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+          <button type="submit" className="primary">Logg inn</button>
+        </form>
+      </div>
+    </div>,
+    document.body
+  )
+
+  return createPortal(
+    <div className="admin-overlay">
+      <div className="admin-panel">
+        <div className="admin-header">
+          <div>
+            <h2>Admin</h2>
+            <span className="admin-subtitle">{spots.length} leirplasser totalt</span>
+          </div>
+          <div className="admin-header-right">
+            <div className="admin-tabs">
+              <button className={`admin-tab${filter === 'all' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('all')}>Alle</button>
+              <button className={`admin-tab${filter === 'flagged' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('flagged')}>
+                Flagget {flagged.length > 0 && <span className="admin-flag-badge">{flagged.length}</span>}
+              </button>
+            </div>
+            <button className="about-close" style={{ position: 'static' }} onClick={onClose}>✕</button>
+          </div>
+        </div>
+        {loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
+          <div className="admin-list">
+            {displayed.map((spot) => (
+              <div key={spot.id} className={`admin-spot${spot.flags >= 3 ? ' admin-spot--flagged' : ''}`}>
+                <div className="admin-spot-info">
+                  <strong>{spot.name}</strong>
+                  <span className="admin-spot-meta">
+                    {spot.region && `${spot.region} · `}
+                    {spot.created_at ? new Date(spot.created_at).toLocaleDateString('no') : ''}
+                    {spot.flags > 0 && <span className="admin-flag-count"> · {spot.flags} flagg</span>}
+                  </span>
+                </div>
+                <div className="admin-spot-actions">
+                  {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
+                  <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
+                </div>
+              </div>
+            ))}
+            {displayed.length === 0 && <p style={{ padding: '1rem', color: '#999' }}>Ingen leirplasser her.</p>}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function SidebarContent({
   editingCamp, activeSpot, ownerToken, filters, hasFilters, allRegions,
   filteredSpots, loading, spots, onBack, onEdit, onDelete, onSeeMore,
-  onFilterChange, onToggleFilter, loadSpots,
+  onFilterChange, onToggleFilter, loadSpots, onReport, flaggedSpots,
 }) {
   if (editingCamp) {
     return (
@@ -261,7 +362,12 @@ function SidebarContent({
   if (activeSpot) {
     return (
       <>
-        <SpotDetail spot={activeSpot} onBack={onBack} />
+        <SpotDetail
+          spot={activeSpot}
+          onBack={onBack}
+          onReport={onReport}
+          alreadyReported={flaggedSpots.includes(activeSpot.id)}
+        />
         {activeSpot.owner_token === ownerToken && (
           <div className="owner-actions">
             <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activeSpot)}>✏️ Rediger</button>
@@ -361,6 +467,8 @@ export default function CampingMap() {
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('admin') === 'true')
+  const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
   const dragStartY = useRef(null)
@@ -424,7 +532,7 @@ export default function CampingMap() {
 
   async function loadSpots() {
     setLoading(true)
-    const { data, error } = await supabase.from('spots').select('*').eq('status', 'approved')
+    const { data, error } = await supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3)
     if (!error && data) {
       setSpots(data)
       const params = new URLSearchParams(window.location.search)
@@ -516,6 +624,15 @@ export default function CampingMap() {
     if (isMobile) setSheetState('peek')
   }
 
+  async function handleReport(spot) {
+    const updated = [...flaggedSpots, spot.id]
+    localStorage.setItem('vilda_flagged', JSON.stringify(updated))
+    const { data: current } = await supabase.from('spots').select('flags').eq('id', spot.id).single()
+    await supabase.from('spots').update({ flags: (current?.flags || 0) + 1 }).eq('id', spot.id)
+    setActiveId(null)
+    loadSpots()
+  }
+
   async function handleDelete(camp) {
     if (!window.confirm(`Slette "${camp.name}"? Dette kan ikke angres.`)) return
     await supabase.from('spots').delete().eq('id', camp.id).eq('owner_token', ownerToken)
@@ -575,6 +692,7 @@ export default function CampingMap() {
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <div className="main-area">
         {/* Sidebar collapse button — desktop only */}
@@ -613,6 +731,8 @@ export default function CampingMap() {
               onFilterChange={setFilters}
               onToggleFilter={toggleFilter}
               loadSpots={loadSpots}
+              onReport={handleReport}
+              flaggedSpots={flaggedSpots}
             />
             </div>
           </aside>
@@ -727,6 +847,8 @@ export default function CampingMap() {
                 onFilterChange={setFilters}
                 onToggleFilter={toggleFilter}
                 loadSpots={loadSpots}
+                onReport={handleReport}
+                flaggedSpots={flaggedSpots}
               />
             </div>
           </div>

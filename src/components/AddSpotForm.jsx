@@ -95,6 +95,15 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
 
   async function handleSave() {
     if (!name.trim()) return
+    if (name.trim().length < 5) { setError('Navnet må være minst 5 tegn.'); return }
+    if (!access) { setError('Velg en tilgangstype.'); return }
+    if (!isEditing) {
+      const { lat, lng } = position
+      if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) {
+        setError('Koordinatene er utenfor Norge. Vildakart er kun for norske leirplasser.')
+        return
+      }
+    }
     setSaving(true)
     setError('')
     try {
