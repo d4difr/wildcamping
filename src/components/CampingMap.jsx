@@ -625,7 +625,7 @@ export default function CampingMap() {
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
             <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
-            <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={13}>
+            <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={10} maxClusterRadius={60}>
               {spots.map((spot) => (
                 <Marker
                   key={spot.id}
