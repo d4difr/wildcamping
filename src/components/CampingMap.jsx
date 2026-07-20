@@ -223,8 +223,10 @@ function AboutModal({ onClose }) {
         </section>
 
         <section className="about-section">
-          <h2>Allemannsretten</h2>
+          <h2>Allemannsretten — dette gjelder</h2>
           <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebygde eiendom og ikke oppholder deg mer enn to netter på samme sted uten tillatelse fra grunneier.</p>
+          <p style={{ marginTop: '0.65rem' }}><strong>Allemannsretten gjelder kun til fots eller på sykkel</strong> — ikke med motoriserte kjøretøy. Det er ulovlig å kjøre bil, motorsykkel eller bobil inn i utmark for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
+          <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder heller ikke på innmark — dyrka mark, beite nær bebyggelse eller private hager. Sjekk alltid at plassen du camper på er i utmark.</p>
         </section>
 
         <section className="about-section">
@@ -234,7 +236,7 @@ function AboutModal({ onClose }) {
 
         <section className="about-section">
           <h2>La naturen være som du fant den</h2>
-          <p>Ta med deg alt du tar med deg inn. Unngå å lage ildsted der det ikke finnes fra før, og respekter dyrelivet, særlig i hekke- og yngletiden. En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
+          <p>Ta med deg alt søppel ut igjen — også det minste. Unngå å lage ildsted der det ikke finnes fra før, og respekter dyrelivet, særlig i hekke- og yngletiden. Allemannsretten er et privilegium vi deler — jo bedre vi tar vare på naturen og respekterer grunneiere, jo lenger kan vi beholde den.</p>
         </section>
 
         <section className="about-section about-section--contact">
