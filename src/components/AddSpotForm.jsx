@@ -97,10 +97,16 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
   useEffect(() => {
     if (isEditing) return
     const { lat, lng } = position
-    if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) return // out of Norway, caught later
+    if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) return
     setNibioChecking(true)
-    checkNibioLandType(lat, lng).then((innmarkType) => {
-      if (innmarkType) setNibioWarning(innmarkType)
+    Promise.all([
+      checkNibioLandType(lat, lng),
+      fetch(`/api/tettsted?lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(5000) })
+        .then(r => r.json()).then(d => d.inTettsted ? 'tettsted' : null).catch(() => null)
+    ]).then(([innmarkType, tettstedType]) => {
+      const blocked = innmarkType || tettstedType
+      if (blocked === 'tettsted') setNibioWarning('tettbygd strøk (by eller tettsted)')
+      else if (blocked) setNibioWarning(blocked)
       else setNibioCleared(true)
     }).finally(() => setNibioChecking(false))
   }, [position?.lat, position?.lng, isEditing])
