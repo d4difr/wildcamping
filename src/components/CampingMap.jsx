@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Rectangle, useMap, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
@@ -787,6 +787,8 @@ export default function CampingMap() {
   }
 
   function handleMapClick(latlng) {
+    const { lat, lng } = latlng
+    if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) return
     setPendingPosition(latlng)
     setDropMode(false)
   }
@@ -896,6 +898,15 @@ export default function CampingMap() {
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
             <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
+            {/* Dim everything outside Norway's bounding box */}
+            {[
+              [[71.5, -180], [90, 180]],   // above
+              [[-90, -180], [57, 180]],    // below
+              [[57, -180], [71.5, 4]],     // left
+              [[57, 31.5], [71.5, 180]],   // right
+            ].map((bounds, i) => (
+              <Rectangle key={i} bounds={bounds} pathOptions={{ color: 'none', fillColor: '#000', fillOpacity: 0.35, stroke: false }} />
+            ))}
             <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={10} maxClusterRadius={60}>
               {spots.map((spot) => (
                 <Marker
