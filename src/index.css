@@ -216,6 +216,22 @@ body {
   margin: 0;
 }
 
+.respekt-sources ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+.respekt-sources a {
+  color: var(--fjord);
+  text-decoration: none;
+}
+
+.respekt-sources a:hover {
+  text-decoration: underline;
+}
+
 .about-section--contact a {
   color: var(--fjord);
   font-weight: 600;

@@ -305,6 +305,16 @@ function RespektModal({ onClose }) {
           <h2>Den uskrevne regelen</h2>
           <p>Allemannsretten er et privilegium vi deler, ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle, fordi det gjør den.</p>
         </section>
+
+        <section className="about-section respekt-sources">
+          <h2>Kilder</h2>
+          <ul>
+            <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/allemannsretten/" target="_blank" rel="noopener noreferrer">Allemannsretten, Miljødirektoratet</a></li>
+            <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/telt-og-hengekoye/" target="_blank" rel="noopener noreferrer">Telt og hengekøye, Miljødirektoratet</a></li>
+            <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/ga-tur/" target="_blank" rel="noopener noreferrer">Gå tur, Miljødirektoratet</a></li>
+            <li><a href="https://lovdata.no/dokument/NL/lov/1957-06-28-16" target="_blank" rel="noopener noreferrer">Friluftsloven, Lovdata</a></li>
+          </ul>
+        </section>
       </div>
     </div>,
     document.body
