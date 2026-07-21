@@ -61,7 +61,7 @@ async function checkNibioLandType(lat, lng) {
     const label = match[1].trim()
     const lower = label.toLowerCase()
     const isBlocked = BLOCKED_LABELS.some(l => lower.includes(l))
-    return isBlocked ? label : null // null = allowed, label = blocked
+    return isBlocked ? label : { cleared: true, label } // blocked = string, cleared = object with label
   } catch {
     return null // API unreachable — fail open
   }
@@ -102,12 +102,17 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
     Promise.all([
       checkNibioLandType(lat, lng),
       fetch(`/api/tettsted?lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(5000) })
-        .then(r => r.json()).then(d => d.inTettsted ? 'tettsted' : null).catch(() => null)
-    ]).then(([innmarkType, tettstedType]) => {
-      const blocked = innmarkType || tettstedType
-      if (blocked === 'tettsted') setNibioWarning('tettbygd strøk (by eller tettsted)')
-      else if (blocked) setNibioWarning(blocked)
-      else setNibioCleared(true)
+        .then(r => r.json()).then(d => d.inTettsted).catch(() => false)
+    ]).then(([nibioResult, inTettsted]) => {
+      if (typeof nibioResult === 'string') {
+        // Hard-blocked by NIBIO (innmark, bebygd, etc.)
+        setNibioWarning(nibioResult)
+      } else if (inTettsted && nibioResult?.label?.toLowerCase().includes('åpen fastmark')) {
+        // Åpen fastmark inside a tettsted = city park, not genuine utmark
+        setNibioWarning('åpen fastmark i tettbygd strøk (bypark eller lignende)')
+      } else {
+        setNibioCleared(true)
+      }
     }).finally(() => setNibioChecking(false))
   }, [position?.lat, position?.lng, isEditing])
 
