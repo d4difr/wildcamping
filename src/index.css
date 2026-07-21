@@ -1241,6 +1241,11 @@ button.primary:hover:not(:disabled) {
   .floating-form {
     bottom: 48px;
   }
+
+  /* Keep OSM attribution visible above the bottom sheet handle */
+  .leaflet-bottom.leaflet-right {
+    bottom: 36px;
+  }
 }
 
 /* Bottom sheet (mobile only) */
