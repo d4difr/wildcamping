@@ -276,7 +276,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         <div className="innmark-warning">
           <span className="innmark-warning__icon">⚠️</span>
           <div>
-            <strong>Ikke tillatt område — kan ikke legges til</strong>
+            <strong>Ikke tillatt område, kan ikke legges til</strong>
             <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
             <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
               Sjekk på gardskart.nibio.no →
