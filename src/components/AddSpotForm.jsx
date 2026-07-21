@@ -162,7 +162,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
     if (!isEditing) {
       const { lat, lng } = position
       if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) {
-        setError('Koordinatene er utenfor Norge. Vildakart er kun for norske leirplasser.')
+        setError('Vildakart er kun tilgjengelig i Norge.')
         return
       }
       if (nibioWarning) {
