@@ -605,7 +605,7 @@ export default function CampingMap() {
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
   const [respektOpen, setRespektOpen] = useState(false)
-  const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('admin') === 'true')
+  const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
