@@ -219,14 +219,7 @@ function AboutModal({ onClose }) {
 
         <section className="about-section">
           <h2>Hvorfor Vildakart?</h2>
-          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode villcampingplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye leirplasser.</p>
-        </section>
-
-        <section className="about-section">
-          <h2>Allemannsretten — dette gjelder</h2>
-          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebygde eiendom og ikke oppholder deg mer enn to netter på samme sted uten tillatelse fra grunneier.</p>
-          <p style={{ marginTop: '0.65rem' }}><strong>Allemannsretten gjelder kun til fots eller på sykkel</strong> — ikke med motoriserte kjøretøy. Det er ulovlig å kjøre bil, motorsykkel eller bobil inn i utmark for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
-          <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder heller ikke på innmark — dyrka mark, beite nær bebyggelse eller private hager. Sjekk alltid at plassen du camper på er i utmark.</p>
+          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode leirplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye steder.</p>
         </section>
 
         <section className="about-section">
@@ -234,14 +227,50 @@ function AboutModal({ onClose }) {
           <p>Alle kan legge til en leirplass uten å opprette konto. Klikk på «Legg til leirplass», plasser en pin på kartet og fyll inn det du vet. Leirplassen knyttes til enheten du brukte, så du kan redigere eller slette den igjen fra samme telefon eller datamaskin.</p>
         </section>
 
-        <section className="about-section">
-          <h2>La naturen være som du fant den</h2>
-          <p>Ta med deg alt søppel ut igjen — også det minste. Unngå å lage ildsted der det ikke finnes fra før, og respekter dyrelivet, særlig i hekke- og yngletiden. Allemannsretten er et privilegium vi deler — jo bedre vi tar vare på naturen og respekterer grunneiere, jo lenger kan vi beholde den.</p>
-        </section>
-
         <section className="about-section about-section--contact">
           <h2>Kontakt</h2>
           <p>Spørsmål, tilbakemeldinger eller forslag? Send gjerne en e-post til <a href="mailto:dadifr@outlook.com">dadifr@outlook.com</a></p>
+        </section>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function RespektModal({ onClose }) {
+  return createPortal(
+    <div className="about-overlay" onClick={onClose}>
+      <div className="about-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="about-close" onClick={onClose}>✕</button>
+
+        <h1 className="about-title">Respekt for naturen</h1>
+
+        <section className="about-section">
+          <h2>Allemannsretten</h2>
+          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebygde eiendom og ikke oppholder deg mer enn to netter på samme sted uten tillatelse fra grunneier.</p>
+          <p style={{ marginTop: '0.65rem' }}><strong>Allemannsretten gjelder kun til fots eller på sykkel</strong> — ikke med motoriserte kjøretøy. Det er ulovlig å kjøre bil, motorsykkel eller bobil inn i utmark for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
+          <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder heller ikke på innmark — dyrka mark, beite nær bebyggelse eller private hager. Sjekk alltid at plassen du camper på er i utmark.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Legg ingen spor</h2>
+          <p>Ta med deg alt søppel ut igjen — også det minste. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Unngå å lage ildsted der det ikke finnes fra før, og bruk aldri levende trær eller røtter som brensel. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Sårbar natur</h2>
+          <p>Mange av de vakreste plassene er vakre nettopp fordi de er ukjente. Gjentatte besøk — selv av folk med gode intensjoner — kan ødelegge vegetasjon, eksponere røtter og gjøre stier til gjørmehull. Hvis en plass ser uberørt ut, tenk deg om to ganger før du deler den videre.</p>
+          <p style={{ marginTop: '0.65rem' }}>En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Dyreliv og årstider</h2>
+          <p>I hekke- og yngletiden (april–juli) er mange fugler og pattedyr svært sårbare for forstyrrelser. Hold avstand til reirplasser og unger. Hunder skal holdes i bånd fra 1. april til 20. august. Respekter beitedyr og hold deg unna områder der det er sau eller storfe.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>Den uskrevne regelen</h2>
+          <p>Allemannsretten er et privilegium vi deler — ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle — fordi det gjør den.</p>
         </section>
       </div>
     </div>,
@@ -522,6 +551,7 @@ export default function CampingMap() {
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [respektOpen, setRespektOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('admin') === 'true')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
@@ -750,9 +780,11 @@ export default function CampingMap() {
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
         <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
+        <button className="respekt-btn" onClick={() => setRespektOpen(true)}>Respekt for naturen</button>
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {respektOpen && <RespektModal onClose={() => setRespektOpen(false)} />}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <div className="main-area">

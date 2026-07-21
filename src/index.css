@@ -71,6 +71,26 @@ body {
   color: #f4f1ea;
 }
 
+.respekt-btn {
+  margin-left: 0.5rem;
+  background: var(--amber);
+  border: none;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.respekt-btn:hover {
+  background: var(--amber-dark);
+}
+
 /* About modal */
 .about-overlay {
   position: fixed;
