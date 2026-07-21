@@ -790,7 +790,10 @@ export default function CampingMap() {
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
         <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
-        <button className="respekt-btn" onClick={() => setRespektOpen(true)}>Respekt for naturen</button>
+        <button className="respekt-btn" onClick={() => setRespektOpen(true)}>
+          <span className="respekt-btn__full">Respekt for naturen</span>
+          <span className="respekt-btn__short">Respekt</span>
+        </button>
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}

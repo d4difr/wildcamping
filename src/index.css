@@ -91,6 +91,13 @@ body {
   background: var(--amber-dark);
 }
 
+.respekt-btn__short { display: none; }
+
+@media (max-width: 767px) {
+  .respekt-btn__full { display: none; }
+  .respekt-btn__short { display: inline; }
+}
+
 /* About modal */
 .about-overlay {
   position: fixed;
