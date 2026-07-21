@@ -207,6 +207,11 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
           owner_token: ownerToken,
         })
         if (insertError) throw insertError
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), lat: position.lat, lng: position.lng, spotType, access, region }),
+        }).catch(() => {})
       }
       onSaved()
     } catch (err) {
