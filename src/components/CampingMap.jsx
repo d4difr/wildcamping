@@ -587,7 +587,7 @@ const WORLD_RING = [[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]
 function NorwayMask() {
   const [maskData, setMaskData] = useState(null)
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries/NOR.geo.json')
+    fetch('/norway.geojson')
       .then(r => r.json())
       .then(data => {
         const geom = data.features[0].geometry
