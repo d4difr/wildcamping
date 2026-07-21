@@ -238,7 +238,7 @@ function AboutModal({ onClose }) {
 
         <section className="about-section">
           <h2>Hvorfor Vildakart?</h2>
-          <p>Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode leirplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye steder.</p>
+          <p>Vildakart er laget av friluftsfolk, for friluftsfolk. Del steder du har funnet på tur med andre som ferdes i norsk natur. Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode leirplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye steder.</p>
         </section>
 
         <section className="about-section">
