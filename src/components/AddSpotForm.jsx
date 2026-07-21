@@ -194,7 +194,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
           spot_type: spotType,
           access: access || null,
           region: region || null,
-          status: 'approved',
+          status: 'pending',
           owner_token: ownerToken,
         })
         if (insertError) throw insertError
@@ -303,7 +303,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </button>
         <button onClick={onCancel} disabled={saving}>Avbryt</button>
       </div>
-      {!isEditing && <p className="hint" style={{ marginTop: '0.6rem' }}>Din leirplass vil vises på kartet umiddelbart.</p>}
+      {!isEditing && <p className="hint" style={{ marginTop: '0.6rem' }}>Din leirplass blir gjennomgått og godkjent av en administrator før den vises på kartet.</p>}
     </div>
   )
 }

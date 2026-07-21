@@ -330,8 +330,14 @@ function AdminPanel({ onClose }) {
     setSpots((s) => s.map((x) => x.id === id ? { ...x, flags: 0 } : x))
   }
 
+  async function handleApprove(id) {
+    await supabase.from('spots').update({ status: 'approved' }).eq('id', id)
+    setSpots((s) => s.map((x) => x.id === id ? { ...x, status: 'approved' } : x))
+  }
+
   const flagged = spots.filter((s) => s.flags >= 3)
-  const displayed = filter === 'flagged' ? flagged : spots
+  const pending = spots.filter((s) => s.status === 'pending')
+  const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : spots
 
   if (!authed) return createPortal(
     <div className="admin-overlay">
@@ -358,6 +364,9 @@ function AdminPanel({ onClose }) {
           <div className="admin-header-right">
             <div className="admin-tabs">
               <button className={`admin-tab${filter === 'all' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('all')}>Alle</button>
+              <button className={`admin-tab${filter === 'pending' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('pending')}>
+                Til godkjenning {pending.length > 0 && <span className="admin-flag-badge admin-flag-badge--pending">{pending.length}</span>}
+              </button>
               <button className={`admin-tab${filter === 'flagged' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('flagged')}>
                 Flagget {flagged.length > 0 && <span className="admin-flag-badge">{flagged.length}</span>}
               </button>
@@ -411,6 +420,7 @@ function AdminPanel({ onClose }) {
                   </span>
                 </div>
                 <div className="admin-spot-actions">
+                  {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
                   {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
                   <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
                 </div>

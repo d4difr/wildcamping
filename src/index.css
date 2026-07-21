@@ -1581,6 +1581,19 @@ button.primary:hover:not(:disabled) {
   background: #fce4ec;
 }
 
+.admin-btn--approve {
+  border-color: #66bb6a;
+  color: #2e7d32;
+}
+
+.admin-btn--approve:hover {
+  background: #e8f5e9;
+}
+
+.admin-flag-badge--pending {
+  background: var(--amber);
+}
+
 /* Admin traffic stats */
 .admin-stats {
   padding: 1rem 1.5rem;
