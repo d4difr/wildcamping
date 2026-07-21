@@ -972,7 +972,7 @@ export default function CampingMap() {
 
         {savedToast && (
           <div className="saved-toast">
-            ✓ Leirplassen er sendt til godkjenning og vil snart vises på kartet.
+            ✓ Leirplassen er sendt til godkjenning.
           </div>
         )}
 
