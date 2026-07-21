@@ -605,6 +605,7 @@ export default function CampingMap() {
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [savedToast, setSavedToast] = useState(false)
   const [respektOpen, setRespektOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -963,11 +964,17 @@ export default function CampingMap() {
                 position={pendingPosition}
                 ownerToken={ownerToken}
                 onCancel={handleCancel}
-                onSaved={() => { setPendingPosition(null); loadSpots() }}
+                onSaved={() => { setPendingPosition(null); loadSpots(); setSavedToast(true); setTimeout(() => setSavedToast(false), 5000) }}
               />
             </div>
           )}
         </div>
+
+        {savedToast && (
+          <div className="saved-toast">
+            ✓ Leirplassen er sendt til godkjenning og vil snart vises på kartet.
+          </div>
+        )}
 
         {/* Mobile bottom sheet */}
         {isMobile && (
