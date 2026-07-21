@@ -95,6 +95,17 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
   const [nibioCleared, setNibioCleared] = useState(false)
 
   useEffect(() => {
+    if (isEditing) return
+    const { lat, lng } = position
+    if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) return // out of Norway, caught later
+    setNibioChecking(true)
+    checkNibioLandType(lat, lng).then((innmarkType) => {
+      if (innmarkType) setNibioWarning(innmarkType)
+      else setNibioCleared(true)
+    }).finally(() => setNibioChecking(false))
+  }, [position?.lat, position?.lng, isEditing])
+
+  useEffect(() => {
     if (isEditing) return // region already set from camp data
     setRegionLoading(true)
     detectRegion(position.lat, position.lng)
@@ -143,22 +154,11 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         setError('Koordinatene er utenfor Norge. Vildakart er kun for norske leirplasser.')
         return
       }
-      // NIBIO innmark check — hard block if innmark detected, no override possible
       if (nibioWarning) {
         setError('Denne plassen er registrert som innmark og kan ikke legges til.')
         return
       }
-      if (!nibioCleared && !nibioChecking) {
-        setNibioChecking(true)
-        const innmarkType = await checkNibioLandType(lat, lng)
-        setNibioChecking(false)
-        if (innmarkType) {
-          setNibioWarning(innmarkType)
-          return
-        }
-        setNibioCleared(true)
-        return // pause so user sees the confirmation line before saving
-      }
+      if (nibioChecking) return // still checking, button is disabled anyway
     }
     setSaving(true)
     setError('')
