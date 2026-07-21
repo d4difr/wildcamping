@@ -279,14 +279,15 @@ function RespektModal({ onClose }) {
 
         <section className="about-section">
           <h2>Allemannsretten</h2>
-          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebygde eiendom og ikke oppholder deg mer enn to netter på samme sted uten tillatelse fra grunneier.</p>
+          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebodde hus eller hytte. Du kan oppholde deg inntil to netter på samme sted uten tillatelse fra grunneier. Er du på høyfjellet eller langt fra bebyggelse, kan du bli lenger.</p>
           <p style={{ marginTop: '0.65rem' }}><strong>Allemannsretten gjelder kun til fots eller på sykkel,</strong> ikke med motoriserte kjøretøy. Det er ulovlig å kjøre bil, motorsykkel eller bobil inn i utmark for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
           <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder heller ikke på innmark, dyrka mark, beite nær bebyggelse eller private hager. Sjekk alltid at plassen du camper på er i utmark.</p>
         </section>
 
         <section className="about-section">
           <h2>Legg ingen spor</h2>
-          <p>Ta med deg alt søppel ut igjen, også det minste. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Unngå å lage ildsted der det ikke finnes fra før, og bruk aldri levende trær eller røtter som brensel. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon.</p>
+          <p>Ta med deg alt søppel ut igjen, også det minste. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon.</p>
+          <p style={{ marginTop: '0.65rem' }}><strong>Bålforbudet gjelder fra 15. april til 15. september</strong> i og nær skog over hele landet. Utenfor denne perioden skal du alltid være forsiktig, bruke eksisterende ildsteder der det er mulig, og aldri bruke levende trær eller røtter som brensel.</p>
         </section>
 
         <section className="about-section">
