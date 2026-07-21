@@ -1439,6 +1439,12 @@ button.primary:hover:not(:disabled) {
   color: #a32d2d;
 }
 
+.nibio-cleared {
+  font-size: 0.83rem;
+  color: #2e7d32;
+  margin-bottom: 0.6rem;
+}
+
 .utmark-link {
   color: var(--fjord);
   text-decoration: underline;

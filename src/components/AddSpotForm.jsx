@@ -90,9 +90,9 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
   const [photoFiles, setPhotoFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [utmarkConfirmed, setUtmarkConfirmed] = useState(false)
-  const [nibioWarning, setNibioWarning] = useState(null) // innmark land type string if detected
+  const [nibioWarning, setNibioWarning] = useState(null)
   const [nibioChecking, setNibioChecking] = useState(false)
+  const [nibioCleared, setNibioCleared] = useState(false)
 
   useEffect(() => {
     if (isEditing) return // region already set from camp data
@@ -148,18 +148,16 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         setError('Denne plassen er registrert som innmark og kan ikke legges til.')
         return
       }
-      if (!nibioChecking) {
+      if (!nibioCleared && !nibioChecking) {
         setNibioChecking(true)
         const innmarkType = await checkNibioLandType(lat, lng)
         setNibioChecking(false)
         if (innmarkType) {
           setNibioWarning(innmarkType)
-          return // stop — hard block, shown in warning box
+          return
         }
-      }
-      if (!utmarkConfirmed) {
-        setError('Du må bekrefte at plassen er i utmark (allemannsretten).')
-        return
+        setNibioCleared(true)
+        return // pause so user sees the confirmation line before saving
       }
     }
     setSaving(true)
@@ -285,15 +283,8 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </div>
       )}
 
-      {!isEditing && !nibioWarning && (
-        <label className="utmark-confirm">
-          <input
-            type="checkbox"
-            checked={utmarkConfirmed}
-            onChange={(e) => { setUtmarkConfirmed(e.target.checked); setError('') }}
-          />
-          <span>Jeg bekrefter at denne plassen er i <strong><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/ga-tur/" target="_blank" rel="noopener noreferrer" className="utmark-link">utmark</a></strong> og ikke er klassifisert som innmark på <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer" className="utmark-link">gardskart.nibio.no</a></span>
-        </label>
+      {!isEditing && nibioCleared && (
+        <p className="nibio-cleared">✓ Området er automatisk sjekket mot NIBIOs arealkart og er ikke klassifisert som innmark.</p>
       )}
 
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
