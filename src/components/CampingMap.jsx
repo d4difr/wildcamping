@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, Rectangle, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, GeoJSON, useMap, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import { supabase } from '../supabaseClient'
@@ -582,6 +582,26 @@ function SidebarContent({
   )
 }
 
+const WORLD_RING = [[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]
+
+function NorwayMask() {
+  const [maskData, setMaskData] = useState(null)
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries/NOR.geo.json')
+      .then(r => r.json())
+      .then(data => {
+        const geom = data.features[0].geometry
+        const rings = geom.type === 'MultiPolygon'
+          ? geom.coordinates.flatMap(poly => poly)
+          : geom.coordinates
+        setMaskData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [WORLD_RING, ...rings] } })
+      })
+      .catch(() => {})
+  }, [])
+  if (!maskData) return null
+  return <GeoJSON data={maskData} pathOptions={{ fillColor: '#000', fillOpacity: 0.35, stroke: false, fillRule: 'evenodd' }} />
+}
+
 export default function CampingMap() {
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
@@ -898,15 +918,7 @@ export default function CampingMap() {
             <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
             <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
             <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
-            {/* Dim everything outside Norway's bounding box */}
-            {[
-              [[71.5, -180], [90, 180]],   // above
-              [[-90, -180], [57, 180]],    // below
-              [[57, -180], [71.5, 4]],     // left
-              [[57, 31.5], [71.5, 180]],   // right
-            ].map((bounds, i) => (
-              <Rectangle key={i} bounds={bounds} pathOptions={{ color: 'none', fillColor: '#000', fillOpacity: 0.35, stroke: false }} />
-            ))}
+            <NorwayMask />
             <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={10} maxClusterRadius={60}>
               {spots.map((spot) => (
                 <Marker
