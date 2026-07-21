@@ -207,6 +207,26 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
 
   const totalPhotos = existingPhotoUrls.length + photoFiles.length
 
+  if (!isEditing && nibioWarning) {
+    return (
+      <div className="panel">
+        <div className="innmark-warning">
+          <span className="innmark-warning__icon">⚠️</span>
+          <div>
+            <strong>Ikke tillatt område</strong>
+            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
+            <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
+              Sjekk på gardskart.nibio.no →
+            </a>
+          </div>
+        </div>
+        <div className="actions" style={{ marginTop: '0.75rem' }}>
+          <button onClick={onCancel}>Avbryt</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="panel">
       {isEditing && <p className="hint" style={{ marginBottom: '0.6rem' }}>Redigerer: <strong>{camp.name}</strong></p>}
@@ -270,20 +290,8 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         </label>
       )}
 
-      {!isEditing && nibioWarning && (
-        <div className="innmark-warning">
-          <span className="innmark-warning__icon">⚠️</span>
-          <div>
-            <strong>Ikke tillatt område, kan ikke legges til</strong>
-            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
-            <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
-              Sjekk på gardskart.nibio.no →
-            </a>
-          </div>
-        </div>
-      )}
 
-      {!isEditing && nibioCleared && (
+{!isEditing && nibioCleared && (
         <p className="nibio-cleared">✓ Området er automatisk sjekket mot NIBIOs arealkart og er ikke klassifisert som innmark.</p>
       )}
 
