@@ -210,6 +210,25 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
 }
 
 function AboutModal({ onClose }) {
+  const [contactStatus, setContactStatus] = useState('idle') // idle | sending | sent | error
+
+  async function handleContactSubmit(e) {
+    e.preventDefault()
+    setContactStatus('sending')
+    const form = e.target
+    try {
+      const res = await fetch('https://formspree.io/f/mykrpyjj', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: new FormData(form),
+      })
+      if (res.ok) { setContactStatus('sent'); form.reset() }
+      else setContactStatus('error')
+    } catch {
+      setContactStatus('error')
+    }
+  }
+
   return createPortal(
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()}>
@@ -229,7 +248,20 @@ function AboutModal({ onClose }) {
 
         <section className="about-section about-section--contact">
           <h2>Kontakt</h2>
-          <p>Spørsmål, tilbakemeldinger eller forslag? Send gjerne en e-post til <a href="mailto:dadifr@outlook.com">dadifr@outlook.com</a></p>
+          <p>Spørsmål, tilbakemeldinger eller forslag? Fyll ut skjemaet under.</p>
+          {contactStatus === 'sent' ? (
+            <p className="contact-success">Takk for meldingen, vi svarer så fort vi kan.</p>
+          ) : (
+            <form className="contact-form" onSubmit={handleContactSubmit}>
+              <input type="text" name="name" placeholder="Navn" required />
+              <input type="email" name="email" placeholder="E-post" required />
+              <textarea name="message" rows={3} placeholder="Melding" required />
+              {contactStatus === 'error' && <p className="contact-error">Noe gikk galt, prøv igjen.</p>}
+              <button type="submit" className="primary" disabled={contactStatus === 'sending'}>
+                {contactStatus === 'sending' ? 'Sender…' : 'Send melding'}
+              </button>
+            </form>
+          )}
         </section>
       </div>
     </div>,
