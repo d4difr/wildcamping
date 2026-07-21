@@ -292,7 +292,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
             checked={utmarkConfirmed}
             onChange={(e) => { setUtmarkConfirmed(e.target.checked); setError('') }}
           />
-          <span>Jeg bekrefter at denne plassen er i <strong><a href="https://no.wikipedia.org/wiki/Allemannsretten" target="_blank" rel="noopener noreferrer" className="utmark-link">utmark</a></strong> og lovlig å campe på under allemannsretten</span>
+          <span>Jeg bekrefter at denne plassen er i <strong><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/ga-tur/" target="_blank" rel="noopener noreferrer" className="utmark-link">utmark</a></strong> og ikke er klassifisert som innmark på <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer" className="utmark-link">gardskart.nibio.no</a></span>
         </label>
       )}
 
