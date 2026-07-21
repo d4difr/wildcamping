@@ -788,8 +788,6 @@ export default function CampingMap() {
   }
 
   function handleMapClick(latlng) {
-    const { lat, lng } = latlng
-    if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) return
     setPendingPosition(latlng)
     setDropMode(false)
   }

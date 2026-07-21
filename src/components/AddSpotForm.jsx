@@ -161,10 +161,6 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
     if (!access) { setError('Velg en tilgangstype.'); return }
     if (!isEditing) {
       const { lat, lng } = position
-      if (lat < 57 || lat > 71.5 || lng < 4 || lng > 31.5) {
-        setError('Vildakart er kun tilgjengelig i Norge.')
-        return
-      }
       if (nibioWarning) {
         setError('Denne plassen er registrert som innmark og kan ikke legges til.')
         return
