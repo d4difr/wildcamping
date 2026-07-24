@@ -616,6 +616,11 @@ export default function CampingMap() {
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
   const [savedToast, setSavedToast] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef(null)
+  const searchTimeout = useRef(null)
   const [respektOpen, setRespektOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -801,6 +806,27 @@ export default function CampingMap() {
     setDropMode(false)
   }
 
+  function handleSearch(q) {
+    setSearchQuery(q)
+    setSearchOpen(true)
+    clearTimeout(searchTimeout.current)
+    if (!q.trim()) { setSearchResults([]); return }
+    searchTimeout.current = setTimeout(async () => {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&access_token=${TOKEN}`
+      const res = await fetch(url)
+      const data = await res.json()
+      setSearchResults(data.features || [])
+    }, 300)
+  }
+
+  function handleSearchSelect(feature) {
+    const [lng, lat] = feature.center
+    setFlyTarget([lat, lng])
+    setSearchQuery(feature.place_name)
+    setSearchResults([])
+    setSearchOpen(false)
+  }
+
   function handleCancel() {
     setPendingPosition(null)
     setDropMode(false)
@@ -844,6 +870,26 @@ export default function CampingMap() {
           <polygon points="22,26 48,54  -4,54" fill="#f4f1ea" />
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
+        <div className="search-box" ref={searchRef}>
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Søk etter sted…"
+            value={searchQuery}
+            onChange={e => handleSearch(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+          />
+          {searchQuery && (
+            <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>✕</button>
+          )}
+          {searchOpen && searchResults.length > 0 && (
+            <ul className="search-results">
+              {searchResults.map(f => (
+                <li key={f.id} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
         <button className="respekt-btn" onClick={() => setRespektOpen(true)}>
           <span className="respekt-btn__full">Respekt for naturen</span>
