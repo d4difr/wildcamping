@@ -178,6 +178,7 @@ function Lightbox({ photos, startIndex, onClose }) {
 function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const staticMap = `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},13,0/600x240@2x?access_token=${TOKEN}`
 
   return (
     <div className="spot-detail">
@@ -187,12 +188,14 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
       <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
-      {photos.length > 0 && (
+      {photos.length > 0 ? (
         <div className="detail-photo-strip">
           {photos.map((url, i) => (
             <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" onClick={() => setLightboxIndex(i)} />
           ))}
         </div>
+      ) : (
+        <img src={staticMap} alt="Kart" className="spot-detail-static-map" />
       )}
       {spot.description && <p className="spot-detail-desc">{spot.description}</p>}
       <p className="spot-detail-coords">
