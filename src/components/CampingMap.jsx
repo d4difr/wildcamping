@@ -279,40 +279,47 @@ function RespektModal({ onClose }) {
         <h1 className="about-title">Respekt for naturen</h1>
 
         <section className="about-section">
-          <h2>Allemannsretten</h2>
-          <p>I Norge har alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Du kan slå opp teltet der du vil, så lenge du holder minst 150 meter fra nærmeste bebodde hus eller hytte. Du kan oppholde deg inntil to netter på samme sted uten tillatelse fra grunneier. Er du på høyfjellet eller langt fra bebyggelse, kan du bli lenger.</p>
-          <p style={{ marginTop: '0.65rem' }}><strong>Allemannsretten gjelder kun til fots eller på sykkel,</strong> ikke med motoriserte kjøretøy. Det er ulovlig å kjøre bil, motorsykkel eller bobil inn i utmark for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
-          <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder heller ikke på innmark, dyrka mark, beite nær bebyggelse eller private hager. Sjekk alltid at plassen du camper på er i utmark.</p>
+          <h2>1. Kjenn allemannsretten</h2>
+          <p>Allemannsretten gir alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Utmark er udyrket mark og omfatter det meste av skog, fjell, myr, innsjøer og strender.</p>
+          <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder <strong>ikke</strong> på innmark: dyrket jord, beite i aktiv bruk, gårdsplasser, hus- og hyttetomter eller industriareal. Du kan likevel ferdes på frossen eller snødekt innmark.</p>
+          <p style={{ marginTop: '0.65rem' }}>Du kan slå opp telt i utmark så lenge du holder minst <strong>150 meter fra nærmeste bebodde hus eller hytte</strong>. Du kan bli på samme sted i inntil to netter uten å spørre grunneier. På høyfjellet eller langt fra bebyggelse kan du bli lenger.</p>
         </section>
 
         <section className="about-section">
-          <h2>Legg ingen spor</h2>
-          <p>Ta med deg alt søppel ut igjen, også det minste. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon.</p>
-          <p style={{ marginTop: '0.65rem' }}><strong>Bålforbudet gjelder fra 15. april til 15. september</strong> i og nær skog over hele landet. Utenfor denne perioden skal du alltid være forsiktig, bruke eksisterende ildsteder der det er mulig, og aldri bruke levende trær eller røtter som brensel.</p>
+          <h2>2. Motorisert ferdsel</h2>
+          <p>Allemannsretten gjelder til fots, på sykkel, til hest og med ikke-motorisert fartøy. <strong>Det er ikke tillatt å kjøre bil, motorsykkel, ATV eller bobil inn i utmark</strong> for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
         </section>
 
         <section className="about-section">
-          <h2>Sårbar natur</h2>
-          <p>Mange av de vakreste plassene er vakre nettopp fordi de er ukjente. Gjentatte besøk, selv av folk med gode intensjoner, kan ødelegge vegetasjon, eksponere røtter og gjøre stier til gjørmehull. Hvis en plass ser uberørt ut, tenk deg om to ganger før du deler den videre.</p>
-          <p style={{ marginTop: '0.65rem' }}>En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
+          <h2>3. Legg ingen spor</h2>
+          <p>Ta med deg alt søppel ut igjen. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon. En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
+          <p style={{ marginTop: '0.65rem' }}><strong>Bålforbudet gjelder fra 15. april til 15. september</strong> i og nær skog over hele landet. Bål er likevel tillatt der det er opplagt at det ikke kan starte brann, for eksempel på en godkjent bålplass eller når det ligger snø på bakken. Bruk alltid eksisterende ildsteder der det finnes, og aldri levende trær eller røtter som brensel.</p>
+          <p style={{ marginTop: '0.65rem' }}>Mange av de vakreste plassene er vakre nettopp fordi de er ukjente. Gjentatte besøk kan ødelegge vegetasjon og gjøre stier til gjørmehull. Tenk deg om før du deler sårbare plasser videre.</p>
         </section>
 
         <section className="about-section">
-          <h2>Dyreliv og årstider</h2>
-          <p>I hekke- og yngletiden (april–juli) er mange fugler og pattedyr svært sårbare for forstyrrelser. Hold avstand til reirplasser og unger. Hunder skal holdes i bånd fra 1. april til 20. august. Respekter beitedyr og hold deg unna områder der det er sau eller storfe.</p>
+          <h2>4. Vis hensyn til dyrelivet</h2>
+          <p>I hekke- og yngletiden (april–juli) er mange fugler og pattedyr svært sårbare for forstyrrelser. Hold avstand til reirplasser og unger. <strong>Hunder skal holdes i bånd fra 1. april til 20. august.</strong> Respekter beitedyr og hold deg unna områder med sau eller storfe.</p>
         </section>
 
         <section className="about-section">
-          <h2>Den uskrevne regelen</h2>
+          <h2>5. Vis hensyn til andre og grunneier</h2>
+          <p>Opptre hensynsfullt ovenfor folk du møter på tur. Unngå unødvendig støy. Lukk porter etter deg og unngå skade på gjerder og skogplantefelt. Unngå skade på steder med kulturhistorisk verdi, som arkeologiske kulturminner og fredede byggverk.</p>
+          <p style={{ marginTop: '0.65rem' }}>Hus og hytter nær utmark har rett til en privat sone. Vurder avstand, vegetasjon og lydnivå, og vis alltid skjønn.</p>
+        </section>
+
+        <section className="about-section">
+          <h2>6. Den uskrevne regelen</h2>
           <p>Allemannsretten er et privilegium vi deler, ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle, fordi det gjør den.</p>
         </section>
 
         <section className="about-section respekt-sources">
           <h2>Kilder</h2>
           <ul>
+            <li><a href="https://www.dnt.no/turtips/turvett/allemannsretten/" target="_blank" rel="noopener noreferrer">Allemannsretten, DNT</a></li>
+            <li><a href="https://www.dnt.no/turtips/turvett/allemannsretten/allemannspliktene/" target="_blank" rel="noopener noreferrer">Allemannspliktene, DNT</a></li>
             <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/allemannsretten/" target="_blank" rel="noopener noreferrer">Allemannsretten, Miljødirektoratet</a></li>
             <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/telt-og-hengekoye/" target="_blank" rel="noopener noreferrer">Telt og hengekøye, Miljødirektoratet</a></li>
-            <li><a href="https://www.miljodirektoratet.no/ansvarsomrader/friluftsliv/friluftsliv-og-allemannsretten/ga-tur/" target="_blank" rel="noopener noreferrer">Gå tur, Miljødirektoratet</a></li>
             <li><a href="https://lovdata.no/dokument/NL/lov/1957-06-28-16" target="_blank" rel="noopener noreferrer">Friluftsloven, Lovdata</a></li>
           </ul>
         </section>
