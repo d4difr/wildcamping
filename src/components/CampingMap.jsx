@@ -879,12 +879,12 @@ export default function CampingMap() {
   }
 
   function handleSpotMatchSelect(spot) {
-    setFlyTarget({ latitude: spot.latitude, longitude: spot.longitude })
     setSearchQuery(spot.name)
     setSpotMatches([])
     setSearchResults([])
     setSearchOpen(false)
     setSearchFocused(false)
+    handleMapMarkerClick(spot)
   }
 
   function handleSearchSelect(feature) {
