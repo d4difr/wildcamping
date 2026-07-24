@@ -606,7 +606,10 @@ export default function CampingMap() {
   useEffect(() => {
     if (sessionStorage.getItem('vilda_tracked')) return
     sessionStorage.setItem('vilda_tracked', '1')
-    supabase.from('page_views').insert({ screen_width: window.innerWidth, visited_at: new Date().toISOString() })
+    supabase.from('page_views').insert({ screen_width: window.innerWidth, visited_at: new Date().toISOString() }).then(({ error }) => {
+      if (error) console.error('page_views insert failed:', error)
+      else console.log('page_views insert ok')
+    })
   }, [])
 
   useEffect(() => {
