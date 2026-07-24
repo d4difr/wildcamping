@@ -117,13 +117,15 @@ body {
 }
 
 .search-cancel-btn {
-  background: none;
+  background: rgba(255,255,255,0.15);
   border: none;
+  border-radius: 8px;
   color: #f4f1ea;
   font-family: var(--font-body);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0 0.5rem 0 0.4rem;
+  padding: 0.3rem 0.7rem;
+  margin-left: 0.4rem;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
