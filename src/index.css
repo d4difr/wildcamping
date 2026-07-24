@@ -214,6 +214,14 @@ body {
   margin-top: 0.1rem;
 }
 
+.search-divider {
+  height: 1px;
+  background: var(--border, #e0ddd6);
+  margin: 0.25rem 0;
+  padding: 0;
+  pointer-events: none;
+}
+
 .search-no-results {
   padding: 0.6rem 0.85rem;
   font-size: 0.83rem;

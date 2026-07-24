@@ -644,6 +644,7 @@ export default function CampingMap() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchHighlight, setSearchHighlight] = useState(-1)
+  const [spotMatches, setSpotMatches] = useState([])
   const [searchMarker, setSearchMarker] = useState(null)
   const searchMarkerTimeout = useRef(null)
   const searchRef = useRef(null)
@@ -862,7 +863,9 @@ export default function CampingMap() {
     setSearchQuery(q)
     setSearchOpen(true)
     clearTimeout(searchTimeout.current)
-    if (!q.trim()) { setSearchResults([]); setSearchLoading(false); return }
+    if (!q.trim()) { setSearchResults([]); setSpotMatches([]); setSearchLoading(false); return }
+    const lower = q.toLowerCase()
+    setSpotMatches(spots.filter(s => s.name.toLowerCase().includes(lower)).slice(0, 3))
     setSearchLoading(true)
     searchTimeout.current = setTimeout(async () => {
       const { lng, lat } = mapCenter.current
@@ -873,6 +876,15 @@ export default function CampingMap() {
       setSearchHighlight(-1)
       setSearchLoading(false)
     }, 300)
+  }
+
+  function handleSpotMatchSelect(spot) {
+    setFlyTarget({ latitude: spot.latitude, longitude: spot.longitude })
+    setSearchQuery(spot.name)
+    setSpotMatches([])
+    setSearchResults([])
+    setSearchOpen(false)
+    setSearchFocused(false)
   }
 
   function handleSearchSelect(feature) {
@@ -941,15 +953,24 @@ export default function CampingMap() {
             />
             {searchLoading && <span className="search-spinner" />}
             {searchQuery && !searchLoading && (
-              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); setSearchLoading(false) }}>✕</button>
+              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSpotMatches([]); setSearchOpen(false); setSearchLoading(false) }}>✕</button>
             )}
-            {searchOpen && searchQuery && !searchLoading && searchResults.length === 0 && (
+            {searchOpen && searchQuery && !searchLoading && spotMatches.length === 0 && searchResults.length === 0 && (
               <ul className="search-results">
                 <li className="search-no-results">Ingen steder funnet</li>
               </ul>
             )}
-            {searchOpen && searchResults.length > 0 && (
+            {searchOpen && (spotMatches.length > 0 || searchResults.length > 0) && (
               <ul className="search-results">
+                {spotMatches.map(s => (
+                  <li key={`spot-${s.id}`} onClick={() => handleSpotMatchSelect(s)}>
+                    <span className="search-result-icon">⛺</span>
+                    <span className="search-result-name">{s.name}</span>
+                  </li>
+                ))}
+                {spotMatches.length > 0 && searchResults.length > 0 && (
+                  <li className="search-divider" aria-hidden="true" />
+                )}
                 {searchResults.map((f, i) => (
                   <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>
                     <span className="search-result-icon">{placeIcon(f.place_type)}</span>
@@ -965,7 +986,7 @@ export default function CampingMap() {
             )}
           </div>
           {searchFocused && (
-            <button className="search-cancel-btn" onClick={() => { setSearchFocused(false); setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>Avbryt</button>
+            <button className="search-cancel-btn" onClick={() => { setSearchFocused(false); setSearchQuery(''); setSearchResults([]); setSpotMatches([]); setSearchOpen(false) }}>Avbryt</button>
           )}
         </div>
 
