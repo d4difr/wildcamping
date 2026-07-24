@@ -866,10 +866,18 @@ export default function CampingMap() {
             style={{ width: '100%', height: '100%' }}
             cursor={cursor}
             onClick={handleMapClick}
-            terrain={{ source: 'mapbox-dem', exaggeration: 1.5 }}
-            fog={{}}
+            onLoad={e => {
+              const map = e.target
+              map.addSource('mapbox-dem', {
+                type: 'raster-dem',
+                url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                tileSize: 512,
+                maxzoom: 14,
+              })
+              map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
+              map.setFog({})
+            }}
           >
-            <Source id="mapbox-dem" type="raster-dem" url="mapbox://mapbox.mapbox-terrain-dem-v1" tileSize={512} maxzoom={14} />
 
             {filteredSpots.map((spot) => (
               <SpotMarker key={spot.id} spot={spot} active={spot.id === activeId} onClick={handleMapMarkerClick} />
