@@ -629,6 +629,7 @@ export default function CampingMap() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [savedToast, setSavedToast] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchFocused, setSearchFocused] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchOpen, setSearchOpen] = useState(false)
@@ -877,7 +878,7 @@ export default function CampingMap() {
     <div className="app-root">
       <header className="topnav">
         {/* Mobile: search left, logo center, hamburger right */}
-        <div className="topnav-left">
+        <div className={`topnav-left${searchFocused ? ' topnav-left--expanded' : ''}`}>
           <div className="search-box" ref={searchRef}>
             <input
               className="search-input"
@@ -885,7 +886,7 @@ export default function CampingMap() {
               placeholder="Søk etter sted…"
               value={searchQuery}
               onChange={e => handleSearch(e.target.value)}
-              onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+              onFocus={() => { setSearchFocused(true); searchResults.length > 0 && setSearchOpen(true) }}
             />
             {searchQuery && (
               <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>✕</button>
@@ -898,6 +899,9 @@ export default function CampingMap() {
               </ul>
             )}
           </div>
+          {searchFocused && (
+            <button className="search-cancel-btn" onClick={() => { setSearchFocused(false); setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>Avbryt</button>
+          )}
         </div>
 
         <svg className="topnav-logo" width="126" height="34" viewBox="0 0 210 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vilda">
@@ -917,8 +921,8 @@ export default function CampingMap() {
           </button>
         </div>
 
-        {/* Mobile hamburger */}
-        <button className="hamburger-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Meny">
+        {/* Mobile hamburger — hidden when search is active */}
+        <button className={`hamburger-btn${searchFocused ? ' hamburger-btn--hidden' : ''}`} onClick={() => setMenuOpen(o => !o)} aria-label="Meny">
           <span /><span /><span />
         </button>
         {menuOpen && (
