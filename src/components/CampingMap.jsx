@@ -644,6 +644,8 @@ export default function CampingMap() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchHighlight, setSearchHighlight] = useState(-1)
+  const [searchMarker, setSearchMarker] = useState(null)
+  const searchMarkerTimeout = useRef(null)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
   const mapCenter = useRef({ lng: 15, lat: 65 })
@@ -876,9 +878,12 @@ export default function CampingMap() {
   function handleSearchSelect(feature) {
     const [lng, lat] = feature.center
     setFlyTarget({ latitude: lat, longitude: lng })
-    setSearchQuery(feature.place_name)
+    setSearchQuery(feature.text)
     setSearchResults([])
     setSearchOpen(false)
+    clearTimeout(searchMarkerTimeout.current)
+    setSearchMarker({ lat, lng })
+    searchMarkerTimeout.current = setTimeout(() => setSearchMarker(null), 4000)
   }
 
   function handleCancel() {
@@ -1056,6 +1061,7 @@ export default function CampingMap() {
             </MarkerClusterGroup>
             {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
             {userPosition && <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />}
+            {searchMarker && <Marker position={[searchMarker.lat, searchMarker.lng]} icon={L.divIcon({ className: 'search-marker', html: '<div class="search-marker-pin"></div>', iconSize: [20, 20], iconAnchor: [10, 10] })} />}
             <FlyToUser target={userPosition} />
             <MapCenterTracker centerRef={mapCenter} />
           </MapContainer>

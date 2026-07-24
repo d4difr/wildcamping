@@ -1667,6 +1667,22 @@ button.primary:hover:not(:disabled) {
   color: #a32d2d;
 }
 
+.search-marker { background: none; border: none; }
+.search-marker-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #d98e04;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  animation: search-pulse 1s ease-out infinite;
+}
+@keyframes search-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(217,142,4,0.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(217,142,4,0); }
+  100% { box-shadow: 0 0 0 0 rgba(217,142,4,0); }
+}
+
 .saved-toast {
   position: fixed;
   bottom: 2rem;
