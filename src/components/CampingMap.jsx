@@ -898,7 +898,7 @@ export default function CampingMap() {
                   map.addSource('mapbox-dem', {
                     type: 'raster-dem',
                     url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                    tileSize: 512,
+                    tileSize: 256,
                     maxzoom: 14,
                   })
                 }
