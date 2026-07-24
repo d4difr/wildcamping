@@ -231,7 +231,7 @@ body {
     position: static;
     transform: none;
     margin-left: auto;
-    margin-right: 0.5rem;
+    margin-right: 0;
   }
   .search-input { width: 120px; }
 }
