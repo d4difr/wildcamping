@@ -468,6 +468,7 @@ function SidebarContent({
 
 export default function CampingMap() {
   const mapRef = useRef(null)
+  const nativeMap = useRef(null)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [spots, setSpots] = useState([])
@@ -621,7 +622,7 @@ export default function CampingMap() {
   const hasFilters = filters.types.length || filters.access.length || filters.regions.length
 
   function toggle3D() {
-    const map = mapRef.current?.getMap()
+    const map = nativeMap.current
     if (!map) return
     const next = !terrain3D
     setTerrain3D(next)
@@ -637,7 +638,7 @@ export default function CampingMap() {
   }
 
   function flyTo(lng, lat, zoom = null) {
-    const map = mapRef.current
+    const map = nativeMap.current
     if (!map) return
     map.flyTo({ center: [lng, lat], zoom: zoom ?? Math.max(map.getZoom(), 11), duration: 800, essential: true })
   }
@@ -725,7 +726,7 @@ export default function CampingMap() {
     setSpotMatches(spots.filter(s => s.name.toLowerCase().includes(lower)).slice(0, 3))
     setSearchLoading(true)
     searchTimeout.current = setTimeout(async () => {
-      const map = mapRef.current
+      const map = nativeMap.current
       const center = map ? map.getCenter() : { lng: 9.5, lat: 62 }
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${center.lng},${center.lat}&access_token=${TOKEN}`
       const res = await fetch(url)
@@ -886,6 +887,7 @@ export default function CampingMap() {
             onClick={handleMapClick}
             onLoad={e => {
               const map = e.target
+              nativeMap.current = map
               map.addSource('mapbox-dem', {
                 type: 'raster-dem',
                 url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
