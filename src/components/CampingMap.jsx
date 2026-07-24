@@ -571,8 +571,13 @@ function SidebarContent({
         {!loading && filteredSpots.length === 0 && (
           <p className="empty-state">{spots.length === 0 ? 'Ingen leirplasser enda. Legg til den første!' : 'Ingen leirplasser matcher filtrene dine.'}</p>
         )}
-        {filteredSpots.map((spot) => (
+        {filteredSpots.map((spot) => {
+          const thumb = spot.photo_urls?.[0] || spot.photo_url ||
+            `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/400x200@2x?access_token=${TOKEN}`
+          return (
           <div key={spot.id} className="spot-card">
+            <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
+            <div className="spot-card-body">
             <h3>{spot.name}</h3>
             <SpotBadges spot={spot} />
             <div className="spot-card-footer">
@@ -584,8 +589,10 @@ function SidebarContent({
                 </div>
               )}
             </div>
+            </div>
           </div>
-        ))}
+        )})}
+
       </div>
     </>
   )
