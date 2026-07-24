@@ -1551,8 +1551,8 @@ button.primary:hover:not(:disabled) {
     bottom: 48px;
   }
 
-  /* Keep OSM attribution visible above the bottom sheet handle */
-  .leaflet-bottom.leaflet-right {
+  /* Keep Mapbox attribution visible above the bottom sheet handle */
+  .mapboxgl-ctrl-bottom-right {
     bottom: 36px;
   }
 }
