@@ -214,6 +214,13 @@ body {
   margin-top: 0.1rem;
 }
 
+.search-no-results {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.83rem;
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
+
 .search-result-name {
   display: block;
   font-size: 0.85rem;

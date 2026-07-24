@@ -943,6 +943,11 @@ export default function CampingMap() {
             {searchQuery && !searchLoading && (
               <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); setSearchLoading(false) }}>✕</button>
             )}
+            {searchOpen && searchQuery && !searchLoading && searchResults.length === 0 && (
+              <ul className="search-results">
+                <li className="search-no-results">Ingen steder funnet</li>
+              </ul>
+            )}
             {searchOpen && searchResults.length > 0 && (
               <ul className="search-results">
                 {searchResults.map((f, i) => (
