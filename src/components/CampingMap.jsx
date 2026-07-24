@@ -374,7 +374,7 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
 }
 
 function SidebarContent({
-  editingCamp, activeSpot, ownerToken, filters, hasFilters, allRegions,
+  editingCamp, activeSpot, activePendingSpot, ownerToken, filters, hasFilters, allRegions,
   filteredSpots, loading, spots, onBack, onEdit, onDelete, onSeeMore,
   onFilterChange, onToggleFilter, loadSpots, onReport, flaggedSpots,
 }) {
@@ -389,6 +389,24 @@ function SidebarContent({
           onSaved={() => { onEdit(null); loadSpots() }}
         />
       </div>
+    )
+  }
+  if (activePendingSpot) {
+    return (
+      <>
+        <div className="pending-notice">
+          <span className="pending-notice__icon">⏳</span>
+          <div>
+            <strong>Under godkjenning</strong>
+            <p>Denne leirplassen er kun synlig for deg inntil den er godkjent av en administrator.</p>
+          </div>
+        </div>
+        <SpotDetail spot={activePendingSpot} onBack={onBack} onReport={() => {}} alreadyReported={false} />
+        <div className="owner-actions">
+          <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activePendingSpot)}>✏️ Rediger</button>
+          <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activePendingSpot)}>🗑 Slett</button>
+        </div>
+      </>
     )
   }
   if (activeSpot) {
@@ -481,6 +499,7 @@ export default function CampingMap() {
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [spots, setSpots] = useState([])
+  const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -568,13 +587,17 @@ export default function CampingMap() {
 
   async function loadSpots() {
     setLoading(true)
-    const { data, error } = await supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3)
+    const [{ data, error }, { data: ownPending }] = await Promise.all([
+      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3),
+      supabase.from('spots').select('*').eq('status', 'pending').eq('owner_token', ownerToken),
+    ])
     if (!error && data) {
       setSpots(data)
       const params = new URLSearchParams(window.location.search)
       const spotId = params.get('spot')
       if (spotId) { const spot = data.find((s) => String(s.id) === spotId); if (spot) setActiveId(spot.id) }
     }
+    if (ownPending) setOwnPendingSpots(ownPending)
     setLoading(false)
   }
 
@@ -608,7 +631,9 @@ export default function CampingMap() {
     return () => { document.removeEventListener('mousedown', onClickOutside); document.removeEventListener('touchstart', onClickOutside) }
   }, [])
 
-  const activeSpot = spots.find((s) => s.id === activeId) || null
+  const isPendingActive = typeof activeId === 'string' && activeId.startsWith('pending:')
+  const activePendingSpot = isPendingActive ? ownPendingSpots.find(s => `pending:${s.id}` === activeId) || null : null
+  const activeSpot = isPendingActive ? null : spots.find((s) => s.id === activeId) || null
   const isSatelliteStyle = mapStyle.includes('satellite')
 
   const allRegions = useMemo(() => {
@@ -873,7 +898,7 @@ export default function CampingMap() {
           <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
             <div className="sidebar-inner">
               <SidebarContent
-                editingCamp={editingCamp} activeSpot={activeSpot} ownerToken={ownerToken}
+                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot} ownerToken={ownerToken}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
@@ -922,6 +947,12 @@ export default function CampingMap() {
 
             {filteredSpots.map((spot) => (
               <SpotMarker key={spot.id} spot={spot} active={spot.id === activeId} onClick={handleMapMarkerClick} />
+            ))}
+
+            {ownPendingSpots.map((spot) => (
+              <Marker key={`own-pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`pending:${spot.id}`) }}>
+                <span className={`spot-badge spot-badge--pending${activeId === `pending:${spot.id}` ? ' spot-badge--active' : ''}`} style={{ width: activeId === `pending:${spot.id}` ? 36 : 28, height: activeId === `pending:${spot.id}` ? 36 : 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #777', cursor: 'pointer', opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
+              </Marker>
             ))}
 
             {adminPendingSpots.map((spot) => (
@@ -1024,7 +1055,7 @@ export default function CampingMap() {
             />
             <div className="bottom-sheet-body">
               <SidebarContent
-                editingCamp={editingCamp} activeSpot={activeSpot} ownerToken={ownerToken}
+                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot} ownerToken={ownerToken}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
