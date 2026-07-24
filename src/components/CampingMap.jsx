@@ -197,6 +197,8 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
       {spot.description && <p className="spot-detail-desc">{spot.description}</p>}
       <p className="spot-detail-coords">
         {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
+        {' · '}
+        <a href={`https://www.google.com/maps?q=${spot.latitude},${spot.longitude}`} target="_blank" rel="noopener noreferrer">Åpne i Google Maps</a>
       </p>
       <button
         className={`report-btn${alreadyReported ? ' report-btn--done' : ''}`}
