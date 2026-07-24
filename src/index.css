@@ -96,6 +96,10 @@ body {
 @media (max-width: 767px) {
   .respekt-btn__full { display: none; }
   .respekt-btn__short { display: inline; }
+  .topnav-logo {
+    position: static;
+    transform: none;
+  }
 }
 
 /* About modal */
