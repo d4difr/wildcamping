@@ -834,7 +834,7 @@ export default function CampingMap() {
 
   function handleSearchSelect(feature) {
     const [lng, lat] = feature.center
-    setFlyTarget([lat, lng])
+    setFlyTarget({ latitude: lat, longitude: lng })
     setSearchQuery(feature.place_name)
     setSearchResults([])
     setSearchOpen(false)
