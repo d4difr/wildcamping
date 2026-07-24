@@ -470,6 +470,8 @@ export default function CampingMap() {
   const mapRef = useRef(null)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
+  const [show3DHint, setShow3DHint] = useState(false)
+  const hint3DTimeout = useRef(null)
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -629,6 +631,9 @@ export default function CampingMap() {
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
       map.setFog({})
       map.easeTo({ pitch: 60, duration: 600 })
+      clearTimeout(hint3DTimeout.current)
+      setShow3DHint(true)
+      hint3DTimeout.current = setTimeout(() => setShow3DHint(false), 4000)
     } else {
       map.setTerrain(null)
       map.setFog(null)
@@ -932,6 +937,13 @@ export default function CampingMap() {
               {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
           </div>
+
+          {show3DHint && (
+            <div className="hint-3d">
+              🖱 Høyreklikk + dra for å vippe · Ctrl + dra for å rotere
+              <span className="hint-3d-mobile"> · To fingre for å vippe på mobil</span>
+            </div>
+          )}
 
           {!dropMode && !pendingPosition && (
             <div className="locate-wrap">
