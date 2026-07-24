@@ -1957,6 +1957,15 @@ button.primary:hover:not(:disabled) {
   background: #fce4ec;
 }
 
+.admin-btn--goto {
+  border-color: #aaa;
+  color: #555;
+}
+
+.admin-btn--goto:hover {
+  background: #f0f0f0;
+}
+
 .admin-btn--approve {
   border-color: #66bb6a;
   color: #2e7d32;

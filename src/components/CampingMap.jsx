@@ -221,7 +221,7 @@ function RespektModal({ onClose }) {
   )
 }
 
-function AdminPanel({ onClose }) {
+function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
   const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'vilda-admin'
   const [password, setPassword] = useState('')
   const [authed, setAuthed] = useState(false)
@@ -239,7 +239,10 @@ function AdminPanel({ onClose }) {
   async function fetchAll() {
     setLoading(true)
     const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
-    if (data) setSpots(data)
+    if (data) {
+      setSpots(data)
+      onPendingSpots?.(data.filter(s => s.status === 'pending'))
+    }
     setLoading(false)
   }
 
@@ -274,7 +277,11 @@ function AdminPanel({ onClose }) {
 
   async function handleApprove(id) {
     await supabase.from('spots').update({ status: 'approved' }).eq('id', id)
-    setSpots((s) => s.map((x) => x.id === id ? { ...x, status: 'approved' } : x))
+    setSpots((s) => {
+      const updated = s.map((x) => x.id === id ? { ...x, status: 'approved' } : x)
+      onPendingSpots?.(updated.filter(x => x.status === 'pending'))
+      return updated
+    })
   }
 
   const flagged = spots.filter((s) => s.flags >= 3)
@@ -350,6 +357,7 @@ function AdminPanel({ onClose }) {
                   </span>
                 </div>
                 <div className="admin-spot-actions">
+                  {spot.status === 'pending' && <button className="admin-btn admin-btn--goto" onClick={() => onGoTo(spot.longitude, spot.latitude)}>📍 Gå til</button>}
                   {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
                   {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
                   <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
@@ -473,6 +481,7 @@ export default function CampingMap() {
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [spots, setSpots] = useState([])
+  const [adminPendingSpots, setAdminPendingSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState(() => { const p = new URLSearchParams(window.location.search); return p.get('spot') || null })
@@ -843,7 +852,7 @@ export default function CampingMap() {
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {respektOpen && <RespektModal onClose={() => setRespektOpen(false)} />}
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+      {showAdmin && <AdminPanel onClose={() => { setShowAdmin(false); setAdminPendingSpots([]) }} onGoTo={(lng, lat) => flyTo(lng, lat, 13)} onPendingSpots={setAdminPendingSpots} />}
 
       <div className="main-area">
         {!isMobile && (
@@ -913,6 +922,12 @@ export default function CampingMap() {
 
             {filteredSpots.map((spot) => (
               <SpotMarker key={spot.id} spot={spot} active={spot.id === activeId} onClick={handleMapMarkerClick} />
+            ))}
+
+            {adminPendingSpots.map((spot) => (
+              <Marker key={`pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center">
+                <span style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #666', opacity: 0.85, cursor: 'default' }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
+              </Marker>
             ))}
 
             {pendingPosition && (
