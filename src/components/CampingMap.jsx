@@ -847,6 +847,15 @@ export default function CampingMap() {
     setDropMode(false)
   }
 
+  function placeIcon(types = []) {
+    if (types.includes('poi')) return '📍'
+    if (types.includes('address')) return '🏠'
+    if (types.includes('place') || types.includes('locality')) return '🏙'
+    if (types.includes('district') || types.includes('region')) return '🗺'
+    if (types.includes('postcode')) return '📮'
+    return '📌'
+  }
+
   function handleSearch(q) {
     setSearchQuery(q)
     setSearchOpen(true)
@@ -932,7 +941,9 @@ export default function CampingMap() {
             {searchOpen && searchResults.length > 0 && (
               <ul className="search-results">
                 {searchResults.map((f, i) => (
-                  <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
+                  <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>
+                    <span className="search-result-icon">{placeIcon(f.place_type)}</span>{f.place_name}
+                  </li>
                 ))}
               </ul>
             )}
