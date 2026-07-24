@@ -186,7 +186,7 @@ body {
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: var(--surface);
+  background: var(--birch-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   list-style: none;
