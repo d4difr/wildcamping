@@ -205,7 +205,8 @@ body {
   line-height: 1.3;
 }
 
-.search-results li:hover { background: var(--surface-hover, #f0ede6); }
+.search-results li:hover,
+.search-results li.search-result--active { background: var(--surface-hover, #f0ede6); }
 
 @media (max-width: 767px) {
   .search-input { width: 130px; font-size: 0.82rem; }

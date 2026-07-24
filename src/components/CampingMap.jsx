@@ -634,6 +634,7 @@ export default function CampingMap() {
   const [searchResults, setSearchResults] = useState([])
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
+  const [searchHighlight, setSearchHighlight] = useState(-1)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
   const [respektOpen, setRespektOpen] = useState(false)
@@ -847,6 +848,7 @@ export default function CampingMap() {
       const res = await fetch(url)
       const data = await res.json()
       setSearchResults(data.features || [])
+      setSearchHighlight(-1)
       setSearchLoading(false)
     }, 300)
   }
@@ -905,6 +907,12 @@ export default function CampingMap() {
               value={searchQuery}
               onChange={e => handleSearch(e.target.value)}
               onFocus={() => { setSearchFocused(true); searchResults.length > 0 && setSearchOpen(true) }}
+              onKeyDown={e => {
+                if (!searchOpen || searchResults.length === 0) return
+                if (e.key === 'ArrowDown') { e.preventDefault(); setSearchHighlight(h => Math.min(h + 1, searchResults.length - 1)) }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setSearchHighlight(h => Math.max(h - 1, 0)) }
+                else if (e.key === 'Enter' && searchHighlight >= 0) { e.preventDefault(); handleSearchSelect(searchResults[searchHighlight]) }
+              }}
             />
             {searchLoading && <span className="search-spinner" />}
             {searchQuery && !searchLoading && (
@@ -912,8 +920,8 @@ export default function CampingMap() {
             )}
             {searchOpen && searchResults.length > 0 && (
               <ul className="search-results">
-                {searchResults.map(f => (
-                  <li key={f.id} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
+                {searchResults.map((f, i) => (
+                  <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
                 ))}
               </ul>
             )}
