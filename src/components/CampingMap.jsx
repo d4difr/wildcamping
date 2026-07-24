@@ -629,10 +629,12 @@ export default function CampingMap() {
     if (next) {
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
       map.setFog({})
+      if (map.getLayer('hillshading')) map.setLayoutProperty('hillshading', 'visibility', 'visible')
       map.easeTo({ pitch: 60, duration: 600 })
     } else {
       map.setTerrain(null)
       map.setFog(null)
+      if (map.getLayer('hillshading')) map.setLayoutProperty('hillshading', 'visibility', 'none')
       map.easeTo({ pitch: 0, bearing: 0, duration: 600 })
     }
   }
@@ -893,6 +895,19 @@ export default function CampingMap() {
                 url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
                 tileSize: 512,
                 maxzoom: 14,
+              })
+              map.addLayer({
+                id: 'hillshading',
+                type: 'hillshade',
+                source: 'mapbox-dem',
+                paint: {
+                  'hillshade-exaggeration': 0.6,
+                  'hillshade-shadow-color': '#2d3a1e',
+                  'hillshade-highlight-color': '#f5f0e8',
+                  'hillshade-accent-color': '#3a4a2a',
+                  'hillshade-illumination-anchor': 'viewport',
+                },
+                layout: { visibility: 'none' },
               })
             }}
           >
