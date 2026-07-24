@@ -50,6 +50,67 @@ body {
   transform: translateX(-50%);
 }
 
+.topnav-left {
+  display: flex;
+  align-items: center;
+}
+
+.topnav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  margin-left: auto;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #f4f1ea;
+  border-radius: 2px;
+}
+
+.hamburger-menu {
+  position: absolute;
+  top: 3.5rem;
+  right: 0;
+  background: var(--forest);
+  border-bottom-left-radius: 10px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.hamburger-menu button {
+  background: none;
+  border: none;
+  color: #f4f1ea;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.85rem 1.2rem;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(244,241,234,0.15);
+}
+
+.hamburger-menu button:last-child { border-bottom: none; }
+.hamburger-menu button:hover { background: rgba(255,255,255,0.08); }
+
 .search-box {
   position: relative;
   margin-left: auto;
@@ -164,12 +225,14 @@ body {
 .respekt-btn__short { display: none; }
 
 @media (max-width: 767px) {
-  .respekt-btn__full { display: none; }
-  .respekt-btn__short { display: inline; }
+  .topnav-right { display: none; }
+  .hamburger-btn { display: flex; }
   .topnav-logo {
-    position: static;
-    transform: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
+  .search-input { width: 120px; }
 }
 
 /* About modal */

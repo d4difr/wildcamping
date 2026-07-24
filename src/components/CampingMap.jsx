@@ -628,6 +628,7 @@ export default function CampingMap() {
   const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
   const [aboutOpen, setAboutOpen] = useState(false)
   const [savedToast, setSavedToast] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchOpen, setSearchOpen] = useState(false)
@@ -875,6 +876,30 @@ export default function CampingMap() {
   return (
     <div className="app-root">
       <header className="topnav">
+        {/* Mobile: search left, logo center, hamburger right */}
+        <div className="topnav-left">
+          <div className="search-box" ref={searchRef}>
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Søk etter sted…"
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+            />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>✕</button>
+            )}
+            {searchOpen && searchResults.length > 0 && (
+              <ul className="search-results">
+                {searchResults.map(f => (
+                  <li key={f.id} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
         <svg className="topnav-logo" width="126" height="34" viewBox="0 0 210 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vilda">
           <circle cx="34" cy="10" r="9" fill="#d98e04" />
           <polygon points="22,2  42,26   2,26" fill="#f4f1ea" />
@@ -882,31 +907,26 @@ export default function CampingMap() {
           <polygon points="22,26 48,54  -4,54" fill="#f4f1ea" />
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
-        <div className="search-box" ref={searchRef}>
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Søk etter sted…"
-            value={searchQuery}
-            onChange={e => handleSearch(e.target.value)}
-            onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
-          />
-          {searchQuery && (
-            <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>✕</button>
-          )}
-          {searchOpen && searchResults.length > 0 && (
-            <ul className="search-results">
-              {searchResults.map(f => (
-                <li key={f.id} onClick={() => handleSearchSelect(f)}>{f.place_name}</li>
-              ))}
-            </ul>
-          )}
+
+        {/* Desktop nav links */}
+        <div className="topnav-right">
+          <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
+          <button className="respekt-btn" onClick={() => setRespektOpen(true)}>
+            <span className="respekt-btn__full">Respekt for naturen</span>
+            <span className="respekt-btn__short">Respekt</span>
+          </button>
         </div>
-        <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
-        <button className="respekt-btn" onClick={() => setRespektOpen(true)}>
-          <span className="respekt-btn__full">Respekt for naturen</span>
-          <span className="respekt-btn__short">Respekt</span>
+
+        {/* Mobile hamburger */}
+        <button className="hamburger-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Meny">
+          <span /><span /><span />
         </button>
+        {menuOpen && (
+          <div className="hamburger-menu" onClick={() => setMenuOpen(false)}>
+            <button onClick={() => setAboutOpen(true)}>Om</button>
+            <button onClick={() => setRespektOpen(true)}>Respekt for naturen</button>
+          </div>
+        )}
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
