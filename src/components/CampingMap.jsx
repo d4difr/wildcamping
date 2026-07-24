@@ -279,37 +279,37 @@ function RespektModal({ onClose }) {
         <h1 className="about-title">Respekt for naturen</h1>
 
         <section className="about-section">
-          <h2>1. Kjenn allemannsretten</h2>
+          <h2>Kjenn allemannsretten</h2>
           <p>Allemannsretten gir alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Utmark er udyrket mark og omfatter det meste av skog, fjell, myr, innsjøer og strender.</p>
           <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder <strong>ikke</strong> på innmark: dyrket jord, beite i aktiv bruk, gårdsplasser, hus- og hyttetomter eller industriareal. Du kan likevel ferdes på frossen eller snødekt innmark.</p>
           <p style={{ marginTop: '0.65rem' }}>Du kan slå opp telt i utmark så lenge du holder minst <strong>150 meter fra nærmeste bebodde hus eller hytte</strong>. Du kan bli på samme sted i inntil to netter uten å spørre grunneier. På høyfjellet eller langt fra bebyggelse kan du bli lenger.</p>
         </section>
 
         <section className="about-section">
-          <h2>2. Motorisert ferdsel</h2>
+          <h2>Motorisert ferdsel</h2>
           <p>Allemannsretten gjelder til fots, på sykkel, til hest og med ikke-motorisert fartøy. <strong>Det er ikke tillatt å kjøre bil, motorsykkel, ATV eller bobil inn i utmark</strong> for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
         </section>
 
         <section className="about-section">
-          <h2>3. Legg ingen spor</h2>
+          <h2>Legg ingen spor</h2>
           <p>Ta med deg alt søppel ut igjen. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon. En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
           <p style={{ marginTop: '0.65rem' }}><strong>Bålforbudet gjelder fra 15. april til 15. september</strong> i og nær skog over hele landet. Bål er likevel tillatt der det er opplagt at det ikke kan starte brann, for eksempel på en godkjent bålplass eller når det ligger snø på bakken. Bruk alltid eksisterende ildsteder der det finnes, og aldri levende trær eller røtter som brensel.</p>
           <p style={{ marginTop: '0.65rem' }}>Mange av de vakreste plassene er vakre nettopp fordi de er ukjente. Gjentatte besøk kan ødelegge vegetasjon og gjøre stier til gjørmehull. Tenk deg om før du deler sårbare plasser videre.</p>
         </section>
 
         <section className="about-section">
-          <h2>4. Vis hensyn til dyrelivet</h2>
+          <h2>Vis hensyn til dyrelivet</h2>
           <p>I hekke- og yngletiden (april–juli) er mange fugler og pattedyr svært sårbare for forstyrrelser. Hold avstand til reirplasser og unger. <strong>Hunder skal holdes i bånd fra 1. april til 20. august.</strong> Respekter beitedyr og hold deg unna områder med sau eller storfe.</p>
         </section>
 
         <section className="about-section">
-          <h2>5. Vis hensyn til andre og grunneier</h2>
+          <h2>Vis hensyn til andre og grunneier</h2>
           <p>Opptre hensynsfullt ovenfor folk du møter på tur. Unngå unødvendig støy. Lukk porter etter deg og unngå skade på gjerder og skogplantefelt. Unngå skade på steder med kulturhistorisk verdi, som arkeologiske kulturminner og fredede byggverk.</p>
           <p style={{ marginTop: '0.65rem' }}>Hus og hytter nær utmark har rett til en privat sone. Vurder avstand, vegetasjon og lydnivå, og vis alltid skjønn.</p>
         </section>
 
         <section className="about-section">
-          <h2>6. Den uskrevne regelen</h2>
+          <h2>Den uskrevne regelen</h2>
           <p>Allemannsretten er et privilegium vi deler, ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle, fordi det gjør den.</p>
         </section>
 
