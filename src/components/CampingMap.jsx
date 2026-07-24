@@ -880,6 +880,7 @@ export default function CampingMap() {
             onMove={e => setViewState(e.viewState)}
             mapStyle={mapStyle}
             mapboxAccessToken={TOKEN}
+            maxPitch={terrain3D ? 85 : 0}
             style={{ width: '100%', height: '100%' }}
             cursor={cursor}
             onClick={handleMapClick}
