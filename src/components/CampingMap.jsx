@@ -188,7 +188,9 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
       <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
-      {photos.length > 0 ? (
+      {photos.length === 1 ? (
+        <img src={photos[0]} alt={spot.name} className="spot-detail-static-map" style={{ cursor: 'pointer' }} onClick={() => setLightboxIndex(0)} />
+      ) : photos.length > 1 ? (
         <div className="detail-photo-strip">
           {photos.map((url, i) => (
             <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" onClick={() => setLightboxIndex(i)} />
