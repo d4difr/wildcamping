@@ -805,6 +805,12 @@ body {
   border-color: var(--fjord);
 }
 
+.layer-toggle--active {
+  background: var(--forest);
+  color: #f4f1ea;
+  border-color: var(--forest);
+}
+
 .submit-btn {
   background: var(--forest);
   border-color: var(--forest);

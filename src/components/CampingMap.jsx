@@ -468,7 +468,8 @@ function SidebarContent({
 
 export default function CampingMap() {
   const mapRef = useRef(null)
-  const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 45, bearing: 0 })
+  const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
+  const [terrain3D, setTerrain3D] = useState(false)
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -618,6 +619,22 @@ export default function CampingMap() {
   }
 
   const hasFilters = filters.types.length || filters.access.length || filters.regions.length
+
+  function toggle3D() {
+    const map = mapRef.current
+    if (!map) return
+    const next = !terrain3D
+    setTerrain3D(next)
+    if (next) {
+      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
+      map.setFog({})
+      map.easeTo({ pitch: 60, duration: 600 })
+    } else {
+      map.setTerrain(null)
+      map.setFog(null)
+      map.easeTo({ pitch: 0, bearing: 0, duration: 600 })
+    }
+  }
 
   function flyTo(lng, lat, zoom = null) {
     const map = mapRef.current
@@ -874,8 +891,6 @@ export default function CampingMap() {
                 tileSize: 512,
                 maxzoom: 14,
               })
-              map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
-              map.setFog({})
             }}
           >
 
@@ -903,6 +918,9 @@ export default function CampingMap() {
           </Map>
 
           <div className="controls">
+            <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
+              {terrain3D ? '🏔 3D på' : '🏔 3D'}
+            </button>
             <button className="layer-toggle" onClick={() => setMapStyle(isSatelliteStyle ? 'mapbox://styles/mapbox/outdoors-v12' : 'mapbox://styles/mapbox/satellite-streets-v12')}>
               {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
             </button>
