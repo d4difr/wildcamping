@@ -119,7 +119,7 @@ body {
 .search-cancel-btn {
   background: rgba(255,255,255,0.15);
   border: none;
-  border-radius: 8px;
+  border-radius: 99px;
   color: #f4f1ea;
   font-family: var(--font-body);
   font-size: 0.82rem;
