@@ -630,7 +630,6 @@ export default function CampingMap() {
     terrain3DRef.current = next
     if (next) {
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
-      map.setFog({ 'star-intensity': 0 })
       if (map.getLayer('hillshading')) map.setLayoutProperty('hillshading', 'visibility', 'visible')
       map.easeTo({ pitch: 60, duration: 600 })
     } else {
