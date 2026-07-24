@@ -115,6 +115,15 @@ function FlyToSpot({ target, pan, onDone }) {
   return null
 }
 
+function MapCenterTracker({ centerRef }) {
+  const map = useMap()
+  useMapEvents({
+    moveend() { centerRef.current = map.getCenter() },
+  })
+  useEffect(() => { centerRef.current = map.getCenter() }, [map])
+  return null
+}
+
 function FlyToUser({ target }) {
   const map = useMap()
   useEffect(() => {
@@ -637,6 +646,7 @@ export default function CampingMap() {
   const [searchHighlight, setSearchHighlight] = useState(-1)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
+  const mapCenter = useRef({ lng: 15, lat: 65 })
   const [respektOpen, setRespektOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -844,7 +854,8 @@ export default function CampingMap() {
     if (!q.trim()) { setSearchResults([]); setSearchLoading(false); return }
     setSearchLoading(true)
     searchTimeout.current = setTimeout(async () => {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&access_token=${TOKEN}`
+      const { lng, lat } = mapCenter.current
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${lng},${lat}&access_token=${TOKEN}`
       const res = await fetch(url)
       const data = await res.json()
       setSearchResults(data.features || [])
@@ -1029,6 +1040,7 @@ export default function CampingMap() {
             {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
             {userPosition && <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />}
             <FlyToUser target={userPosition} />
+            <MapCenterTracker centerRef={mapCenter} />
           </MapContainer>
 
           {/* Top-right controls */}
