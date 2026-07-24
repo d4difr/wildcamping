@@ -469,6 +469,7 @@ function SidebarContent({
 export default function CampingMap() {
   const mapRef = useRef(null)
   const nativeMap = useRef(null)
+  const terrain3DRef = useRef(false)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [spots, setSpots] = useState([])
@@ -626,6 +627,7 @@ export default function CampingMap() {
     if (!map) return
     const next = !terrain3D
     setTerrain3D(next)
+    terrain3DRef.current = next
     if (next) {
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
       map.setFog({})
@@ -890,25 +892,40 @@ export default function CampingMap() {
             onLoad={e => {
               const map = e.target
               nativeMap.current = map
-              map.addSource('mapbox-dem', {
-                type: 'raster-dem',
-                url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                tileSize: 512,
-                maxzoom: 14,
-              })
-              map.addLayer({
-                id: 'hillshading',
-                type: 'hillshade',
-                source: 'mapbox-dem',
-                paint: {
-                  'hillshade-exaggeration': 0.6,
-                  'hillshade-shadow-color': '#2d3a1e',
-                  'hillshade-highlight-color': '#f5f0e8',
-                  'hillshade-accent-color': '#3a4a2a',
-                  'hillshade-illumination-anchor': 'viewport',
-                },
-                layout: { visibility: 'none' },
-              })
+
+              function initTerrainLayers() {
+                if (!map.getSource('mapbox-dem')) {
+                  map.addSource('mapbox-dem', {
+                    type: 'raster-dem',
+                    url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                    tileSize: 512,
+                    maxzoom: 14,
+                  })
+                }
+                if (!map.getLayer('hillshading')) {
+                  map.addLayer({
+                    id: 'hillshading',
+                    type: 'hillshade',
+                    source: 'mapbox-dem',
+                    paint: {
+                      'hillshade-exaggeration': 0.6,
+                      'hillshade-shadow-color': '#2d3a1e',
+                      'hillshade-highlight-color': '#f5f0e8',
+                      'hillshade-accent-color': '#3a4a2a',
+                      'hillshade-illumination-anchor': 'viewport',
+                    },
+                    layout: { visibility: 'none' },
+                  })
+                }
+                // Re-apply terrain and hillshade if 3D was active before the style swap
+                if (terrain3DRef.current) {
+                  map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
+                  map.setLayoutProperty('hillshading', 'visibility', 'visible')
+                }
+              }
+
+              initTerrainLayers()
+              map.on('style.load', initTerrainLayers)
             }}
           >
 
