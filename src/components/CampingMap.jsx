@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
-import MarkerClusterGroup from 'react-leaflet-cluster'
-import L from 'leaflet'
+import Map, { Marker, Source, Layer, useMap } from 'react-map-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 
@@ -15,123 +14,36 @@ const ACCESS_LABELS = {
   'remote': '🏔 Avsidesliggende',
 }
 
-const LAYERS = {
-  outdoors: {
-    label: 'Outdoors',
-    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
-    attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  },
-  satellite: {
-    label: 'Satellite',
-    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}{r}?access_token=${TOKEN}`,
-    attribution: '&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ))
-}
-
-const TENT_SVG = `
-  <svg width="17" height="17" viewBox="0 0 24 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 0L14 3M14 0L10 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" />
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.2L22.4 17.8H1.6L12 2.2ZM12 10.6L16.5 17.8H7.4L12 10.6Z" fill="#fff" />
-    <rect x="0" y="17.8" width="24" height="1" fill="#fff" />
-  </svg>`
-
-const HAMMOCK_SVG = `
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <line x1="4" y1="3" x2="4" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-    <line x1="20" y1="3" x2="20" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M4 9 Q12 18 20 9" stroke="#fff" stroke-width="2" fill="#fff" fill-opacity="0.25" stroke-linecap="round"/>
-    <line x1="4" y1="7.5" x2="8" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="20" y1="7.5" x2="16" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-  </svg>`
-
-const SPOT_ICONS = { tent: TENT_SVG, hammock: HAMMOCK_SVG }
 const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
 
-function makeBadgeIcon(type = 'tent', color) {
-  const bg = color ?? SPOT_COLORS[type] ?? SPOT_COLORS.tent
-  const svg = SPOT_ICONS[type] ?? TENT_SVG
-  const html = `<span class="spot-badge" style="background:${bg}">${svg}</span>`
-  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16] })
+const TENT_SVG = `<svg width="17" height="17" viewBox="0 0 24 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 0L14 3M14 0L10 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" />
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.2L22.4 17.8H1.6L12 2.2ZM12 10.6L16.5 17.8H7.4L12 10.6Z" fill="#fff" />
+  <rect x="0" y="17.8" width="24" height="1" fill="#fff" />
+</svg>`
+
+const HAMMOCK_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <line x1="4" y1="3" x2="4" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="20" y1="3" x2="20" y2="21" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M4 9 Q12 18 20 9" stroke="#fff" stroke-width="2" fill="#fff" fill-opacity="0.25" stroke-linecap="round"/>
+  <line x1="4" y1="7.5" x2="8" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="7.5" x2="16" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+</svg>`
+
+function SpotMarker({ spot, active, onClick }) {
+  const bg = SPOT_COLORS[spot.spot_type] ?? SPOT_COLORS.tent
+  const svg = spot.spot_type === 'hammock' ? HAMMOCK_SVG : TENT_SVG
+  const size = active ? 36 : 28
+  return (
+    <Marker longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); onClick(spot) }}>
+      <span
+        className={`spot-badge${active ? ' spot-badge--active' : ''}`}
+        style={{ background: bg, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer' }}
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+    </Marker>
+  )
 }
-
-function makeSpotIcon(type = 'tent') {
-  const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
-  const svg = SPOT_ICONS[type] ?? TENT_SVG
-  const html = `<span class="spot-badge" style="background:${bg}">${svg}</span>`
-  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
-}
-
-function makeActiveSpotIcon(type = 'tent') {
-  const bg = SPOT_COLORS[type] ?? SPOT_COLORS.tent
-  const svg = SPOT_ICONS[type] ?? TENT_SVG
-  const html = `<span class="spot-badge spot-badge--active" style="background:${bg}">${svg}</span>`
-  return L.divIcon({ html, className: '', iconSize: [36, 36], iconAnchor: [18, 18] })
-}
-
-function createClusterIcon(cluster) {
-  const count = cluster.getChildCount()
-  return L.divIcon({
-    html: `<span class="cluster-badge">${count}</span>`,
-    className: '',
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-  })
-}
-
-const pendingIcon = makeBadgeIcon('tent', '#d98e04')
-
-const userLocationIcon = L.divIcon({
-  html: `<span class="user-location-dot"><span class="user-location-dot-pulse"></span><span class="user-location-dot-core"></span></span>`,
-  className: '', iconSize: [20, 20], iconAnchor: [10, 10]
-})
-
-function ClickHandler({ dropMode, onMapClick }) {
-  const map = useMap()
-  useEffect(() => {
-    map.getContainer().style.cursor = dropMode ? 'crosshair' : ''
-  }, [dropMode, map])
-  useMapEvents({ click(e) { if (dropMode) onMapClick(e.latlng) } })
-  return null
-}
-
-function FlyToSpot({ target, pan, onDone }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!target) return
-    if (pan) {
-      map.panTo([target.latitude, target.longitude], { animate: true, duration: 0.4 })
-    } else {
-      const currentZoom = map.getZoom()
-      map.flyTo([target.latitude, target.longitude], Math.max(currentZoom, 11), { duration: 0.8 })
-    }
-    onDone()
-  }, [target])
-  return null
-}
-
-function MapCenterTracker({ centerRef }) {
-  const map = useMap()
-  useMapEvents({
-    moveend() { centerRef.current = map.getCenter() },
-  })
-  useEffect(() => { centerRef.current = map.getCenter() }, [map])
-  return null
-}
-
-function FlyToUser({ target }) {
-  const map = useMap()
-  useEffect(() => {
-    if (target) map.flyTo([target.lat, target.lng], 14, { duration: 0.8 })
-  }, [target, map])
-  return null
-}
-
 
 function SpotBadges({ spot }) {
   return (
@@ -139,19 +51,14 @@ function SpotBadges({ spot }) {
       <span className={`access-badge access-badge--type-${spot.spot_type || 'tent'}`}>
         {spot.spot_type === 'hammock' ? '🪢 Hengekøye' : '⛺ Telt'}
       </span>
-      {spot.access && (
-        <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>
-      )}
-      {spot.region && (
-        <span className="access-badge access-badge--region">📍 {spot.region}</span>
-      )}
+      {spot.access && <span className={`access-badge access-badge--${spot.access}`}>{ACCESS_LABELS[spot.access]}</span>}
+      {spot.region && <span className="access-badge access-badge--region">📍 {spot.region}</span>}
     </div>
   )
 }
 
 function Lightbox({ photos, startIndex, onClose }) {
   const [index, setIndex] = useState(startIndex)
-
   useEffect(() => {
     function onKey(e) {
       if (e.key === 'Escape') onClose()
@@ -161,7 +68,6 @@ function Lightbox({ photos, startIndex, onClose }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [photos.length, onClose])
-
   return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
@@ -172,9 +78,7 @@ function Lightbox({ photos, startIndex, onClose }) {
             <button className="lightbox-arrow lightbox-arrow--prev" onClick={() => setIndex((i) => (i - 1 + photos.length) % photos.length)}>‹</button>
             <button className="lightbox-arrow lightbox-arrow--next" onClick={() => setIndex((i) => (i + 1) % photos.length)}>›</button>
             <div className="lightbox-dots">
-              {photos.map((_, i) => (
-                <span key={i} className={`lightbox-dot${i === index ? ' lightbox-dot--active' : ''}`} onClick={() => setIndex(i)} />
-              ))}
+              {photos.map((_, i) => <span key={i} className={`lightbox-dot${i === index ? ' lightbox-dot--active' : ''}`} onClick={() => setIndex(i)} />)}
             </div>
           </>
         )}
@@ -188,12 +92,9 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const staticMap = `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},13,0/600x240@2x?access_token=${TOKEN}`
-
   return (
     <div className="spot-detail">
-      {lightboxIndex !== null && (
-        <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
-      )}
+      {lightboxIndex !== null && <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />}
       <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
@@ -201,9 +102,7 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
         <img src={photos[0]} alt={spot.name} className="spot-detail-static-map" style={{ cursor: 'pointer' }} onClick={() => setLightboxIndex(0)} />
       ) : photos.length > 1 ? (
         <div className="detail-photo-strip">
-          {photos.map((url, i) => (
-            <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" onClick={() => setLightboxIndex(i)} />
-          ))}
+          {photos.map((url, i) => <img key={i} src={url} alt={`${spot.name} ${i + 1}`} className="detail-photo" onClick={() => setLightboxIndex(i)} />)}
         </div>
       ) : (
         <img src={staticMap} alt="Kart" className="spot-detail-static-map" />
@@ -226,43 +125,30 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
 }
 
 function AboutModal({ onClose }) {
-  const [contactStatus, setContactStatus] = useState('idle') // idle | sending | sent | error
-
+  const [contactStatus, setContactStatus] = useState('idle')
   async function handleContactSubmit(e) {
     e.preventDefault()
     setContactStatus('sending')
     const form = e.target
     try {
-      const res = await fetch('https://formspree.io/f/mykrpyjj', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body: new FormData(form),
-      })
-      if (res.ok) { setContactStatus('sent'); form.reset() }
-      else setContactStatus('error')
-    } catch {
-      setContactStatus('error')
-    }
+      const res = await fetch('https://formspree.io/f/mykrpyjj', { method: 'POST', headers: { 'Accept': 'application/json' }, body: new FormData(form) })
+      if (res.ok) { setContactStatus('sent'); form.reset() } else setContactStatus('error')
+    } catch { setContactStatus('error') }
   }
-
   return createPortal(
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()}>
         <button className="about-close" onClick={onClose}>✕</button>
-
         <h1 className="about-title">Om Vildakart</h1>
-
         <section className="about-section">
           <h2>Hvorfor Vildakart?</h2>
           <p>Vildakart er laget av friluftsfolk, for friluftsfolk. Del steder du har funnet på tur med andre som ferdes i norsk natur. Norge har noe av den vakreste naturen i verden, og allemannsretten gir oss alle rett til å ferdes og overnatte i den. Men gode leirplasser er spredt rundt i forum, Facebook-grupper og muntlige tips. Vildakart er laget for å samle dem på ett sted, slik at alle som elsker friluftsliv enkelt kan dele og oppdage nye steder.</p>
         </section>
-
         <section className="about-section">
           <h2>Slik fungerer kartet</h2>
           <p>Alle kan legge til en leirplass uten å opprette konto. Klikk på «Legg til leirplass», plasser en pin på kartet og fyll inn det du vet. Leirplassen knyttes til enheten du brukte, så du kan redigere eller slette den igjen fra samme telefon eller datamaskin.</p>
           <p>Når du plasserer en pin sjekker kartet automatisk om området er klassifisert som innmark i NIBIOs arealkart, som dyrket mark, bebyggelse eller åpen fastmark i tettbygd strøk. Steder i slike områder kan ikke legges til. Alle nye leirplasser gjennomgås av en administrator før de vises på kartet.</p>
         </section>
-
         <section className="about-section about-section--contact">
           <h2>Kontakt</h2>
           <p>Spørsmål, tilbakemeldinger eller forslag? Fyll ut skjemaet under.</p>
@@ -274,9 +160,7 @@ function AboutModal({ onClose }) {
               <input type="email" name="email" placeholder="E-post" required />
               <textarea name="message" rows={3} placeholder="Melding" required />
               {contactStatus === 'error' && <p className="contact-error">Noe gikk galt, prøv igjen.</p>}
-              <button type="submit" className="primary" disabled={contactStatus === 'sending'}>
-                {contactStatus === 'sending' ? 'Sender…' : 'Send melding'}
-              </button>
+              <button type="submit" className="primary" disabled={contactStatus === 'sending'}>{contactStatus === 'sending' ? 'Sender…' : 'Send melding'}</button>
             </form>
           )}
         </section>
@@ -291,44 +175,36 @@ function RespektModal({ onClose }) {
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()}>
         <button className="about-close" onClick={onClose}>✕</button>
-
         <h1 className="about-title">Respekt for naturen</h1>
-
         <section className="about-section">
           <h2>Kjenn allemannsretten</h2>
           <p>Allemannsretten gir alle rett til å ferdes og overnatte i utmark, uansett hvem som eier landet. Utmark er udyrket mark og omfatter det meste av skog, fjell, myr, innsjøer og strender.</p>
           <p style={{ marginTop: '0.65rem' }}>Allemannsretten gjelder <strong>ikke</strong> på innmark: dyrket jord, beite i aktiv bruk, gårdsplasser, hus- og hyttetomter eller industriareal. Du kan likevel ferdes på frossen eller snødekt innmark.</p>
           <p style={{ marginTop: '0.65rem' }}>Du kan slå opp telt i utmark så lenge du holder minst <strong>150 meter fra nærmeste bebodde hus eller hytte</strong>. Du kan bli på samme sted i inntil to netter uten å spørre grunneier. På høyfjellet eller langt fra bebyggelse kan du bli lenger.</p>
         </section>
-
         <section className="about-section">
           <h2>Motorisert ferdsel</h2>
           <p>Allemannsretten gjelder til fots, på sykkel, til hest og med ikke-motorisert fartøy. <strong>Det er ikke tillatt å kjøre bil, motorsykkel, ATV eller bobil inn i utmark</strong> for å nå en leirplass. Kjøretøy skal stå på lovlig parkering ved vei.</p>
         </section>
-
         <section className="about-section">
           <h2>Legg ingen spor</h2>
           <p>Ta med deg alt søppel ut igjen. Grav ned menneskelig avfall minst 60 meter fra vann og stier. Telt på stein eller gress der det er mulig, ikke på sårbar vegetasjon. En god tommelfingerregel: neste person som kommer dit skal ikke se at du har vært der.</p>
           <p style={{ marginTop: '0.65rem' }}><strong>Bålforbudet gjelder fra 15. april til 15. september</strong> i og nær skog over hele landet. Bål er likevel tillatt der det er opplagt at det ikke kan starte brann, for eksempel på en godkjent bålplass eller når det ligger snø på bakken. Bruk alltid eksisterende ildsteder der det finnes, og aldri levende trær eller røtter som brensel.</p>
           <p style={{ marginTop: '0.65rem' }}>Mange av de vakreste plassene er vakre nettopp fordi de er ukjente. Gjentatte besøk kan ødelegge vegetasjon og gjøre stier til gjørmehull. Tenk deg om før du deler sårbare plasser videre.</p>
         </section>
-
         <section className="about-section">
           <h2>Vis hensyn til dyrelivet</h2>
           <p>I hekke- og yngletiden (april–juli) er mange fugler og pattedyr svært sårbare for forstyrrelser. Hold avstand til reirplasser og unger. <strong>Hunder skal holdes i bånd fra 1. april til 20. august.</strong> Respekter beitedyr og hold deg unna områder med sau eller storfe.</p>
         </section>
-
         <section className="about-section">
           <h2>Vis hensyn til andre og grunneier</h2>
           <p>Opptre hensynsfullt ovenfor folk du møter på tur. Unngå unødvendig støy. Lukk porter etter deg og unngå skade på gjerder og skogplantefelt. Unngå skade på steder med kulturhistorisk verdi, som arkeologiske kulturminner og fredede byggverk.</p>
           <p style={{ marginTop: '0.65rem' }}>Hus og hytter nær utmark har rett til en privat sone. Vurder avstand, vegetasjon og lydnivå, og vis alltid skjønn.</p>
         </section>
-
         <section className="about-section">
           <h2>Den uskrevne regelen</h2>
           <p>Allemannsretten er et privilegium vi deler, ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle, fordi det gjør den.</p>
         </section>
-
         <section className="about-section respekt-sources">
           <h2>Kilder</h2>
           <ul>
@@ -375,7 +251,6 @@ function AdminPanel({ onClose }) {
     const weekAgo = new Date(now - 7 * 864e5)
     const today = data.filter(v => v.visited_at.slice(0, 10) === todayStr).length
     const week = data.filter(v => new Date(v.visited_at) >= weekAgo).length
-    // Build last 7 days breakdown
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(now - i * 864e5)
       const key = d.toISOString().slice(0, 10)
@@ -444,18 +319,9 @@ function AdminPanel({ onClose }) {
         {stats && (
           <div className="admin-stats">
             <div className="admin-stat-cards">
-              <div className="admin-stat-card">
-                <span className="admin-stat-value">{stats.total}</span>
-                <span className="admin-stat-label">Totalt</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-value">{stats.week}</span>
-                <span className="admin-stat-label">Siste 7 dager</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-value">{stats.today}</span>
-                <span className="admin-stat-label">I dag</span>
-              </div>
+              <div className="admin-stat-card"><span className="admin-stat-value">{stats.total}</span><span className="admin-stat-label">Totalt</span></div>
+              <div className="admin-stat-card"><span className="admin-stat-value">{stats.week}</span><span className="admin-stat-label">Siste 7 dager</span></div>
+              <div className="admin-stat-card"><span className="admin-stat-value">{stats.today}</span><span className="admin-stat-label">I dag</span></div>
             </div>
             <div className="admin-chart">
               {(() => {
@@ -463,9 +329,7 @@ function AdminPanel({ onClose }) {
                 return stats.days.map((d, i) => (
                   <div key={i} className="admin-chart-col">
                     <span className="admin-chart-count">{d.count || ''}</span>
-                    <div className="admin-chart-bar-wrap">
-                      <div className="admin-chart-bar" style={{ height: `${(d.count / max) * 100}%` }} />
-                    </div>
+                    <div className="admin-chart-bar-wrap"><div className="admin-chart-bar" style={{ height: `${(d.count / max) * 100}%` }} /></div>
                     <span className="admin-chart-label">{d.label}</span>
                   </div>
                 ))
@@ -473,7 +337,6 @@ function AdminPanel({ onClose }) {
             </div>
           </div>
         )}
-
         {loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
           <div className="admin-list">
             {displayed.map((spot) => (
@@ -523,12 +386,7 @@ function SidebarContent({
   if (activeSpot) {
     return (
       <>
-        <SpotDetail
-          spot={activeSpot}
-          onBack={onBack}
-          onReport={onReport}
-          alreadyReported={flaggedSpots.includes(activeSpot.id)}
-        />
+        <SpotDetail spot={activeSpot} onBack={onBack} onReport={onReport} alreadyReported={flaggedSpots.includes(activeSpot.id)} />
         {activeSpot.owner_token === ownerToken && (
           <div className="owner-actions">
             <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activeSpot)}>✏️ Rediger</button>
@@ -543,11 +401,7 @@ function SidebarContent({
       <div className="filter-panel">
         <div className="filter-panel-header">
           <span className="filter-panel-title">Filtre</span>
-          {hasFilters && (
-            <button className="filter-clear" onClick={() => onFilterChange({ types: [], access: [], regions: [] })}>
-              Fjern alle
-            </button>
-          )}
+          {hasFilters && <button className="filter-clear" onClick={() => onFilterChange({ types: [], access: [], regions: [] })}>Fjern alle</button>}
         </div>
         <div className="filter-group">
           <span className="filter-label">Type</span>
@@ -589,41 +443,37 @@ function SidebarContent({
           const thumb = spot.photo_urls?.[0] || spot.photo_url ||
             `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/400x200@2x?access_token=${TOKEN}`
           return (
-          <div key={spot.id} className="spot-card">
-            <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
-            <div className="spot-card-body">
-            <h3>{spot.name}</h3>
-            <SpotBadges spot={spot} />
-            <div className="spot-card-footer">
-              <button className="see-more-btn" onClick={() => onSeeMore(spot)}>Se mer →</button>
-              {spot.owner_token === ownerToken && (
-                <div className="owner-actions owner-actions--inline">
-                  <button className="owner-btn owner-btn--edit" onClick={() => { onEdit(spot) }}>✏️</button>
-                  <button className="owner-btn owner-btn--delete" onClick={() => onDelete(spot)}>🗑</button>
+            <div key={spot.id} className="spot-card">
+              <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
+              <div className="spot-card-body">
+                <h3>{spot.name}</h3>
+                <SpotBadges spot={spot} />
+                <div className="spot-card-footer">
+                  <button className="see-more-btn" onClick={() => onSeeMore(spot)}>Se mer →</button>
+                  {spot.owner_token === ownerToken && (
+                    <div className="owner-actions owner-actions--inline">
+                      <button className="owner-btn owner-btn--edit" onClick={() => onEdit(spot)}>✏️</button>
+                      <button className="owner-btn owner-btn--delete" onClick={() => onDelete(spot)}>🗑</button>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-            </div>
-          </div>
-        )})}
-
+          )
+        })}
       </div>
     </>
   )
 }
 
-
 export default function CampingMap() {
+  const mapRef = useRef(null)
+  const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 45, bearing: 0 })
   const [spots, setSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeId, setActiveId] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('spot') || null
-  })
-  const [flyTarget, setFlyTarget] = useState(null)
-  const [panTarget, setPanTarget] = useState(null)
-  const [layerKey, setLayerKey] = useState('outdoors')
+  const [activeId, setActiveId] = useState(() => { const p = new URLSearchParams(window.location.search); return p.get('spot') || null })
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/outdoors-v12')
   const [filters, setFilters] = useState({ types: [], access: [], regions: [] })
   const [dropMode, setDropMode] = useState(false)
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
@@ -634,7 +484,7 @@ export default function CampingMap() {
   const [locateError, setLocateError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [editingCamp, setEditingCamp] = useState(null)
-  const [sheetState, setSheetState] = useState('peek') // 'peek' | 'open'
+  const [sheetState, setSheetState] = useState('peek')
   const [aboutOpen, setAboutOpen] = useState(false)
   const [savedToast, setSavedToast] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -649,7 +499,6 @@ export default function CampingMap() {
   const searchMarkerTimeout = useRef(null)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
-  const mapCenter = useRef({ lng: 15, lat: 65 })
   const [respektOpen, setRespektOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -657,6 +506,7 @@ export default function CampingMap() {
   const sheetRef = useRef(null)
   const dragStartY = useRef(null)
   const dragStartTranslateY = useRef(0)
+  const isSatellite = mapStyle.includes('satellite')
 
   useEffect(() => {
     function onResize() { setIsMobile(window.innerWidth < 768) }
@@ -664,7 +514,6 @@ export default function CampingMap() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Animate sheet to new state (used for programmatic state changes)
   useEffect(() => {
     const el = sheetRef.current
     if (!el) return
@@ -693,26 +542,17 @@ export default function CampingMap() {
     const delta = e.changedTouches[0].clientY - dragStartY.current
     const el = sheetRef.current
     el.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)'
-    if (delta < -40) {
-      setSheetState('open')
-      el.style.transform = 'translateY(0)'
-    } else if (delta > 40) {
-      setSheetState('peek')
-      el.style.transform = 'translateY(calc(100% - 28px))'
-    } else {
-      el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 28px))'
-    }
+    if (delta < -40) { setSheetState('open'); el.style.transform = 'translateY(0)' }
+    else if (delta > 40) { setSheetState('peek'); el.style.transform = 'translateY(calc(100% - 28px))' }
+    else { el.style.transform = sheetState === 'open' ? 'translateY(0)' : 'translateY(calc(100% - 28px))' }
     dragStartY.current = null
   }
+
   const [ownerToken] = useState(() => {
     let token = localStorage.getItem('vilda_owner_token')
-    if (!token) {
-      token = crypto.randomUUID()
-      localStorage.setItem('vilda_owner_token', token)
-    }
+    if (!token) { token = crypto.randomUUID(); localStorage.setItem('vilda_owner_token', token) }
     return token
   })
-  const markerRefs = useRef({})
 
   async function loadSpots() {
     setLoading(true)
@@ -721,10 +561,7 @@ export default function CampingMap() {
       setSpots(data)
       const params = new URLSearchParams(window.location.search)
       const spotId = params.get('spot')
-      if (spotId) {
-        const spot = data.find((s) => String(s.id) === spotId)
-        if (spot) setActiveId(spot.id)
-      }
+      if (spotId) { const spot = data.find((s) => String(s.id) === spotId); if (spot) setActiveId(spot.id) }
     }
     setLoading(false)
   }
@@ -745,43 +582,22 @@ export default function CampingMap() {
   }, [activeId])
 
   useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') { setDropMode(false); setPendingPosition(null) }
-    }
+    function onKey(e) { if (e.key === 'Escape') { setDropMode(false); setPendingPosition(null) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   useEffect(() => {
     function onClickOutside(e) {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchFocused(false)
-        setSearchOpen(false)
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target)) { setSearchFocused(false); setSearchOpen(false) }
     }
     document.addEventListener('mousedown', onClickOutside)
     document.addEventListener('touchstart', onClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      document.removeEventListener('touchstart', onClickOutside)
-    }
+    return () => { document.removeEventListener('mousedown', onClickOutside); document.removeEventListener('touchstart', onClickOutside) }
   }, [])
 
-  const spotIcons = useMemo(() => {
-    const icons = {}
-    spots.forEach((s) => { icons[s.id] = makeSpotIcon(s.spot_type) })
-    return icons
-  }, [spots])
-
-  const activeSpotIcons = useMemo(() => {
-    const icons = {}
-    spots.forEach((s) => { icons[s.id] = makeActiveSpotIcon(s.spot_type) })
-    return icons
-  }, [spots])
-
   const activeSpot = spots.find((s) => s.id === activeId) || null
-  const layer = LAYERS[layerKey]
-  const nextKey = layerKey === 'outdoors' ? 'satellite' : 'outdoors'
+  const isSatelliteStyle = mapStyle.includes('satellite')
 
   const allRegions = useMemo(() => {
     const set = new Set(spots.map((s) => s.region).filter(Boolean))
@@ -798,33 +614,32 @@ export default function CampingMap() {
   }, [spots, filters])
 
   function toggleFilter(key, value) {
-    setFilters((f) => {
-      const arr = f[key]
-      return { ...f, [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] }
-    })
+    setFilters((f) => { const arr = f[key]; return { ...f, [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] } })
   }
 
   const hasFilters = filters.types.length || filters.access.length || filters.regions.length
 
-  function openSpot(spot, fly = false, pan = false) {
+  function flyTo(lng, lat, zoom = null) {
+    const map = mapRef.current
+    if (!map) return
+    map.flyTo({ center: [lng, lat], zoom: zoom ?? Math.max(map.getZoom(), 11), duration: 800, essential: true })
+  }
+
+  function openSpot(spot, fly = false) {
     setActiveId(spot.id)
-    if (fly) setFlyTarget(spot)
-    if (pan) setPanTarget(spot)
+    if (fly) flyTo(spot.longitude, spot.latitude)
   }
 
   function handleMapMarkerClick(spot) {
     const mobile = window.innerWidth < 768
-    openSpot(spot, false, mobile)
-    if (mobile) setSheetState('open')
+    setActiveId(spot.id)
+    if (mobile) { setSheetState('open'); flyTo(spot.longitude, spot.latitude) }
   }
 
-  function handleSeeMore(spot) {
-    openSpot(spot, true)
-  }
+  function handleSeeMore(spot) { openSpot(spot, true) }
 
   function handleBack() {
     setActiveId(null)
-    setFlyTarget(null)
     setEditingCamp(null)
     if (isMobile) setSheetState('peek')
   }
@@ -845,9 +660,34 @@ export default function CampingMap() {
     loadSpots()
   }
 
-  function handleMapClick(latlng) {
-    setPendingPosition(latlng)
+  function handleMapClick(e) {
+    if (!dropMode) return
+    setPendingPosition({ lat: e.lngLat.lat, lng: e.lngLat.lng })
     setDropMode(false)
+  }
+
+  function handleCancel() { setPendingPosition(null); setDropMode(false); setCoordInput({ lat: '', lng: '' }); setCoordError(''); setCoordExpanded(false) }
+
+  function handleLocate() {
+    if (!navigator.geolocation) { setLocateError('Nettleseren din støtter ikke posisjon.'); return }
+    setLocating(true)
+    setLocateError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); flyTo(pos.coords.longitude, pos.coords.latitude, 14) },
+      (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Posisjonstilgang nektet.' : 'Kunne ikke hente posisjonen din.') },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  function handleCoordSubmit(e) {
+    e.preventDefault()
+    const lat = parseFloat(coordInput.lat)
+    const lng = parseFloat(coordInput.lng)
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) { setCoordError('Skriv inn gyldige koordinater (bredde −90→90, lengde −180→180)'); return }
+    setPendingPosition({ lat, lng })
+    setDropMode(false)
+    setCoordInput({ lat: '', lng: '' })
+    setCoordError('')
   }
 
   function placeIcon(types = []) {
@@ -868,8 +708,9 @@ export default function CampingMap() {
     setSpotMatches(spots.filter(s => s.name.toLowerCase().includes(lower)).slice(0, 3))
     setSearchLoading(true)
     searchTimeout.current = setTimeout(async () => {
-      const { lng, lat } = mapCenter.current
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${lng},${lat}&access_token=${TOKEN}`
+      const map = mapRef.current
+      const center = map ? map.getCenter() : { lng: 9.5, lat: 62 }
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${center.lng},${center.lat}&access_token=${TOKEN}`
       const res = await fetch(url)
       const data = await res.json()
       setSearchResults(data.features || [])
@@ -885,13 +726,13 @@ export default function CampingMap() {
     setSearchOpen(false)
     setSearchFocused(false)
     const mobile = window.innerWidth < 768
-    openSpot(spot, true, false)
+    openSpot(spot, true)
     if (mobile) setSheetState('open')
   }
 
   function handleSearchSelect(feature) {
     const [lng, lat] = feature.center
-    setFlyTarget({ latitude: lat, longitude: lng })
+    flyTo(lng, lat)
     setSearchQuery(feature.text)
     setSearchResults([])
     setSearchOpen(false)
@@ -900,43 +741,11 @@ export default function CampingMap() {
     searchMarkerTimeout.current = setTimeout(() => setSearchMarker(null), 4000)
   }
 
-  function handleCancel() {
-    setPendingPosition(null)
-    setDropMode(false)
-    setCoordInput({ lat: '', lng: '' })
-    setCoordError('')
-    setCoordExpanded(false)
-  }
-
-  function handleLocate() {
-    if (!navigator.geolocation) { setLocateError('Nettleseren din støtter ikke posisjon.'); return }
-    setLocating(true)
-    setLocateError('')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false) },
-      (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Posisjonstilgang nektet.' : 'Kunne ikke hente posisjonen din.') },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }
-
-  function handleCoordSubmit(e) {
-    e.preventDefault()
-    const lat = parseFloat(coordInput.lat)
-    const lng = parseFloat(coordInput.lng)
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setCoordError('Skriv inn gyldige koordinater (bredde −90→90, lengde −180→180)')
-      return
-    }
-    setPendingPosition({ lat, lng })
-    setDropMode(false)
-    setCoordInput({ lat: '', lng: '' })
-    setCoordError('')
-  }
+  const cursor = dropMode ? 'crosshair' : 'grab'
 
   return (
     <div className="app-root">
       <header className="topnav">
-        {/* Mobile: search left, logo center, hamburger right */}
         <div className={`topnav-left${searchFocused ? ' topnav-left--expanded' : ''}`} ref={searchRef}>
           <div className="search-box">
             <input
@@ -958,9 +767,7 @@ export default function CampingMap() {
               <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSpotMatches([]); setSearchOpen(false); setSearchLoading(false) }}>✕</button>
             )}
             {searchOpen && searchQuery && !searchLoading && spotMatches.length === 0 && searchResults.length === 0 && (
-              <ul className="search-results">
-                <li className="search-no-results">Ingen steder funnet</li>
-              </ul>
+              <ul className="search-results"><li className="search-no-results">Ingen steder funnet</li></ul>
             )}
             {searchOpen && (spotMatches.length > 0 || searchResults.length > 0) && (
               <ul className="search-results">
@@ -970,17 +777,13 @@ export default function CampingMap() {
                     <span className="search-result-name">{s.name}</span>
                   </li>
                 ))}
-                {spotMatches.length > 0 && searchResults.length > 0 && (
-                  <li className="search-divider" aria-hidden="true" />
-                )}
+                {spotMatches.length > 0 && searchResults.length > 0 && <li className="search-divider" aria-hidden="true" />}
                 {searchResults.map((f, i) => (
                   <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>
                     <span className="search-result-icon">{placeIcon(f.place_type)}</span>
                     <span>
                       <span className="search-result-name">{f.text}</span>
-                      {f.context?.length > 0 && (
-                        <span className="search-result-sub">{f.context.slice(0, 2).map(c => c.text).join(', ')}</span>
-                      )}
+                      {f.context?.length > 0 && <span className="search-result-sub">{f.context.slice(0, 2).map(c => c.text).join(', ')}</span>}
                     </span>
                   </li>
                 ))}
@@ -1000,7 +803,6 @@ export default function CampingMap() {
           <text x="58" y="46" fontFamily="Georgia, 'Times New Roman', serif" fontSize="46" fontWeight="700" fill="#f4f1ea" letterSpacing="-1.5">Vilda</text>
         </svg>
 
-        {/* Desktop nav links */}
         <div className="topnav-right">
           <button className="about-btn" onClick={() => setAboutOpen(true)}>Om</button>
           <button className="respekt-btn" onClick={() => setRespektOpen(true)}>
@@ -1009,7 +811,6 @@ export default function CampingMap() {
           </button>
         </div>
 
-        {/* Mobile hamburger — hidden when search is active */}
         <button className={`hamburger-btn${searchFocused ? ' hamburger-btn--hidden' : ''}`} onClick={() => setMenuOpen(o => !o)} aria-label="Meny">
           <span /><span /><span />
         </button>
@@ -1026,7 +827,6 @@ export default function CampingMap() {
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <div className="main-area">
-        {/* Sidebar collapse button — desktop only */}
         {!isMobile && (
           <button
             className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
@@ -1041,63 +841,62 @@ export default function CampingMap() {
           </button>
         )}
 
-        {/* Left sidebar — desktop only */}
         {!isMobile && (
           <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
             <div className="sidebar-inner">
-            <SidebarContent
-              editingCamp={editingCamp}
-              activeSpot={activeSpot}
-              ownerToken={ownerToken}
-              filters={filters}
-              hasFilters={hasFilters}
-              allRegions={allRegions}
-              filteredSpots={filteredSpots}
-              loading={loading}
-              spots={spots}
-              onBack={handleBack}
-              onEdit={setEditingCamp}
-              onDelete={handleDelete}
-              onSeeMore={handleSeeMore}
-              onFilterChange={setFilters}
-              onToggleFilter={toggleFilter}
-              loadSpots={loadSpots}
-              onReport={handleReport}
-              flaggedSpots={flaggedSpots}
-            />
+              <SidebarContent
+                editingCamp={editingCamp} activeSpot={activeSpot} ownerToken={ownerToken}
+                filters={filters} hasFilters={hasFilters} allRegions={allRegions}
+                filteredSpots={filteredSpots} loading={loading} spots={spots}
+                onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
+                onSeeMore={handleSeeMore} onFilterChange={setFilters} onToggleFilter={toggleFilter}
+                loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
+              />
             </div>
           </aside>
         )}
 
-        {/* Map */}
         <div className="map-root">
-          <MapContainer center={[62.0, 9.5]} zoom={5} id="map">
-            <TileLayer key={layerKey} attribution={layer.attribution} url={layer.url} tileSize={512} zoomOffset={-1} />
-            <ClickHandler dropMode={dropMode} onMapClick={handleMapClick} />
-            <FlyToSpot target={flyTarget} pan={false} onDone={() => setFlyTarget(null)} />
-            <FlyToSpot target={panTarget} pan={true} onDone={() => setPanTarget(null)} />
-            <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading disableClusteringAtZoom={10} maxClusterRadius={60}>
-              {spots.map((spot) => (
-                <Marker
-                  key={spot.id}
-                  position={[spot.latitude, spot.longitude]}
-                  icon={spot.id === activeId ? activeSpotIcons[spot.id] : spotIcons[spot.id]}
-                  ref={(ref) => { if (ref) markerRefs.current[spot.id] = ref }}
-                  eventHandlers={{ click: () => handleMapMarkerClick(spot) }}
-                />
-              ))}
-            </MarkerClusterGroup>
-            {pendingPosition && <Marker position={pendingPosition} icon={pendingIcon} />}
-            {userPosition && <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon} />}
-            {searchMarker && <Marker position={[searchMarker.lat, searchMarker.lng]} icon={L.divIcon({ className: 'search-marker', html: '<div class="search-marker-pin"></div>', iconSize: [20, 20], iconAnchor: [10, 10] })} />}
-            <FlyToUser target={userPosition} />
-            <MapCenterTracker centerRef={mapCenter} />
-          </MapContainer>
+          <Map
+            ref={mapRef}
+            {...viewState}
+            onMove={e => setViewState(e.viewState)}
+            mapStyle={mapStyle}
+            mapboxAccessToken={TOKEN}
+            style={{ width: '100%', height: '100%' }}
+            cursor={cursor}
+            onClick={handleMapClick}
+            terrain={{ source: 'mapbox-dem', exaggeration: 1.5 }}
+            fog={{}}
+          >
+            <Source id="mapbox-dem" type="raster-dem" url="mapbox://mapbox.mapbox-terrain-dem-v1" tileSize={512} maxzoom={14} />
 
-          {/* Top-right controls */}
+            {filteredSpots.map((spot) => (
+              <SpotMarker key={spot.id} spot={spot} active={spot.id === activeId} onClick={handleMapMarkerClick} />
+            ))}
+
+            {pendingPosition && (
+              <Marker longitude={pendingPosition.lng} latitude={pendingPosition.lat} anchor="center">
+                <span className="spot-badge" style={{ background: '#d98e04', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
+              </Marker>
+            )}
+
+            {userPosition && (
+              <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
+                <span className="user-location-dot"><span className="user-location-dot-pulse" /><span className="user-location-dot-core" /></span>
+              </Marker>
+            )}
+
+            {searchMarker && (
+              <Marker longitude={searchMarker.lng} latitude={searchMarker.lat} anchor="center">
+                <div className="search-marker-pin" />
+              </Marker>
+            )}
+          </Map>
+
           <div className="controls">
-            <button className="layer-toggle" onClick={() => setLayerKey(nextKey)}>
-              {LAYERS[nextKey].label === 'Satellite' ? '🛰' : '🗺'} {LAYERS[nextKey].label}
+            <button className="layer-toggle" onClick={() => setMapStyle(isSatelliteStyle ? 'mapbox://styles/mapbox/outdoors-v12' : 'mapbox://styles/mapbox/satellite-streets-v12')}>
+              {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
             </button>
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
@@ -1107,7 +906,6 @@ export default function CampingMap() {
             </button>
           </div>
 
-          {/* Locate me */}
           {!dropMode && !pendingPosition && (
             <div className="locate-wrap">
               {locateError && <p className="locate-error">{locateError}</p>}
@@ -1117,7 +915,6 @@ export default function CampingMap() {
             </div>
           )}
 
-          {/* Drop mode panel */}
           {dropMode && !pendingPosition && (
             <div className="drop-panel">
               <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
@@ -1127,10 +924,8 @@ export default function CampingMap() {
               </button>
               {coordExpanded && (
                 <form className="coord-form" onSubmit={handleCoordSubmit}>
-                  <input type="text" placeholder="Breddegrad (f.eks. 61.234)" value={coordInput.lat}
-                    onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }} />
-                  <input type="text" placeholder="Lengdegrad (f.eks. 8.567)" value={coordInput.lng}
-                    onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }} />
+                  <input type="text" placeholder="Breddegrad (f.eks. 61.234)" value={coordInput.lat} onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }} />
+                  <input type="text" placeholder="Lengdegrad (f.eks. 8.567)" value={coordInput.lng} onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }} />
                   {coordError && <p className="coord-error">{coordError}</p>}
                   <button type="submit" className="primary">Plasser pin</button>
                 </form>
@@ -1138,7 +933,6 @@ export default function CampingMap() {
             </div>
           )}
 
-          {/* Add spot form */}
           {pendingPosition && (
             <div className="floating-form">
               <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
@@ -1152,13 +946,8 @@ export default function CampingMap() {
           )}
         </div>
 
-        {savedToast && (
-          <div className="saved-toast">
-            ✓ Leirplassen er sendt til godkjenning.
-          </div>
-        )}
+        {savedToast && <div className="saved-toast">✓ Leirplassen er sendt til godkjenning.</div>}
 
-        {/* Mobile bottom sheet */}
         {isMobile && (
           <div className="bottom-sheet" ref={sheetRef}>
             <div
@@ -1170,24 +959,13 @@ export default function CampingMap() {
             />
             <div className="bottom-sheet-body">
               <SidebarContent
-                editingCamp={editingCamp}
-                activeSpot={activeSpot}
-                ownerToken={ownerToken}
-                filters={filters}
-                hasFilters={hasFilters}
-                allRegions={allRegions}
-                filteredSpots={filteredSpots}
-                loading={loading}
-                spots={spots}
-                onBack={handleBack}
-                onEdit={setEditingCamp}
-                onDelete={handleDelete}
+                editingCamp={editingCamp} activeSpot={activeSpot} ownerToken={ownerToken}
+                filters={filters} hasFilters={hasFilters} allRegions={allRegions}
+                filteredSpots={filteredSpots} loading={loading} spots={spots}
+                onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
                 onSeeMore={(spot) => { handleSeeMore(spot); setSheetState('open') }}
-                onFilterChange={setFilters}
-                onToggleFilter={toggleFilter}
-                loadSpots={loadSpots}
-                onReport={handleReport}
-                flaggedSpots={flaggedSpots}
+                onFilterChange={setFilters} onToggleFilter={toggleFilter}
+                loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
               />
             </div>
           </div>
