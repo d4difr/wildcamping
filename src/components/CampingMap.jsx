@@ -937,7 +937,7 @@ export default function CampingMap() {
 
           {terrain3D && (
             <div className="hint-3d">
-              🖱 Høyreklikk + dra for å vippe · Ctrl + dra for å rotere
+              🖱 Høyreklikk + dra for å vippe og rotere
               <span className="hint-3d-mobile"> · To fingre for å vippe på mobil</span>
             </div>
           )}
