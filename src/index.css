@@ -1718,7 +1718,6 @@ button.primary:hover:not(:disabled) {
   white-space: nowrap;
   z-index: 1001;
   pointer-events: none;
-  animation: fadeInOut 4s ease forwards;
 }
 
 .hint-3d-mobile {
@@ -1728,13 +1727,6 @@ button.primary:hover:not(:disabled) {
 @media (max-width: 767px) {
   .hint-3d { font-size: 0.72rem; white-space: normal; text-align: center; border-radius: 12px; width: max-content; max-width: 80vw; }
   .hint-3d-mobile { display: inline; }
-}
-
-@keyframes fadeInOut {
-  0%   { opacity: 0; }
-  10%  { opacity: 1; }
-  75%  { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 .saved-toast {
