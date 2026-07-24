@@ -884,7 +884,9 @@ export default function CampingMap() {
     setSearchResults([])
     setSearchOpen(false)
     setSearchFocused(false)
-    handleMapMarkerClick(spot)
+    const mobile = window.innerWidth < 768
+    openSpot(spot, true, false)
+    if (mobile) setSheetState('open')
   }
 
   function handleSearchSelect(feature) {
