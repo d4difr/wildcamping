@@ -850,7 +850,7 @@ export default function CampingMap() {
           <button
             className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
             style={{ left: sidebarOpen ? 300 : 0 }}
-            onClick={() => setSidebarOpen((o) => !o)}
+            onClick={() => { setSidebarOpen((o) => !o); setTimeout(() => nativeMap.current?.resize(), 210) }}
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {sidebarOpen
