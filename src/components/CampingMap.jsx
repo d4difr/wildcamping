@@ -621,7 +621,7 @@ export default function CampingMap() {
   const hasFilters = filters.types.length || filters.access.length || filters.regions.length
 
   function toggle3D() {
-    const map = mapRef.current
+    const map = mapRef.current?.getMap()
     if (!map) return
     const next = !terrain3D
     setTerrain3D(next)
