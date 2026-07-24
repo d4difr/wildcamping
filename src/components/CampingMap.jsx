@@ -633,6 +633,7 @@ export default function CampingMap() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchOpen, setSearchOpen] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
   const [respektOpen, setRespektOpen] = useState(false)
@@ -824,12 +825,14 @@ export default function CampingMap() {
     setSearchQuery(q)
     setSearchOpen(true)
     clearTimeout(searchTimeout.current)
-    if (!q.trim()) { setSearchResults([]); return }
+    if (!q.trim()) { setSearchResults([]); setSearchLoading(false); return }
+    setSearchLoading(true)
     searchTimeout.current = setTimeout(async () => {
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&access_token=${TOKEN}`
       const res = await fetch(url)
       const data = await res.json()
       setSearchResults(data.features || [])
+      setSearchLoading(false)
     }, 300)
   }
 
@@ -888,8 +891,9 @@ export default function CampingMap() {
               onChange={e => handleSearch(e.target.value)}
               onFocus={() => { setSearchFocused(true); searchResults.length > 0 && setSearchOpen(true) }}
             />
-            {searchQuery && (
-              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}>✕</button>
+            {searchLoading && <span className="search-spinner" />}
+            {searchQuery && !searchLoading && (
+              <button className="search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); setSearchLoading(false) }}>✕</button>
             )}
             {searchOpen && searchResults.length > 0 && (
               <ul className="search-results">
