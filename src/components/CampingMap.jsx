@@ -738,6 +738,21 @@ export default function CampingMap() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchFocused(false)
+        setSearchOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    document.addEventListener('touchstart', onClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('touchstart', onClickOutside)
+    }
+  }, [])
+
   const spotIcons = useMemo(() => {
     const icons = {}
     spots.forEach((s) => { icons[s.id] = makeSpotIcon(s.spot_type) })
@@ -881,8 +896,8 @@ export default function CampingMap() {
     <div className="app-root">
       <header className="topnav">
         {/* Mobile: search left, logo center, hamburger right */}
-        <div className={`topnav-left${searchFocused ? ' topnav-left--expanded' : ''}`}>
-          <div className="search-box" ref={searchRef}>
+        <div className={`topnav-left${searchFocused ? ' topnav-left--expanded' : ''}`} ref={searchRef}>
+          <div className="search-box">
             <input
               className="search-input"
               type="text"
