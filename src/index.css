@@ -1724,9 +1724,14 @@ button.primary:hover:not(:disabled) {
   display: none;
 }
 
+.hint-3d-desktop {
+  display: inline;
+}
+
 @media (max-width: 767px) {
   .hint-3d { font-size: 0.72rem; white-space: normal; text-align: center; border-radius: 12px; width: max-content; max-width: 80vw; }
   .hint-3d-mobile { display: inline; }
+  .hint-3d-desktop { display: none; }
 }
 
 .saved-toast {
