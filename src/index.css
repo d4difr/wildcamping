@@ -211,7 +211,20 @@ body {
 .search-result-icon {
   flex-shrink: 0;
   font-size: 0.85rem;
-  margin-top: 0.05rem;
+  margin-top: 0.1rem;
+}
+
+.search-result-name {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.search-result-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  margin-top: 0.1rem;
 }
 
 .search-results li:hover,

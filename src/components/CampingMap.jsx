@@ -942,7 +942,13 @@ export default function CampingMap() {
               <ul className="search-results">
                 {searchResults.map((f, i) => (
                   <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>
-                    <span className="search-result-icon">{placeIcon(f.place_type)}</span>{f.place_name}
+                    <span className="search-result-icon">{placeIcon(f.place_type)}</span>
+                    <span>
+                      <span className="search-result-name">{f.text}</span>
+                      {f.context?.length > 0 && (
+                        <span className="search-result-sub">{f.context.slice(0, 2).map(c => c.text).join(', ')}</span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
