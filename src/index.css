@@ -250,6 +250,10 @@ body {
 
   .topnav-left--expanded {
     flex: 1;
+    min-width: 0;
+  }
+  .topnav-left--expanded .search-box {
+    width: 100%;
   }
   .topnav-left--expanded .search-input {
     width: 100%;
