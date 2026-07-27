@@ -1551,10 +1551,15 @@ button.primary:hover:not(:disabled) {
     bottom: 48px;
   }
 
-  /* Push attribution above bottom sheet handle and GPS button on mobile */
+  /* Push attribution above bottom sheet handle on mobile, clear of GPS button */
   .mapboxgl-ctrl-bottom-right {
-    bottom: 90px;
-    right: 4.5rem;
+    bottom: 40px;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
+    margin: 0 10px 6px 0;
   }
 }
 
