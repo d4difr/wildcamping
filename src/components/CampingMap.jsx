@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import Map, { Marker, Source, Layer, useMap } from 'react-map-gl'
+import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
@@ -921,6 +921,7 @@ export default function CampingMap() {
             mapboxAccessToken={TOKEN}
             projection={terrain3D ? 'globe' : 'mercator'}
             maxPitch={terrain3D ? 85 : 0}
+            attributionControl={false}
             style={{ width: '100%', height: '100%' }}
             cursor={cursor}
             onClick={handleMapClick}
@@ -947,6 +948,7 @@ export default function CampingMap() {
               map.on('style.load', initTerrainLayers)
             }}
           >
+            <AttributionControl compact={false} position="bottom-right" />
 
             {filteredSpots.map((spot) => (
               <SpotMarker key={spot.id} spot={spot} active={spot.id === activeId} onClick={handleMapMarkerClick} />
