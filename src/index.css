@@ -1552,7 +1552,16 @@ button.primary:hover:not(:disabled) {
   }
 
   .mapboxgl-ctrl-bottom-right {
-    bottom: 40px;
+    bottom: 36px;
+    right: 0;
+  }
+  /* Hide the expand/info toggle — keep only the copyright text */
+  .mapboxgl-ctrl-attrib-button {
+    display: none;
+  }
+  .mapboxgl-ctrl-attrib {
+    background: rgba(255,255,255,0.7) !important;
+    font-size: 0.65rem;
   }
 }
 
