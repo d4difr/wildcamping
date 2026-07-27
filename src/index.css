@@ -1551,9 +1551,10 @@ button.primary:hover:not(:disabled) {
     bottom: 48px;
   }
 
-  /* Keep Mapbox attribution visible above the bottom sheet handle */
+  /* Push attribution above bottom sheet handle and GPS button on mobile */
   .mapboxgl-ctrl-bottom-right {
-    bottom: 36px;
+    bottom: 90px;
+    right: 4.5rem;
   }
 }
 
