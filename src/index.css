@@ -1542,7 +1542,7 @@ button.primary:hover:not(:disabled) {
   .topnav-tagline { display: none; }
 
   .locate-wrap {
-    bottom: 48px;
+    bottom: 80px;
   }
   .drop-panel {
     bottom: 48px;
@@ -1551,15 +1551,8 @@ button.primary:hover:not(:disabled) {
     bottom: 48px;
   }
 
-  /* Push attribution above bottom sheet handle on mobile, clear of GPS button */
   .mapboxgl-ctrl-bottom-right {
     bottom: 40px;
-    right: 0;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-  .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
-    margin: 0 10px 6px 0;
   }
 }
 
