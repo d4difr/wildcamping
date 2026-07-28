@@ -1052,7 +1052,7 @@ export default function CampingMap() {
             </div>
           )}
 
-          {dropMode && !pendingPosition && !locationChecking && (
+          {dropMode && !pendingPosition && !locationChecking && !locationError && (
             <div className="drop-panel">
               <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
               <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
