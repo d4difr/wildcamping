@@ -730,6 +730,7 @@ export default function CampingMap() {
       const country = data.features?.[0]?.properties?.short_code
       if (country !== 'no') {
         setLocationError('Pins kan kun plasseres i Norge.')
+        setTimeout(() => setLocationError(''), 5000)
         return
       }
     } catch {
