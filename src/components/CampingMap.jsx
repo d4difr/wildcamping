@@ -507,6 +507,8 @@ export default function CampingMap() {
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/outdoors-v12')
   const [filters, setFilters] = useState({ types: [], access: [], regions: [] })
   const [dropMode, setDropMode] = useState(false)
+  const [locationChecking, setLocationChecking] = useState(false)
+  const [locationError, setLocationError] = useState('')
   const [coordInput, setCoordInput] = useState({ lat: '', lng: '' })
   const [coordError, setCoordError] = useState('')
   const [coordExpanded, setCoordExpanded] = useState(false)
@@ -716,13 +718,35 @@ export default function CampingMap() {
     loadSpots()
   }
 
-  function handleMapClick(e) {
-    if (!dropMode) return
-    setPendingPosition({ lat: e.lngLat.lat, lng: e.lngLat.lng })
+  async function placePin(lat, lng) {
+    setLocationChecking(true)
+    setLocationError('')
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=country&access_token=${TOKEN}`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      const data = await res.json()
+      const country = data.features?.[0]?.properties?.short_code
+      if (country !== 'no') {
+        setLocationError('Pins kan kun plasseres i Norge.')
+        return
+      }
+    } catch {
+      // Geocoding failed — fail open and allow the pin
+    }
+    setPendingPosition({ lat, lng })
     setDropMode(false)
+    setLocationError('')
+    setLocationChecking(false)
   }
 
-  function handleCancel() { setPendingPosition(null); setDropMode(false); setCoordInput({ lat: '', lng: '' }); setCoordError(''); setCoordExpanded(false) }
+  function handleMapClick(e) {
+    if (!dropMode) return
+    placePin(e.lngLat.lat, e.lngLat.lng).finally(() => setLocationChecking(false))
+  }
+
+  function handleCancel() { setPendingPosition(null); setDropMode(false); setCoordInput({ lat: '', lng: '' }); setCoordError(''); setCoordExpanded(false); setLocationError('') }
 
   function handleLocate() {
     if (!navigator.geolocation) { setLocateError('Nettleseren din støtter ikke posisjon.'); return }
@@ -740,10 +764,9 @@ export default function CampingMap() {
     const lat = parseFloat(coordInput.lat)
     const lng = parseFloat(coordInput.lng)
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) { setCoordError('Skriv inn gyldige koordinater (bredde −90→90, lengde −180→180)'); return }
-    setPendingPosition({ lat, lng })
-    setDropMode(false)
     setCoordInput({ lat: '', lng: '' })
     setCoordError('')
+    placePin(lat, lng).finally(() => setLocationChecking(false))
   }
 
   function placeIcon(types = []) {
@@ -1016,7 +1039,20 @@ export default function CampingMap() {
             </div>
           )}
 
-          {dropMode && !pendingPosition && (
+          {locationChecking && (
+            <div className="drop-panel">
+              <p className="drop-panel-hint">Sjekker plassering…</p>
+            </div>
+          )}
+
+          {locationError && !locationChecking && (
+            <div className="drop-panel">
+              <p className="drop-panel-hint" style={{ color: '#a32d2d' }}>⚠ {locationError}</p>
+              <p className="drop-panel-hint" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klikk et annet sted i Norge.</p>
+            </div>
+          )}
+
+          {dropMode && !pendingPosition && !locationChecking && (
             <div className="drop-panel">
               <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
               <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
