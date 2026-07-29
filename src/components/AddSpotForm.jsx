@@ -174,9 +174,12 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
       const photo_urls = [...existingPhotoUrls, ...newUrls]
 
       if (isEditing) {
-        const { error: updateError } = await supabase
-          .from('spots')
-          .update({
+        const res = await fetch('/api/spot-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: camp.id,
+            owner_token: ownerToken,
             name: name.trim(),
             description: description.trim(),
             photo_url: photo_urls[0] || null,
@@ -184,10 +187,9 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
             spot_type: spotType,
             access: access || null,
             region: region || null,
-          })
-          .eq('id', camp.id)
-          .eq('owner_token', ownerToken)
-        if (updateError) throw updateError
+          }),
+        })
+        if (!res.ok) throw new Error('Update failed')
       } else {
         const { error: insertError } = await supabase.from('spots').insert({
           name: name.trim(),

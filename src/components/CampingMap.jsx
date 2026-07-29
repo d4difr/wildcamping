@@ -325,19 +325,27 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
     setStats({ total: data.length, today, week, days })
   }
 
+  async function adminAction(action, id) {
+    await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, id, admin_key: ADMIN_KEY }),
+    })
+  }
+
   async function handleDelete(id) {
     if (!window.confirm('Slette denne leirplassen?')) return
-    await supabase.from('spots').delete().eq('id', id)
+    await adminAction('delete', id)
     setSpots((s) => s.filter((x) => x.id !== id))
   }
 
   async function handleClearFlags(id) {
-    await supabase.from('spots').update({ flags: 0, flag_reports: [] }).eq('id', id)
+    await adminAction('clear-flags', id)
     setSpots((s) => s.map((x) => x.id === id ? { ...x, flags: 0, flag_reports: [] } : x))
   }
 
   async function handleApprove(id) {
-    await supabase.from('spots').update({ status: 'approved' }).eq('id', id)
+    await adminAction('approve', id)
     setSpots((s) => {
       const updated = s.map((x) => x.id === id ? { ...x, status: 'approved' } : x)
       onPendingSpots?.(updated.filter(x => x.status === 'pending'))
@@ -803,7 +811,11 @@ export default function CampingMap() {
 
   async function handleDelete(camp) {
     if (!window.confirm(`Slette "${camp.name}"? Dette kan ikke angres.`)) return
-    await supabase.from('spots').delete().eq('id', camp.id).eq('owner_token', ownerToken)
+    await fetch('/api/spot-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: camp.id, owner_token: ownerToken }),
+    })
     setActiveId(null)
     loadSpots()
   }
