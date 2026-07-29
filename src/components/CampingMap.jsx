@@ -88,13 +88,68 @@ function Lightbox({ photos, startIndex, onClose }) {
   )
 }
 
+const FLAG_REASONS = [
+  'Privat eiendom',
+  'Feil plassering på kartet',
+  'Stedet eksisterer ikke',
+  'Upassende innhold',
+  'Annet',
+]
+
+function ReportModal({ spot, onSubmit, onClose }) {
+  const [reason, setReason] = useState('')
+  const [comment, setComment] = useState('')
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (!reason) return
+    onSubmit(spot, reason, comment.trim())
+  }
+  return createPortal(
+    <div className="about-overlay" onClick={onClose}>
+      <div className="about-modal report-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="about-close" onClick={onClose}>✕</button>
+        <h2 style={{ marginBottom: '1rem' }}>Rapporter innhold</h2>
+        <form onSubmit={handleSubmit}>
+          <p style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: '#555' }}>Hva er problemet med <strong>{spot.name}</strong>?</p>
+          <div className="report-reasons">
+            {FLAG_REASONS.map((r) => (
+              <label key={r} className={`report-reason${reason === r ? ' report-reason--selected' : ''}`}>
+                <input type="radio" name="reason" value={r} checked={reason === r} onChange={() => setReason(r)} />
+                {r}
+              </label>
+            ))}
+          </div>
+          {reason === 'Annet' && (
+            <textarea
+              className="report-comment"
+              placeholder="Beskriv problemet kort..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              maxLength={300}
+              rows={3}
+            />
+          )}
+          <button type="submit" className="report-submit" disabled={!reason}>Send rapport</button>
+        </form>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [showReportModal, setShowReportModal] = useState(false)
   const staticMap = `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},13,0/600x240@2x?access_token=${TOKEN}`
+  function handleReportSubmit(spot, reason, comment) {
+    setShowReportModal(false)
+    onReport(spot, reason, comment)
+  }
   return (
     <div className="spot-detail">
       {lightboxIndex !== null && <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />}
+      {showReportModal && <ReportModal spot={spot} onSubmit={handleReportSubmit} onClose={() => setShowReportModal(false)} />}
       <button className="go-back-btn" onClick={onBack}>← Gå tilbake</button>
       <h2 className="spot-detail-name">{spot.name}</h2>
       <SpotBadges spot={spot} />
@@ -115,7 +170,7 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
       </p>
       <button
         className={`report-btn${alreadyReported ? ' report-btn--done' : ''}`}
-        onClick={() => !alreadyReported && onReport(spot)}
+        onClick={() => !alreadyReported && setShowReportModal(true)}
         disabled={alreadyReported}
       >
         {alreadyReported ? 'Rapportert' : 'Rapporter innhold'}
@@ -277,8 +332,8 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
   }
 
   async function handleClearFlags(id) {
-    await supabase.from('spots').update({ flags: 0 }).eq('id', id)
-    setSpots((s) => s.map((x) => x.id === id ? { ...x, flags: 0 } : x))
+    await supabase.from('spots').update({ flags: 0, flag_reports: [] }).eq('id', id)
+    setSpots((s) => s.map((x) => x.id === id ? { ...x, flags: 0, flag_reports: [] } : x))
   }
 
   async function handleApprove(id) {
@@ -290,7 +345,7 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
     })
   }
 
-  const flagged = spots.filter((s) => s.flags >= 3)
+  const flagged = spots.filter((s) => s.flags > 0)
   const pending = spots.filter((s) => s.status === 'pending')
   const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : spots
 
@@ -361,9 +416,20 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
                     {spot.created_at ? new Date(spot.created_at).toLocaleDateString('no') : ''}
                     {spot.flags > 0 && <span className="admin-flag-count"> · {spot.flags} flagg</span>}
                   </span>
+                  {filter === 'flagged' && spot.flag_reports?.length > 0 && (
+                    <div className="admin-flag-reports">
+                      {spot.flag_reports.map((r, i) => (
+                        <div key={i} className="admin-flag-report">
+                          <span className="admin-flag-report-reason">{r.reason}</span>
+                          {r.comment && <span className="admin-flag-report-comment">"{r.comment}"</span>}
+                          <span className="admin-flag-report-date">{new Date(r.flagged_at).toLocaleDateString('no')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="admin-spot-actions">
-                  {spot.status === 'pending' && <button className="admin-btn admin-btn--goto" onClick={() => onGoTo(spot.longitude, spot.latitude)}>📍 Gå til</button>}
+                  {spot.flags > 0 && <button className="admin-btn admin-btn--goto" onClick={() => onGoTo(spot.longitude, spot.latitude)}>📍 Gå til</button>}
                   {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
                   {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
                   <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
@@ -721,11 +787,16 @@ export default function CampingMap() {
     if (isMobile) setSheetState('peek')
   }
 
-  async function handleReport(spot) {
+  async function handleReport(spot, reason, comment) {
     const updated = [...flaggedSpots, spot.id]
     localStorage.setItem('vilda_flagged', JSON.stringify(updated))
-    const { data: current } = await supabase.from('spots').select('flags').eq('id', spot.id).single()
-    await supabase.from('spots').update({ flags: (current?.flags || 0) + 1 }).eq('id', spot.id)
+    const { data: current } = await supabase.from('spots').select('flags, flag_reports').eq('id', spot.id).single()
+    const existingReports = current?.flag_reports || []
+    const newReport = { reason, comment: comment || '', flagged_at: new Date().toISOString() }
+    await supabase.from('spots').update({
+      flags: (current?.flags || 0) + 1,
+      flag_reports: [...existingReports, newReport],
+    }).eq('id', spot.id)
     setActiveId(null)
     loadSpots()
   }

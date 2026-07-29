@@ -1630,6 +1630,89 @@ button.primary:hover:not(:disabled) {
   text-decoration: none;
 }
 
+/* Report modal */
+.report-modal {
+  max-width: 420px;
+}
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.report-reason input { display: none; }
+.report-reason--selected {
+  border-color: var(--forest);
+  background: #f0f5f2;
+  font-weight: 500;
+}
+.report-comment {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: none;
+  margin-bottom: 1rem;
+  outline: none;
+}
+.report-comment:focus { border-color: var(--forest); }
+.report-submit {
+  width: 100%;
+  background: var(--forest);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.report-submit:disabled { opacity: 0.4; cursor: default; }
+
+/* Admin flag reports */
+.admin-flag-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+.admin-flag-report {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+.admin-flag-report-reason {
+  background: #fff0f0;
+  color: #c0392b;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  font-weight: 600;
+}
+.admin-flag-report-comment {
+  color: #555;
+  font-style: italic;
+}
+.admin-flag-report-date {
+  color: #aaa;
+  margin-left: auto;
+}
+
 /* Innmark warning box */
 .pending-notice {
   display: flex;
