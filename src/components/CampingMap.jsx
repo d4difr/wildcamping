@@ -983,6 +983,12 @@ export default function CampingMap() {
 
               initTerrainLayers()
               map.on('style.load', initTerrainLayers)
+
+              function onVisibilityChange() {
+                if (document.visibilityState === 'visible') map.resize()
+              }
+              document.addEventListener('visibilitychange', onVisibilityChange)
+              map.once('remove', () => document.removeEventListener('visibilitychange', onVisibilityChange))
             }}
           >
             <AttributionControl compact={false} position="bottom-right" />
