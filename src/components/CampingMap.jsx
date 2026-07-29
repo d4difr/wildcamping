@@ -205,6 +205,12 @@ function RespektModal({ onClose }) {
           <h2>Den uskrevne regelen</h2>
           <p>Allemannsretten er et privilegium vi deler, ikke en rettighet vi kan ta for gitt. Jo bedre vi tar vare på naturen og respekterer grunneierne, jo lenger kan vi beholde denne friheten. Bruk naturen, men behandle den som om den tilhører alle, fordi det gjør den.</p>
         </section>
+        <section className="about-section">
+          <h2>Ansvarsfraskrivelse</h2>
+          <p>Vildakart er en plattform der brukere deler leirplasser basert på egne erfaringer. Vi kontrollerer ikke innholdet og kan ikke garantere at informasjonen er oppdatert eller nøyaktig.</p>
+          <p style={{ marginTop: '0.65rem' }}>Du er selv ansvarlig for å følge allemannsretten og lokale ferdselsforbud, sjekke om området er vernet (naturreservat, nasjonalpark) og overholde eventuelle restriksjoner, respektere grunneiere og andre friluftsfolk, og etterlate naturen slik du fant den.</p>
+          <p style={{ marginTop: '0.65rem' }}>Vildakart er ikke ansvarlig for skader, ulykker eller regelbrudd som oppstår som følge av besøk på steder delt på kartet.</p>
+        </section>
         <section className="about-section respekt-sources">
           <h2>Kilder</h2>
           <ul>
