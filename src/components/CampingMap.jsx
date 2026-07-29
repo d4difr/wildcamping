@@ -91,8 +91,8 @@ function Lightbox({ photos, startIndex, onClose }) {
 const FLAG_REASONS = [
   'Privat eiendom',
   'Feil plassering på kartet',
-  'Stedet eksisterer ikke',
-  'Upassende innhold',
+  'Stedet er stengt eller utilgjengelig',
+  'Feil eller misvisende informasjon',
   'Annet',
 ]
 
