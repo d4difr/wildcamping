@@ -677,10 +677,16 @@ export default function CampingMap() {
     }
   }
 
-  function flyTo(lng, lat, zoom = null) {
+  function flyTo(lng, lat, zoom = null, bottomPadding = 0) {
     const map = nativeMap.current
     if (!map) return
-    map.flyTo({ center: [lng, lat], zoom: zoom ?? Math.max(map.getZoom(), 11), duration: 800, essential: true })
+    map.flyTo({
+      center: [lng, lat],
+      zoom: zoom ?? Math.max(map.getZoom(), 11),
+      duration: 800,
+      essential: true,
+      padding: { top: 0, bottom: bottomPadding, left: 0, right: 0 },
+    })
   }
 
   function openSpot(spot, fly = false) {
@@ -691,7 +697,14 @@ export default function CampingMap() {
   function handleMapMarkerClick(spot) {
     const mobile = window.innerWidth < 768
     setActiveId(spot.id)
-    if (mobile) { setSheetState('open'); flyTo(spot.longitude, spot.latitude) }
+    if (mobile) {
+      setSheetState('open')
+      // Wait one frame for the sheet to render at its open height, then measure
+      requestAnimationFrame(() => {
+        const sheetHeight = sheetRef.current?.offsetHeight ?? 0
+        flyTo(spot.longitude, spot.latitude, null, sheetHeight)
+      })
+    }
   }
 
   function handleSeeMore(spot) { openSpot(spot, true) }
