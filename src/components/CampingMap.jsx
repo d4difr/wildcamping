@@ -282,7 +282,7 @@ function RespektModal({ onClose }) {
   )
 }
 
-function AdminPanel({ isAdmin, onLogin, onLogout, onClose, onViewSpot, onRefreshPending }) {
+function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot, onRefreshPending }) {
   const [password, setPassword] = useState('')
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(false)
@@ -300,12 +300,12 @@ function AdminPanel({ isAdmin, onLogin, onLogout, onClose, onViewSpot, onRefresh
 
   async function fetchAll() {
     setLoading(true)
-    const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
-    if (data) {
-      setSpots(data)
-      onPendingSpots?.(data.filter(s => s.status === 'pending'))
+    try {
+      const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
+      if (data) setSpots(data)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function fetchStats() {
@@ -330,7 +330,7 @@ function AdminPanel({ isAdmin, onLogin, onLogout, onClose, onViewSpot, onRefresh
     await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, id, admin_key: ADMIN_KEY }),
+      body: JSON.stringify({ action, id, admin_key: adminKey }),
     })
   }
 
@@ -1066,6 +1066,7 @@ export default function CampingMap() {
       {adminPanelOpen && (
         <AdminPanel
           isAdmin={isAdmin}
+          adminKey={ADMIN_KEY}
           onLogin={(pw) => {
             if (pw === ADMIN_KEY) {
               setIsAdmin(true)
