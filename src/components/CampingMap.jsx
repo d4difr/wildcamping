@@ -282,19 +282,20 @@ function RespektModal({ onClose }) {
   )
 }
 
-function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
-  const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'vilda-admin'
+function AdminPanel({ isAdmin, onLogin, onLogout, onClose, onViewSpot, onRefreshPending }) {
   const [password, setPassword] = useState('')
-  const [authed, setAuthed] = useState(false)
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('all')
   const [stats, setStats] = useState(null)
 
+  useEffect(() => {
+    if (isAdmin) { fetchAll(); fetchStats() }
+  }, [isAdmin])
+
   function handleLogin(e) {
     e.preventDefault()
-    if (password === ADMIN_KEY) { setAuthed(true); fetchAll(); fetchStats() }
-    else alert('Feil passord')
+    onLogin(password)
   }
 
   async function fetchAll() {
@@ -337,6 +338,7 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
     if (!window.confirm('Slette denne leirplassen?')) return
     await adminAction('delete', id)
     setSpots((s) => s.filter((x) => x.id !== id))
+    onRefreshPending?.()
   }
 
   async function handleClearFlags(id) {
@@ -346,34 +348,30 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
 
   async function handleApprove(id) {
     await adminAction('approve', id)
-    setSpots((s) => {
-      const updated = s.map((x) => x.id === id ? { ...x, status: 'approved' } : x)
-      onPendingSpots?.(updated.filter(x => x.status === 'pending'))
-      return updated
-    })
+    setSpots((s) => s.filter((x) => x.id !== id))
+    onRefreshPending?.()
   }
 
   const flagged = spots.filter((s) => s.flags > 0)
   const pending = spots.filter((s) => s.status === 'pending')
   const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : spots
 
-  if (!authed) return createPortal(
-    <div className="admin-overlay">
-      <div className="admin-login">
-        <button className="about-close" onClick={onClose}>✕</button>
-        <h2>Admin</h2>
-        <form onSubmit={handleLogin}>
-          <input type="password" placeholder="Passord" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-          <button type="submit" className="primary">Logg inn</button>
-        </form>
-      </div>
-    </div>,
-    document.body
-  )
-
   return createPortal(
     <div className="admin-overlay">
-      <div className="admin-panel">
+      <div className={`admin-panel${!isAdmin ? ' admin-panel--login' : ''}`}>
+        {!isAdmin ? (
+          <>
+            <button className="about-close" style={{ position: 'absolute', top: '1rem', right: '1rem' }} onClick={onClose}>✕</button>
+            <div className="admin-login-inner">
+              <h2>Admin</h2>
+              <form onSubmit={handleLogin}>
+                <input type="password" placeholder="Passord" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+                <button type="submit" className="primary">Logg inn</button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="admin-header">
           <div>
             <h2>Admin</h2>
@@ -437,7 +435,7 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
                   )}
                 </div>
                 <div className="admin-spot-actions">
-                  {spot.flags > 0 && <button className="admin-btn admin-btn--goto" onClick={() => onGoTo(spot.longitude, spot.latitude)}>📍 Gå til</button>}
+                  <button className="admin-btn admin-btn--goto" onClick={() => onViewSpot(spot)}>📍 Gå til</button>
                   {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
                   {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
                   <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
@@ -447,6 +445,8 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
             {displayed.length === 0 && <p style={{ padding: '1rem', color: '#999' }}>Ingen leirplasser her.</p>}
           </div>
         )}
+          </>
+        )}
       </div>
     </div>,
     document.body
@@ -454,9 +454,10 @@ function AdminPanel({ onClose, onGoTo, onPendingSpots }) {
 }
 
 function SidebarContent({
-  editingCamp, activeSpot, activePendingSpot, ownerToken, filters, hasFilters, allRegions,
-  filteredSpots, loading, spots, onBack, onEdit, onDelete, onSeeMore,
-  onFilterChange, onToggleFilter, loadSpots, onReport, flaggedSpots,
+  editingCamp, activeSpot, activePendingSpot, activeAdminPendingSpot, ownerToken,
+  filters, hasFilters, allRegions, filteredSpots, loading, spots, onBack, onEdit,
+  onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
+  flaggedSpots, onAdminApprove, onAdminDelete,
 }) {
   if (editingCamp) {
     return (
@@ -485,6 +486,24 @@ function SidebarContent({
         <div className="owner-actions">
           <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activePendingSpot)}>✏️ Rediger</button>
           <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activePendingSpot)}>🗑 Slett</button>
+        </div>
+      </>
+    )
+  }
+  if (activeAdminPendingSpot) {
+    return (
+      <>
+        <div className="pending-notice" style={{ background: '#fff8e1', borderColor: '#f0c040' }}>
+          <span className="pending-notice__icon">⏳</span>
+          <div>
+            <strong>Venter på godkjenning</strong>
+            <p>Kun synlig for deg som admin og brukeren som la det inn.</p>
+          </div>
+        </div>
+        <SpotDetail spot={activeAdminPendingSpot} onBack={onBack} onReport={() => {}} alreadyReported={false} />
+        <div className="owner-actions">
+          <button className="owner-btn owner-btn--approve" onClick={() => onAdminApprove(activeAdminPendingSpot)}>✓ Godkjenn</button>
+          <button className="owner-btn owner-btn--delete" onClick={() => onAdminDelete(activeAdminPendingSpot)}>🗑 Slett</button>
         </div>
       </>
     )
@@ -612,8 +631,10 @@ export default function CampingMap() {
   const searchMarkerTimeout = useRef(null)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
+  const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'vilda-admin'
   const [respektOpen, setRespektOpen] = useState(false)
-  const [showAdmin, setShowAdmin] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X')
+  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('vilda_admin') === 'true')
+  const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin') === 'true')
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
@@ -683,7 +704,13 @@ export default function CampingMap() {
     setLoading(false)
   }
 
+  async function loadAdminPending() {
+    const { data } = await supabase.from('spots').select('*').eq('status', 'pending')
+    if (data) setAdminPendingSpots(data)
+  }
+
   useEffect(() => { loadSpots() }, [])
+  useEffect(() => { if (isAdmin) loadAdminPending(); else setAdminPendingSpots([]) }, [isAdmin])
 
   useEffect(() => {
     if (sessionStorage.getItem('vilda_tracked')) return
@@ -717,8 +744,10 @@ export default function CampingMap() {
   }, [])
 
   const isPendingActive = typeof activeId === 'string' && activeId.startsWith('pending:')
+  const isAdminPendingActive = typeof activeId === 'string' && activeId.startsWith('adminPending:')
   const activePendingSpot = isPendingActive ? ownPendingSpots.find(s => `pending:${s.id}` === activeId) || null : null
-  const activeSpot = isPendingActive ? null : spots.find((s) => s.id === activeId) || null
+  const activeAdminPendingSpot = isAdminPendingActive ? adminPendingSpots.find(s => `adminPending:${s.id}` === activeId) || null : null
+  const activeSpot = (isPendingActive || isAdminPendingActive) ? null : spots.find((s) => s.id === activeId) || null
   const isSatelliteStyle = mapStyle.includes('satellite')
 
   const allRegions = useMemo(() => {
@@ -818,6 +847,28 @@ export default function CampingMap() {
     })
     setActiveId(null)
     loadSpots()
+  }
+
+  async function handleAdminApprove(spot) {
+    await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'approve', id: spot.id, admin_key: ADMIN_KEY }),
+    })
+    setActiveId(null)
+    loadAdminPending()
+    loadSpots()
+  }
+
+  async function handleAdminDelete(spot) {
+    if (!window.confirm(`Slette "${spot.name}"?`)) return
+    await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id: spot.id, admin_key: ADMIN_KEY }),
+    })
+    setActiveId(null)
+    loadAdminPending()
   }
 
   async function placePin(lat, lng) {
@@ -991,6 +1042,12 @@ export default function CampingMap() {
             <span className="respekt-btn__full">Respekt for naturen</span>
             <span className="respekt-btn__short">Respekt</span>
           </button>
+          {isAdmin && (
+            <div className="admin-nav-indicator">
+              <button className="admin-nav-btn" onClick={() => setAdminPanelOpen(true)}>⚙ Admin</button>
+              <button className="admin-nav-logout" onClick={() => { setIsAdmin(false); localStorage.removeItem('vilda_admin'); setAdminPendingSpots([]) }}>Logg ut</button>
+            </div>
+          )}
         </div>
 
         <button className={`hamburger-btn${searchFocused ? ' hamburger-btn--hidden' : ''}`} onClick={() => setMenuOpen(o => !o)} aria-label="Meny">
@@ -1006,7 +1063,27 @@ export default function CampingMap() {
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {respektOpen && <RespektModal onClose={() => setRespektOpen(false)} />}
-      {showAdmin && <AdminPanel onClose={() => { setShowAdmin(false); setAdminPendingSpots([]) }} onGoTo={(lng, lat) => flyTo(lng, lat, 13)} onPendingSpots={setAdminPendingSpots} />}
+      {adminPanelOpen && (
+        <AdminPanel
+          isAdmin={isAdmin}
+          onLogin={(pw) => {
+            if (pw === ADMIN_KEY) {
+              setIsAdmin(true)
+              localStorage.setItem('vilda_admin', 'true')
+            } else {
+              alert('Feil passord')
+            }
+          }}
+          onLogout={() => { setIsAdmin(false); localStorage.removeItem('vilda_admin'); setAdminPendingSpots([]) }}
+          onClose={() => setAdminPanelOpen(false)}
+          onViewSpot={(spot) => {
+            const prefix = spot.status === 'pending' ? 'adminPending' : 'spot'
+            setActiveId(spot.status === 'pending' ? `adminPending:${spot.id}` : spot.id)
+            flyTo(spot.longitude, spot.latitude, 13)
+          }}
+          onRefreshPending={loadAdminPending}
+        />
+      )}
 
       <div className="main-area">
         {!isMobile && (
@@ -1027,12 +1104,14 @@ export default function CampingMap() {
           <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
             <div className="sidebar-inner">
               <SidebarContent
-                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot} ownerToken={ownerToken}
+                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
+                activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
                 onSeeMore={handleSeeMore} onFilterChange={setFilters} onToggleFilter={toggleFilter}
                 loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
+                onAdminApprove={handleAdminApprove} onAdminDelete={handleAdminDelete}
               />
             </div>
           </aside>
@@ -1093,8 +1172,8 @@ export default function CampingMap() {
             ))}
 
             {adminPendingSpots.map((spot) => (
-              <Marker key={`pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center">
-                <span style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #666', opacity: 0.85, cursor: 'default' }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
+              <Marker key={`adminPending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`adminPending:${spot.id}`) }}>
+                <span style={{ width: activeId === `adminPending:${spot.id}` ? 36 : 28, height: activeId === `adminPending:${spot.id}` ? 36 : 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #666', opacity: 0.85, cursor: 'pointer', transition: 'width 0.15s, height 0.15s' }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
               </Marker>
             ))}
 
@@ -1205,13 +1284,15 @@ export default function CampingMap() {
             />
             <div className="bottom-sheet-body">
               <SidebarContent
-                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot} ownerToken={ownerToken}
+                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
+                activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
                 onSeeMore={(spot) => { handleSeeMore(spot); setSheetState('open') }}
                 onFilterChange={setFilters} onToggleFilter={toggleFilter}
                 loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
+                onAdminApprove={handleAdminApprove} onAdminDelete={handleAdminDelete}
               />
             </div>
           </div>
