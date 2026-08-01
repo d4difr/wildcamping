@@ -457,7 +457,7 @@ function SidebarContent({
   editingCamp, activeSpot, activePendingSpot, activeAdminPendingSpot, ownerToken,
   filters, hasFilters, allRegions, filteredSpots, loading, spots, onBack, onEdit,
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
-  flaggedSpots, onAdminApprove, onAdminDelete,
+  flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange,
 }) {
   if (editingCamp) {
     return (
@@ -521,6 +521,42 @@ function SidebarContent({
       </>
     )
   }
+  if (sidebarView === 'mine') {
+    const mySpots = spots.filter(s => s.owner_token === ownerToken)
+    return (
+      <>
+        <div className="filter-panel">
+          <div className="filter-panel-header">
+            <span className="filter-panel-title">Mine bidrag</span>
+            <button className="filter-clear" onClick={() => onSidebarViewChange('all')}>← Alle steder</button>
+          </div>
+        </div>
+        <div className="sidebar-body">
+          {mySpots.length === 0 && (
+            <p className="empty-state">Du har ikke lagt til noen leirplasser enda.</p>
+          )}
+          {mySpots.map((spot) => {
+            const thumb = spot.photo_urls?.[0] || spot.photo_url ||
+              `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/400x200@2x?access_token=${TOKEN}`
+            return (
+              <div key={spot.id} className="spot-card" onClick={() => onSeeMore(spot)} style={{ cursor: 'pointer' }}>
+                <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
+                <div className="spot-card-body">
+                  <h3>{spot.name}</h3>
+                  <SpotBadges spot={spot} />
+                  <div className="spot-card-footer">
+                    <button className="owner-btn owner-btn--edit" onClick={(e) => { e.stopPropagation(); onEdit(spot) }}>✏️</button>
+                    <button className="owner-btn owner-btn--delete" onClick={(e) => { e.stopPropagation(); onDelete(spot) }}>✕</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <div className="filter-panel">
@@ -612,6 +648,7 @@ export default function CampingMap() {
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarView, setSidebarView] = useState('all') // 'all' | 'mine'
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek')
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -1094,7 +1131,7 @@ export default function CampingMap() {
                 </button>
 
                 {/* Mine bidrag */}
-                <button className="sidebar-rail-item" onClick={() => setSidebarOpen(true)} title="Mine bidrag">
+                <button className="sidebar-rail-item" onClick={() => { setSidebarView('mine'); setSidebarOpen(true) }} title="Mine bidrag">
                   <div className="sidebar-rail-icon">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2L2 19h20L12 2z"/>
@@ -1108,7 +1145,7 @@ export default function CampingMap() {
 
                 {/* Alle steder — stacked thumbnails with total count */}
                 {spots.length > 0 && (
-                  <button className="sidebar-rail-item" onClick={() => setSidebarOpen(true)} title="Alle steder">
+                  <button className="sidebar-rail-item" onClick={() => { setSidebarView('all'); setSidebarOpen(true) }} title="Alle steder">
                     <div className="sidebar-rail-stack">
                       {spots.slice(0, 3).map((spot, i) => {
                         const thumb = spot.photo_urls?.[0] || spot.photo_url ||
@@ -1125,8 +1162,9 @@ export default function CampingMap() {
             {/* Expanded content */}
             {sidebarOpen && (
               <div className="sidebar-inner">
-                <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)} aria-label="Lukk sidepanel">✕</button>
+                <button className="sidebar-close-btn" onClick={() => { setSidebarOpen(false); setSidebarView('all') }} aria-label="Lukk sidepanel">✕</button>
                 <SidebarContent
+                  sidebarView={sidebarView} onSidebarViewChange={setSidebarView}
                   editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                   activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
                   filters={filters} hasFilters={hasFilters} allRegions={allRegions}
