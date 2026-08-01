@@ -852,6 +852,7 @@ body {
 }
 
 .sidebar-body {
+  flex: 1;
   overflow-y: auto;
   padding: 0.6rem;
   display: flex;
@@ -860,6 +861,7 @@ body {
 }
 
 .spot-card {
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
