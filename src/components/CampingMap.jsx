@@ -688,7 +688,7 @@ export default function CampingMap() {
   async function loadSpots() {
     setLoading(true)
     const [{ data, error }, { data: ownPending }] = await Promise.all([
-      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3),
+      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3).order('created_at', { ascending: false }),
       supabase.from('spots').select('*').eq('status', 'pending').eq('owner_token', ownerToken),
     ])
     if (!error && data) {
