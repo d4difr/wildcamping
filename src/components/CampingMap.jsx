@@ -611,7 +611,7 @@ export default function CampingMap() {
   const [userPosition, setUserPosition] = useState(null)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editingCamp, setEditingCamp] = useState(null)
   const [sheetState, setSheetState] = useState('peek')
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -1090,18 +1090,36 @@ export default function CampingMap() {
             {!sidebarOpen && (
               <div className="sidebar-rail">
                 <button className="sidebar-rail-burger" onClick={() => setSidebarOpen(true)} aria-label="Åpne sidepanel">
-                  <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="0" y1="7" x2="18" y2="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="0" y1="13" x2="18" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <svg width="22" height="18" viewBox="0 0 22 18" fill="none"><line x1="0" y1="1" x2="22" y2="1" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/><line x1="0" y1="9" x2="22" y2="9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/><line x1="0" y1="17" x2="22" y2="17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
                 </button>
-                {filteredSpots.slice(0, 6).map((spot) => {
-                  const thumb = spot.photo_urls?.[0] || spot.photo_url ||
-                    `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/56x56@2x?access_token=${TOKEN}`
-                  return (
-                    <button key={spot.id} className="sidebar-rail-item" onClick={() => { setSidebarOpen(true); handleSeeMore(spot) }} title={spot.name}>
-                      <img src={thumb} className="sidebar-rail-thumb" alt="" />
-                      <span className="sidebar-rail-label">{spot.name}</span>
-                    </button>
-                  )
-                })}
+
+                {/* Mine bidrag */}
+                <button className="sidebar-rail-item" onClick={() => setSidebarOpen(true)} title="Mine bidrag">
+                  <div className="sidebar-rail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2L2 19h20L12 2z"/>
+                      <line x1="12" y1="10" x2="12" y2="15"/>
+                      <circle cx="12" cy="18" r="0.5" fill="currentColor"/>
+                    </svg>
+                    {(() => { const n = spots.filter(s => s.owner_token === ownerToken).length; return n > 0 ? <span className="sidebar-rail-badge">{n}</span> : null })()}
+                  </div>
+                  <span className="sidebar-rail-label">Mine bidrag</span>
+                </button>
+
+                {/* Alle steder — stacked thumbnails with total count */}
+                {spots.length > 0 && (
+                  <button className="sidebar-rail-item" onClick={() => setSidebarOpen(true)} title="Alle steder">
+                    <div className="sidebar-rail-stack">
+                      {spots.slice(0, 3).map((spot, i) => {
+                        const thumb = spot.photo_urls?.[0] || spot.photo_url ||
+                          `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/56x56@2x?access_token=${TOKEN}`
+                        return <img key={spot.id} src={thumb} className="sidebar-rail-stack-img" style={{ zIndex: 3 - i, transform: `rotate(${(i - 1) * 5}deg)` }} alt="" />
+                      })}
+                      <span className="sidebar-rail-badge sidebar-rail-badge--stack">{spots.length}</span>
+                    </div>
+                    <span className="sidebar-rail-label">Alle steder</span>
+                  </button>
+                )}
               </div>
             )}
             {/* Expanded content */}
