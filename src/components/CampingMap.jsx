@@ -528,7 +528,6 @@ function SidebarContent({
         <div className="filter-panel">
           <div className="filter-panel-header">
             <span className="filter-panel-title">Mine bidrag</span>
-            <button className="filter-clear" onClick={() => onSidebarViewChange('all')}>← Alle steder</button>
           </div>
         </div>
         <div className="sidebar-body">
