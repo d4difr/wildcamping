@@ -1133,9 +1133,8 @@ export default function CampingMap() {
                 <button className="sidebar-rail-item" onClick={() => { setSidebarView('mine'); setSidebarOpen(true) }} title="Mine bidrag">
                   <div className="sidebar-rail-icon">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2L2 19h20L12 2z"/>
-                      <line x1="12" y1="10" x2="12" y2="15"/>
-                      <circle cx="12" cy="18" r="0.5" fill="currentColor"/>
+                      <circle cx="12" cy="8" r="4"/>
+                      <path d="M4 20v-1a8 8 0 0116 0v1"/>
                     </svg>
                     {(() => { const n = spots.filter(s => s.owner_token === ownerToken).length; return n > 0 ? <span className="sidebar-rail-badge">{n}</span> : null })()}
                   </div>
