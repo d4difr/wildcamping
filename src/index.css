@@ -1101,6 +1101,12 @@ body {
   color: var(--forest);
 }
 
+.owner-btn--delete {
+  color: #c62828;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .owner-btn--delete:hover {
   background: #fce4ec;
   border-color: #c62828;
