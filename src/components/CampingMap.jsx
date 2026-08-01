@@ -568,20 +568,19 @@ function SidebarContent({
           const thumb = spot.photo_urls?.[0] || spot.photo_url ||
             `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/400x200@2x?access_token=${TOKEN}`
           return (
-            <div key={spot.id} className="spot-card">
+            <div key={spot.id} className="spot-card" onClick={() => onSeeMore(spot)} style={{ cursor: 'pointer' }}>
               <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
               <div className="spot-card-body">
                 <h3>{spot.name}</h3>
                 <SpotBadges spot={spot} />
-                <div className="spot-card-footer">
-                  <button className="see-more-btn" onClick={() => onSeeMore(spot)}>Se mer →</button>
-                  {spot.owner_token === ownerToken && (
+                {spot.owner_token === ownerToken && (
+                  <div className="spot-card-footer">
                     <div className="owner-actions owner-actions--inline">
-                      <button className="owner-btn owner-btn--edit" onClick={() => onEdit(spot)}>✏️</button>
-                      <button className="owner-btn owner-btn--delete" onClick={() => onDelete(spot)}>🗑</button>
+                      <button className="owner-btn owner-btn--edit" onClick={(e) => { e.stopPropagation(); onEdit(spot) }}>✏️</button>
+                      <button className="owner-btn owner-btn--delete" onClick={(e) => { e.stopPropagation(); onDelete(spot) }}>🗑</button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )
