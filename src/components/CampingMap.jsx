@@ -1085,32 +1085,41 @@ export default function CampingMap() {
 
       <div className="main-area">
         {!isMobile && (
-          <button
-            className={`sidebar-collapse-btn${sidebarOpen ? '' : ' sidebar-collapse-btn--collapsed'}`}
-            onClick={() => setSidebarOpen((o) => !o)}
-            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            {sidebarOpen
-              ? <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="8,2 2,8 8,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              : <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><polyline points="2,2 8,8 2,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            }
-          </button>
-        )}
-
-        {!isMobile && (
           <aside className={`left-sidebar${sidebarOpen ? '' : ' left-sidebar--collapsed'}`}>
-            <div className="sidebar-inner">
-              <SidebarContent
-                editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
-                activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
-                filters={filters} hasFilters={hasFilters} allRegions={allRegions}
-                filteredSpots={filteredSpots} loading={loading} spots={spots}
-                onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
-                onSeeMore={handleSeeMore} onFilterChange={setFilters} onToggleFilter={toggleFilter}
-                loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
-                onAdminApprove={handleAdminApprove} onAdminDelete={handleAdminDelete}
-              />
-            </div>
+            {/* Collapsed rail */}
+            {!sidebarOpen && (
+              <div className="sidebar-rail">
+                <button className="sidebar-rail-burger" onClick={() => setSidebarOpen(true)} aria-label="Åpne sidepanel">
+                  <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="0" y1="7" x2="18" y2="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="0" y1="13" x2="18" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                {filteredSpots.slice(0, 6).map((spot) => {
+                  const thumb = spot.photo_urls?.[0] || spot.photo_url ||
+                    `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/56x56@2x?access_token=${TOKEN}`
+                  return (
+                    <button key={spot.id} className="sidebar-rail-item" onClick={() => { setSidebarOpen(true); handleSeeMore(spot) }} title={spot.name}>
+                      <img src={thumb} className="sidebar-rail-thumb" alt="" />
+                      <span className="sidebar-rail-label">{spot.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {/* Expanded content */}
+            {sidebarOpen && (
+              <div className="sidebar-inner">
+                <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)} aria-label="Lukk sidepanel">✕</button>
+                <SidebarContent
+                  editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
+                  activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
+                  filters={filters} hasFilters={hasFilters} allRegions={allRegions}
+                  filteredSpots={filteredSpots} loading={loading} spots={spots}
+                  onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
+                  onSeeMore={handleSeeMore} onFilterChange={setFilters} onToggleFilter={toggleFilter}
+                  loadSpots={loadSpots} onReport={handleReport} flaggedSpots={flaggedSpots}
+                  onAdminApprove={handleAdminApprove} onAdminDelete={handleAdminDelete}
+                />
+              </div>
+            )}
           </aside>
         )}
 
