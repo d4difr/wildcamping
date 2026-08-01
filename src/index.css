@@ -854,6 +854,9 @@ body {
 .sidebar-body {
   overflow-y: auto;
   padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .spot-card {
@@ -865,8 +868,6 @@ body {
 .spot-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   border-color: #c8c0b0;
-  margin-bottom: 0.5rem;
-  background: #fff;
 }
 
 .spot-card-thumb {
