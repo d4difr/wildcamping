@@ -862,6 +862,7 @@ body {
 
 .spot-card {
   flex-shrink: 0;
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -1059,10 +1060,11 @@ body {
 }
 
 .spot-card-footer {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 0.3rem;
+  gap: 6px;
 }
 
 .owner-actions {
@@ -1078,14 +1080,19 @@ body {
 }
 
 .owner-btn {
-  padding: 0.25rem 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: #fff;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: rgba(255,255,255,0.92);
   cursor: pointer;
-  box-shadow: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  backdrop-filter: blur(4px);
 }
 
 .owner-btn--edit:hover {

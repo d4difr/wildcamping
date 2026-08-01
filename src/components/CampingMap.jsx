@@ -575,10 +575,8 @@ function SidebarContent({
                 <SpotBadges spot={spot} />
                 {spot.owner_token === ownerToken && (
                   <div className="spot-card-footer">
-                    <div className="owner-actions owner-actions--inline">
-                      <button className="owner-btn owner-btn--edit" onClick={(e) => { e.stopPropagation(); onEdit(spot) }}>✏️</button>
-                      <button className="owner-btn owner-btn--delete" onClick={(e) => { e.stopPropagation(); onDelete(spot) }}>🗑</button>
-                    </div>
+                    <button className="owner-btn owner-btn--edit" onClick={(e) => { e.stopPropagation(); onEdit(spot) }}>✏️</button>
+                    <button className="owner-btn owner-btn--delete" onClick={(e) => { e.stopPropagation(); onDelete(spot) }}>🗑</button>
                   </div>
                 )}
               </div>
