@@ -731,7 +731,10 @@ export default function CampingMap() {
       setSpots(data)
       const params = new URLSearchParams(window.location.search)
       const spotId = params.get('spot')
-      if (spotId) { const spot = data.find((s) => String(s.id) === spotId); if (spot) setActiveId(spot.id) }
+      if (spotId) {
+        const spot = data.find((s) => String(s.id) === spotId)
+        if (spot) { setActiveId(spot.id); if (window.innerWidth >= 768) setSidebarOpen(true) }
+      }
     }
     if (ownPending) setOwnPendingSpots(ownPending)
     setLoading(false)
@@ -839,6 +842,7 @@ export default function CampingMap() {
   function handleMapMarkerClick(spot) {
     const mobile = window.innerWidth < 768
     setActiveId(spot.id)
+    if (!mobile) { setSidebarView('all'); setSidebarOpen(true) }
     if (mobile) {
       setSheetState('open')
       // Wait one frame for the sheet to render at its open height, then measure
@@ -1113,6 +1117,7 @@ export default function CampingMap() {
           onViewSpot={(spot) => {
             const prefix = spot.status === 'pending' ? 'adminPending' : 'spot'
             setActiveId(spot.status === 'pending' ? `adminPending:${spot.id}` : spot.id)
+            if (!isMobile) { setSidebarView('all'); setSidebarOpen(true) }
             flyTo(spot.longitude, spot.latitude, 13)
           }}
           onRefreshPending={loadAdminPending}
@@ -1226,13 +1231,13 @@ export default function CampingMap() {
             ))}
 
             {ownPendingSpots.map((spot) => (
-              <Marker key={`own-pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`pending:${spot.id}`) }}>
+              <Marker key={`own-pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`pending:${spot.id}`); if (!isMobile) { setSidebarView('all'); setSidebarOpen(true) } }}>
                 <span className={`spot-badge spot-badge--pending${activeId === `pending:${spot.id}` ? ' spot-badge--active' : ''}`} style={{ width: activeId === `pending:${spot.id}` ? 36 : 28, height: activeId === `pending:${spot.id}` ? 36 : 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #777', cursor: 'pointer', opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
               </Marker>
             ))}
 
             {adminPendingSpots.map((spot) => (
-              <Marker key={`adminPending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`adminPending:${spot.id}`) }}>
+              <Marker key={`adminPending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`adminPending:${spot.id}`); if (!isMobile) { setSidebarView('all'); setSidebarOpen(true) } }}>
                 <span style={{ width: activeId === `adminPending:${spot.id}` ? 36 : 28, height: activeId === `adminPending:${spot.id}` ? 36 : 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #666', opacity: 0.85, cursor: 'pointer', transition: 'width 0.15s, height 0.15s' }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
               </Marker>
             ))}
