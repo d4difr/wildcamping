@@ -19,6 +19,16 @@ const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
 // NIBIO's AR50 WMS stops rendering above 1:500 000 — verified blank at z<=9.
 const TERRENGTYPE_MIN_ZOOM = 10
 
+// Slope of the flattest tent-sized patch near a pin, from Kartverket's terrain
+// model. Thresholds are about pitching comfort, not safety.
+function flatnessLabel(deg) {
+  if (deg == null) return null
+  if (deg < 5) return { text: 'Nesten flatt', tone: 'good' }
+  if (deg < 10) return { text: 'Svakt hellende', tone: 'good' }
+  if (deg < 15) return { text: 'Merkbar helling', tone: 'mid' }
+  return { text: 'Bratt', tone: 'poor' }
+}
+
 const TERRENGTYPE_BANDS = [
   { color: '#4C9A5A', label: 'Lett', hint: 'Åpen mark eller glissen skog' },
   { color: '#D98E04', label: 'Middels', hint: 'Skog med moderat tetthet, eller fuktig mark' },
@@ -278,6 +288,19 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
         <img src={staticMap} alt="Kart" className="spot-detail-static-map" />
       )}
       {spot.description && <p className="spot-detail-desc">{spot.description}</p>}
+      {(() => {
+        const f = flatnessLabel(spot.flatness_deg)
+        if (!f) return null
+        return (
+          <p className={`spot-flatness spot-flatness--${f.tone}`}>
+            <span className="spot-flatness-label">⛰ {f.text}</span>
+            <span className="spot-flatness-detail">
+              {Math.round(spot.flatness_deg)}° på det flateste innenfor 10 m
+            </span>
+            <span className="spot-flatness-source">Målt i Kartverkets terrengmodell</span>
+          </p>
+        )
+      })()}
       <p className="spot-detail-coords">
         {spot.latitude.toFixed(5)}, {spot.longitude.toFixed(5)}
         {' · '}
@@ -952,6 +975,34 @@ export default function CampingMap() {
   const activeAdminPendingSpot = isAdminPendingActive ? adminPendingSpots.find(s => `adminPending:${s.id}` === activeId) || null : null
   const activeSpot = (isPendingActive || isAdminPendingActive) ? null : spots.find((s) => s.id === activeId) || null
   const isSatelliteStyle = mapStyle.includes('satellite')
+
+  // Measure flatness the first time a spot is opened, then reuse the stored
+  // value. Kartverket is only asked once per spot.
+  // Must sit below the activeSpot declaration above — the dependency array is
+  // evaluated during render.
+  useEffect(() => {
+    if (!activeSpot || activeSpot.flatness_checked_at) return
+    const id = activeSpot.id
+    let cancelled = false
+    fetch('/api/spot-flatness', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return
+        setSpots((list) => list.map((x) => x.id === id ? {
+          ...x,
+          flatness_deg: d.slope_deg,
+          flatness_relief_m: d.relief_m,
+          flatness_offset_m: d.offset_m,
+          flatness_checked_at: new Date().toISOString(),
+        } : x))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [activeSpot?.id, activeSpot?.flatness_checked_at])
 
   const allRegions = useMemo(() => {
     const set = new Set(spots.map((s) => s.region).filter(Boolean))

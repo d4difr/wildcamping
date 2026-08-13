@@ -1972,6 +1972,38 @@ button.primary:hover:not(:disabled) {
   100% { box-shadow: 0 0 0 0 rgba(217,142,4,0); }
 }
 
+/* Measured flatness on the spot detail */
+.spot-flatness {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  background: rgba(0,0,0,0.02);
+}
+
+.spot-flatness--good { border-left-color: #4C9A5A; }
+.spot-flatness--mid  { border-left-color: var(--amber); }
+.spot-flatness--poor { border-left-color: #A6432B; }
+
+.spot-flatness-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--granite);
+}
+
+.spot-flatness-detail {
+  font-size: 0.74rem;
+  color: #6b6f6a;
+}
+
+.spot-flatness-source {
+  font-size: 0.65rem;
+  color: #9a9d97;
+}
+
 /* Terrengtype overlay legend */
 .terrengtype-legend {
   position: absolute;
