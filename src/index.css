@@ -814,7 +814,10 @@ body {
   font-size: 0.75rem;
   color: #999;
   font-family: monospace;
-  margin: 0.6rem 0 0;
+  /* Divider separating the spot's own info from the actions below */
+  border-top: 1px solid var(--border);
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
 }
 
 /* Export actions: copy coordinates / download GPX */
