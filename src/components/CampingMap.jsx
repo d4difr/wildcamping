@@ -903,6 +903,18 @@ export default function CampingMap() {
   useEffect(() => { loadSpots() }, [])
   useEffect(() => { if (isAdmin) loadAdminPending(); else setAdminPendingSpots([]) }, [isAdmin])
 
+  // Terrengtype is admin-only while in development. If admin logs out with the
+  // layer on, the toggle disappears — so turn the layer off too.
+  useEffect(() => {
+    if (isAdmin || !terrengtypeRef.current) return
+    setTerrengtype(false)
+    terrengtypeRef.current = false
+    const map = nativeMap.current
+    if (map?.getLayer('ar50-terrengtype')) {
+      map.setLayoutProperty('ar50-terrengtype', 'visibility', 'none')
+    }
+  }, [isAdmin])
+
   useEffect(() => {
     if (sessionStorage.getItem('vilda_tracked')) return
     sessionStorage.setItem('vilda_tracked', '1')
@@ -1468,9 +1480,12 @@ export default function CampingMap() {
             <button className="layer-toggle" onClick={() => setMapStyle(isSatelliteStyle ? 'mapbox://styles/mapbox/outdoors-v12' : 'mapbox://styles/mapbox/satellite-streets-v12')}>
               {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
             </button>
-            <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
-              {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
-            </button>
+            {/* Under utvikling — kun synlig for admin */}
+            {isAdmin && (
+              <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
+                {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
+              </button>
+            )}
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
               onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
@@ -1479,7 +1494,7 @@ export default function CampingMap() {
             </button>
           </div>
 
-          {terrengtype && (
+          {isAdmin && terrengtype && (
             <div className="terrengtype-legend">
               {viewState.zoom < TERRENGTYPE_MIN_ZOOM ? (
                 <p className="terrengtype-zoom-hint">Zoom inn for å vise terrengtype</p>
