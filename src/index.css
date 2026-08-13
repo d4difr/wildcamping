@@ -2263,12 +2263,21 @@ button.primary:hover:not(:disabled) {
 }
 
 .admin-header {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  /* room on the right so the title never runs under the close button */
+  padding: 1.25rem 3rem 0.75rem 1.5rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.admin-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.1rem;
 }
 
 .admin-header h2 {
@@ -2287,10 +2296,12 @@ button.primary:hover:not(:disabled) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
 }
 

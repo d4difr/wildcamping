@@ -568,6 +568,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
             <h2>Admin</h2>
             <span className="admin-subtitle">{live.length} leirplasser totalt</span>
           </div>
+          <button className="about-close admin-close" onClick={onClose}>✕</button>
           <div className="admin-header-right">
             <div className="admin-tabs">
               <button className={`admin-tab${filter === 'all' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('all')}>Alle</button>
@@ -581,7 +582,6 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
                 Slettet {deleted.length > 0 && <span className="admin-flag-badge admin-flag-badge--deleted">{deleted.length}</span>}
               </button>
             </div>
-            <button className="about-close" style={{ position: 'static' }} onClick={onClose}>✕</button>
           </div>
         </div>
         {stats && (
