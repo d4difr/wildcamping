@@ -2275,6 +2275,15 @@ button.primary:hover:not(:disabled) {
   background: var(--amber);
 }
 
+.admin-flag-badge--deleted {
+  background: #8a8d87;
+}
+
+.admin-deleted-note {
+  color: #8a8d87;
+  font-style: italic;
+}
+
 /* Admin traffic stats */
 .admin-stats {
   padding: 1rem 1.5rem;

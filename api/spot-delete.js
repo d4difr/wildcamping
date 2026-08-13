@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   if (!spot) return res.status(404).json({ error: 'Not found' })
   if (spot.owner_token !== owner_token) return res.status(403).json({ error: 'Forbidden' })
 
-  await supabaseAdmin.from('spots').delete().eq('id', id)
+  // Soft delete — recoverable from the admin "Slettet" tab
+  await supabaseAdmin.from('spots').update({ deleted_at: new Date().toISOString() }).eq('id', id)
   res.status(200).json({ ok: true })
 }

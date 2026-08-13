@@ -335,10 +335,24 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Slette denne leirplassen?')) return
+    const spot = spots.find((x) => x.id === id)
+    if (!window.confirm(`Slette "${spot?.name ?? 'denne leirplassen'}"?\n\nDen flyttes til Slettet og kan gjenopprettes.`)) return
     await adminAction('delete', id)
-    setSpots((s) => s.filter((x) => x.id !== id))
+    setSpots((s) => s.map((x) => x.id === id ? { ...x, deleted_at: new Date().toISOString() } : x))
     onRefreshPending?.()
+  }
+
+  async function handleRestore(id) {
+    await adminAction('restore', id)
+    setSpots((s) => s.map((x) => x.id === id ? { ...x, deleted_at: null } : x))
+    onRefreshPending?.()
+  }
+
+  async function handlePurge(id) {
+    const spot = spots.find((x) => x.id === id)
+    if (!window.confirm(`Slette "${spot?.name ?? 'denne leirplassen'}" permanent?\n\nDette kan IKKE angres.`)) return
+    await adminAction('purge', id)
+    setSpots((s) => s.filter((x) => x.id !== id))
   }
 
   async function handleClearFlags(id) {
@@ -352,9 +366,11 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
     onRefreshPending?.()
   }
 
-  const flagged = spots.filter((s) => s.flags > 0)
-  const pending = spots.filter((s) => s.status === 'pending')
-  const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : spots
+  const live = spots.filter((s) => !s.deleted_at)
+  const deleted = spots.filter((s) => s.deleted_at)
+  const flagged = live.filter((s) => s.flags > 0)
+  const pending = live.filter((s) => s.status === 'pending')
+  const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : filter === 'deleted' ? deleted : live
 
   return createPortal(
     <div className="admin-overlay">
@@ -375,7 +391,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
         <div className="admin-header">
           <div>
             <h2>Admin</h2>
-            <span className="admin-subtitle">{spots.length} leirplasser totalt</span>
+            <span className="admin-subtitle">{live.length} leirplasser totalt</span>
           </div>
           <div className="admin-header-right">
             <div className="admin-tabs">
@@ -385,6 +401,9 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
               </button>
               <button className={`admin-tab${filter === 'flagged' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('flagged')}>
                 Flagget {flagged.length > 0 && <span className="admin-flag-badge">{flagged.length}</span>}
+              </button>
+              <button className={`admin-tab${filter === 'deleted' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('deleted')}>
+                Slettet {deleted.length > 0 && <span className="admin-flag-badge admin-flag-badge--deleted">{deleted.length}</span>}
               </button>
             </div>
             <button className="about-close" style={{ position: 'static' }} onClick={onClose}>✕</button>
@@ -421,6 +440,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
                     {spot.region && `${spot.region} · `}
                     {spot.created_at ? new Date(spot.created_at).toLocaleDateString('no') : ''}
                     {spot.flags > 0 && <span className="admin-flag-count"> · {spot.flags} flagg</span>}
+                    {spot.deleted_at && <span className="admin-deleted-note"> · slettet {new Date(spot.deleted_at).toLocaleDateString('no')}</span>}
                   </span>
                   {filter === 'flagged' && spot.flag_reports?.length > 0 && (
                     <div className="admin-flag-reports">
@@ -435,10 +455,19 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
                   )}
                 </div>
                 <div className="admin-spot-actions">
-                  <button className="admin-btn admin-btn--goto" onClick={() => onViewSpot(spot)}>📍 Gå til</button>
-                  {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
-                  {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
-                  <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
+                  {spot.deleted_at ? (
+                    <>
+                      <button className="admin-btn admin-btn--approve" onClick={() => handleRestore(spot.id)}>↩ Gjenopprett</button>
+                      <button className="admin-btn admin-btn--delete" onClick={() => handlePurge(spot.id)}>Slett permanent</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="admin-btn admin-btn--goto" onClick={() => onViewSpot(spot)}>📍 Gå til</button>
+                      {spot.status === 'pending' && <button className="admin-btn admin-btn--approve" onClick={() => handleApprove(spot.id)}>Godkjenn</button>}
+                      {spot.flags > 0 && <button className="admin-btn" onClick={() => handleClearFlags(spot.id)}>Fjern flagg</button>}
+                      <button className="admin-btn admin-btn--delete" onClick={() => handleDelete(spot.id)}>Slett</button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -724,8 +753,8 @@ export default function CampingMap() {
   async function loadSpots() {
     setLoading(true)
     const [{ data, error }, { data: ownPending }] = await Promise.all([
-      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3).order('created_at', { ascending: false }),
-      supabase.from('spots').select('*').eq('status', 'pending').eq('owner_token', ownerToken),
+      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('spots').select('*').eq('status', 'pending').eq('owner_token', ownerToken).is('deleted_at', null),
     ])
     if (!error && data) {
       setSpots(data)
@@ -741,7 +770,7 @@ export default function CampingMap() {
   }
 
   async function loadAdminPending() {
-    const { data } = await supabase.from('spots').select('*').eq('status', 'pending')
+    const { data } = await supabase.from('spots').select('*').eq('status', 'pending').is('deleted_at', null)
     if (data) setAdminPendingSpots(data)
   }
 

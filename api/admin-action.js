@@ -13,6 +13,12 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Missing id' })
 
   if (action === 'delete') {
+    // Soft delete — row is kept so it can be restored from the "Slettet" tab
+    await supabaseAdmin.from('spots').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  } else if (action === 'restore') {
+    await supabaseAdmin.from('spots').update({ deleted_at: null }).eq('id', id)
+  } else if (action === 'purge') {
+    // Permanent removal — only reachable from the "Slettet" tab
     await supabaseAdmin.from('spots').delete().eq('id', id)
   } else if (action === 'approve') {
     await supabaseAdmin.from('spots').update({ status: 'approved' }).eq('id', id)
