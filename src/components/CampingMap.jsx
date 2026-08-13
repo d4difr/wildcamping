@@ -16,6 +16,15 @@ const ACCESS_LABELS = {
 
 const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
 
+// NIBIO's AR50 WMS stops rendering above 1:500 000 — verified blank at z<=9.
+const TERRENGTYPE_MIN_ZOOM = 10
+
+const TERRENGTYPE_BANDS = [
+  { color: '#4C9A5A', label: 'Lett', hint: 'Åpen mark eller glissen skog' },
+  { color: '#D98E04', label: 'Middels', hint: 'Skog med moderat tetthet, eller fuktig mark' },
+  { color: '#A6432B', label: 'Krevende', hint: 'Tett skog, myr eller bart fjell' },
+]
+
 const TENT_SVG = `<svg width="17" height="17" viewBox="0 0 24 19" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M10 0L14 3M14 0L10 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" />
   <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.2L22.4 17.8H1.6L12 2.2ZM12 10.6L16.5 17.8H7.4L12 10.6Z" fill="#fff" />
@@ -771,8 +780,10 @@ export default function CampingMap() {
   const mapRef = useRef(null)
   const nativeMap = useRef(null)
   const terrain3DRef = useRef(false)
+  const terrengtypeRef = useRef(false)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
+  const [terrengtype, setTerrengtype] = useState(false)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -963,6 +974,16 @@ export default function CampingMap() {
       map.setTerrain(null)
       map.setFog(null)
       map.easeTo({ pitch: 0, bearing: 0, duration: 600 })
+    }
+  }
+
+  function toggleTerrengtype() {
+    const map = nativeMap.current
+    const next = !terrengtype
+    setTerrengtype(next)
+    terrengtypeRef.current = next
+    if (map?.getLayer('ar50-terrengtype')) {
+      map.setLayoutProperty('ar50-terrengtype', 'visibility', next ? 'visible' : 'none')
     }
   }
 
@@ -1366,6 +1387,31 @@ export default function CampingMap() {
                 if (terrain3DRef.current) {
                   map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.2 })
                 }
+
+                // Terrengtype overlay (NIBIO AR50, proxied). The WMS returns
+                // nothing above 1:500 000, which is roughly zoom 10.
+                if (!map.getSource('ar50-terrengtype')) {
+                  map.addSource('ar50-terrengtype', {
+                    type: 'raster',
+                    tiles: ['/api/ar50-tile?bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    minzoom: TERRENGTYPE_MIN_ZOOM,
+                    maxzoom: 16,
+                    attribution: 'Terrengtype: Kilde NIBIO',
+                  })
+                }
+                if (!map.getLayer('ar50-terrengtype')) {
+                  // Keep place labels legible by inserting under the first symbol layer
+                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
+                  map.addLayer({
+                    id: 'ar50-terrengtype',
+                    type: 'raster',
+                    source: 'ar50-terrengtype',
+                    minzoom: TERRENGTYPE_MIN_ZOOM,
+                    paint: { 'raster-opacity': 0.55 },
+                    layout: { visibility: terrengtypeRef.current ? 'visible' : 'none' },
+                  }, firstSymbol)
+                }
               }
 
               initTerrainLayers()
@@ -1422,6 +1468,9 @@ export default function CampingMap() {
             <button className="layer-toggle" onClick={() => setMapStyle(isSatelliteStyle ? 'mapbox://styles/mapbox/outdoors-v12' : 'mapbox://styles/mapbox/satellite-streets-v12')}>
               {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
             </button>
+            <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
+              {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
+            </button>
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
               onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
@@ -1429,6 +1478,29 @@ export default function CampingMap() {
               {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
           </div>
+
+          {terrengtype && (
+            <div className="terrengtype-legend">
+              {viewState.zoom < TERRENGTYPE_MIN_ZOOM ? (
+                <p className="terrengtype-zoom-hint">Zoom inn for å vise terrengtype</p>
+              ) : (
+                <>
+                  <div className="terrengtype-legend-rows">
+                    {TERRENGTYPE_BANDS.map((b) => (
+                      <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
+                        <span className="terrengtype-swatch" style={{ background: b.color }} />
+                        <span className="terrengtype-legend-label">{b.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="terrengtype-disclaimer">
+                    Grov pekepinn på hvor lett det er å finne teltplass, basert på NIBIOs arealdata.
+                    Sier ingenting om stein, røtter eller helning — sjekk alltid selv.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           {terrain3D && (
             <div className="hint-3d">
