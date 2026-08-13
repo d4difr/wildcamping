@@ -29,6 +29,15 @@ function flatnessLabel(deg) {
   return { text: 'Bratt', tone: 'poor' }
 }
 
+// Slope bands, mirroring api/slope-tile.js. Palette is deliberately unlike the
+// Terrengtype one so the two layers can't be mistaken for each other.
+const HELNING_BANDS = [
+  { color: '#A8D5E8', label: 'Flatt', hint: 'Under 5° — fint å telte' },
+  { color: '#5B9BC4', label: 'Svak helling', hint: '5–10° — mulig, men skrår' },
+  { color: '#4A5C9B', label: 'Bratt', hint: '10–20° — vanskelig' },
+  { color: '#3D2E5A', label: 'Svært bratt', hint: 'Over 20°' },
+]
+
 const TERRENGTYPE_BANDS = [
   { color: '#4C9A5A', label: 'Lett', hint: 'Åpen mark eller glissen skog' },
   { color: '#D98E04', label: 'Middels', hint: 'Skog med moderat tetthet, eller fuktig mark' },
@@ -845,9 +854,11 @@ export default function CampingMap() {
   const nativeMap = useRef(null)
   const terrain3DRef = useRef(false)
   const terrengtypeRef = useRef(false)
+  const helningRef = useRef(false)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [terrengtype, setTerrengtype] = useState(false)
+  const [helning, setHelning] = useState(false)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -970,12 +981,17 @@ export default function CampingMap() {
   // Terrengtype is admin-only while in development. If admin logs out with the
   // layer on, the toggle disappears — so turn the layer off too.
   useEffect(() => {
-    if (isAdmin || !terrengtypeRef.current) return
+    if (isAdmin || (!terrengtypeRef.current && !helningRef.current)) return
     setTerrengtype(false)
     terrengtypeRef.current = false
+    setHelning(false)
+    helningRef.current = false
     const map = nativeMap.current
     if (map?.getLayer('ar50-terrengtype')) {
       map.setLayoutProperty('ar50-terrengtype', 'visibility', 'none')
+    }
+    if (map?.getLayer('kv-helning')) {
+      map.setLayoutProperty('kv-helning', 'visibility', 'none')
     }
   }, [isAdmin])
 
@@ -1081,15 +1097,28 @@ export default function CampingMap() {
     }
   }
 
-  function toggleTerrengtype() {
+  // Terrengtype and Helning are never shown together — two coloured overlays at
+  // once is unreadable, and they mean different things.
+  function setOverlay(which) {
     const map = nativeMap.current
-    const next = !terrengtype
-    setTerrengtype(next)
-    terrengtypeRef.current = next
+    const wantTerreng = which === 'terrengtype'
+    const wantHelning = which === 'helning'
+
+    setTerrengtype(wantTerreng)
+    terrengtypeRef.current = wantTerreng
+    setHelning(wantHelning)
+    helningRef.current = wantHelning
+
     if (map?.getLayer('ar50-terrengtype')) {
-      map.setLayoutProperty('ar50-terrengtype', 'visibility', next ? 'visible' : 'none')
+      map.setLayoutProperty('ar50-terrengtype', 'visibility', wantTerreng ? 'visible' : 'none')
+    }
+    if (map?.getLayer('kv-helning')) {
+      map.setLayoutProperty('kv-helning', 'visibility', wantHelning ? 'visible' : 'none')
     }
   }
+
+  function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
+  function toggleHelning() { setOverlay(helning ? null : 'helning') }
 
   function flyTo(lng, lat, zoom = null, bottomPadding = 0) {
     const map = nativeMap.current
@@ -1516,6 +1545,28 @@ export default function CampingMap() {
                     layout: { visibility: terrengtypeRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
+
+                // Helning (slope) from Kartverket. No minzoom — this one renders
+                // all the way out to the whole country.
+                if (!map.getSource('kv-helning')) {
+                  map.addSource('kv-helning', {
+                    type: 'raster',
+                    tiles: ['/api/slope-tile?bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    maxzoom: 16,
+                    attribution: 'Helning: Kilde Kartverket',
+                  })
+                }
+                if (!map.getLayer('kv-helning')) {
+                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
+                  map.addLayer({
+                    id: 'kv-helning',
+                    type: 'raster',
+                    source: 'kv-helning',
+                    paint: { 'raster-opacity': 0.5 },
+                    layout: { visibility: helningRef.current ? 'visible' : 'none' },
+                  }, firstSymbol)
+                }
               }
 
               initTerrainLayers()
@@ -1574,9 +1625,14 @@ export default function CampingMap() {
             </button>
             {/* Under utvikling — kun synlig for admin */}
             {isAdmin && (
-              <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
-                {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
-              </button>
+              <>
+                <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
+                  {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
+                </button>
+                <button className={`layer-toggle${helning ? ' layer-toggle--active' : ''}`} onClick={toggleHelning}>
+                  {helning ? '📐 Helning på' : '📐 Helning'}
+                </button>
+              </>
             )}
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
@@ -1585,6 +1641,23 @@ export default function CampingMap() {
               {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
           </div>
+
+          {isAdmin && helning && (
+            <div className="terrengtype-legend">
+              <div className="terrengtype-legend-rows">
+                {HELNING_BANDS.map((b) => (
+                  <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
+                    <span className="terrengtype-swatch" style={{ background: b.color }} />
+                    <span className="terrengtype-legend-label">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="terrengtype-disclaimer">
+                Hvor bratt bakken er, målt i Kartverkets terrengmodell. Viser
+                formen på bakken — ikke stein, røtter eller vegetasjon.
+              </p>
+            </div>
+          )}
 
           {isAdmin && terrengtype && (
             <div className="terrengtype-legend">
