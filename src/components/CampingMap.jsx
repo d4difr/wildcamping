@@ -278,7 +278,7 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
         <button className="spot-export-btn" onClick={handleCopyCoords}>
           {copyState === 'ok' ? '✓ Kopiert' : copyState === 'fail' ? 'Merk teksten over' : '⧉ Kopier koordinater'}
         </button>
-        <button className="spot-export-btn spot-export-btn--gpx" onClick={() => downloadGpx([spot], spot.name)}>
+        <button className="spot-export-btn" onClick={() => downloadGpx([spot], spot.name)}>
           ↓ Last ned GPX
         </button>
       </div>

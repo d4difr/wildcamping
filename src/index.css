@@ -845,18 +845,6 @@ body {
   color: var(--forest);
 }
 
-.spot-export-btn--gpx {
-  background: var(--forest);
-  border-color: var(--forest);
-  color: #fff;
-}
-
-.spot-export-btn--gpx:hover {
-  background: #143728;
-  border-color: #143728;
-  color: #fff;
-}
-
 .spot-export-hint {
   font-size: 0.7rem;
   color: #9a9d97;
