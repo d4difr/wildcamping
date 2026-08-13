@@ -927,7 +927,7 @@ export default function CampingMap() {
   }
 
   async function handleAdminDelete(spot) {
-    if (!window.confirm(`Slette "${spot.name}"?`)) return
+    if (!window.confirm(`Slette "${spot.name}"?\n\nDen flyttes til Slettet og kan gjenopprettes.`)) return
     await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1144,10 +1144,20 @@ export default function CampingMap() {
           onLogout={() => { setIsAdmin(false); localStorage.removeItem('vilda_admin'); setAdminPendingSpots([]) }}
           onClose={() => setAdminPanelOpen(false)}
           onViewSpot={(spot) => {
-            const prefix = spot.status === 'pending' ? 'adminPending' : 'spot'
             setActiveId(spot.status === 'pending' ? `adminPending:${spot.id}` : spot.id)
-            if (!isMobile) { setSidebarView('all'); setSidebarOpen(true) }
-            flyTo(spot.longitude, spot.latitude, 13)
+            if (isMobile) {
+              // Close the full-screen admin panel and surface the spot in the bottom sheet
+              setAdminPanelOpen(false)
+              setSheetState('open')
+              requestAnimationFrame(() => {
+                const sheetHeight = sheetRef.current?.offsetHeight ?? 0
+                flyTo(spot.longitude, spot.latitude, 13, sheetHeight)
+              })
+            } else {
+              setSidebarView('all')
+              setSidebarOpen(true)
+              flyTo(spot.longitude, spot.latitude, 13)
+            }
           }}
           onRefreshPending={loadAdminPending}
         />
