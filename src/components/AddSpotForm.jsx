@@ -191,7 +191,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         })
         if (!res.ok) throw new Error('Update failed')
       } else {
-        const { error: insertError } = await supabase.from('spots').insert({
+        const { data: inserted, error: insertError } = await supabase.from('spots').insert({
           name: name.trim(),
           description: description.trim(),
           latitude: position.lat,
@@ -203,8 +203,19 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
           region: region || null,
           status: 'pending',
           owner_token: ownerToken,
-        })
+        }).select('id').single()
         if (insertError) throw insertError
+
+        // Measure terrain flatness now so the first person to open this spot
+        // doesn't wait for Kartverket. Fire-and-forget — if it fails, the spot
+        // detail falls back to measuring on first view.
+        if (inserted?.id) {
+          fetch('/api/spot-flatness', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: inserted.id }),
+          }).catch(() => {})
+        }
         fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

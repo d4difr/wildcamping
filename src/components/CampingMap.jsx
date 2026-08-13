@@ -435,6 +435,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('all')
   const [stats, setStats] = useState(null)
+  const [backfill, setBackfill] = useState(null) // null | { done, total }
 
   useEffect(() => {
     if (isAdmin) { fetchAll(); fetchStats() }
@@ -513,6 +514,33 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
     onRefreshPending?.()
   }
 
+  // One-off catch-up for spots created before flatness measuring existed, or
+  // whose measurement failed. Runs one at a time to stay polite to Kartverket.
+  async function handleBackfillFlatness() {
+    const todo = spots.filter((s) => !s.deleted_at && !s.flatness_checked_at)
+    if (todo.length === 0) return
+    setBackfill({ done: 0, total: todo.length })
+    for (let i = 0; i < todo.length; i++) {
+      try {
+        const res = await fetch('/api/spot-flatness', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: todo[i].id }),
+        })
+        if (res.ok) {
+          const d = await res.json()
+          setSpots((list) => list.map((x) => x.id === todo[i].id ? {
+            ...x, flatness_deg: d.slope_deg, flatness_checked_at: new Date().toISOString(),
+          } : x))
+        }
+      } catch {
+        // Skip this one; a later run will pick it up again.
+      }
+      setBackfill({ done: i + 1, total: todo.length })
+    }
+    setTimeout(() => setBackfill(null), 2500)
+  }
+
   const live = spots.filter((s) => !s.deleted_at)
   const deleted = spots.filter((s) => s.deleted_at)
   const flagged = live.filter((s) => s.flags > 0)
@@ -575,6 +603,19 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
                 ))
               })()}
             </div>
+            {(() => {
+              const missing = live.filter((s) => !s.flatness_checked_at).length
+              if (!backfill && missing === 0) return null
+              return (
+                <div className="admin-backfill">
+                  <button className="admin-btn" onClick={handleBackfillFlatness} disabled={!!backfill}>
+                    {backfill
+                      ? `Måler terreng… ${backfill.done}/${backfill.total}`
+                      : `Mål terreng for ${missing} leirplass${missing === 1 ? '' : 'er'}`}
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         )}
         {loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (

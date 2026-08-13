@@ -1972,6 +1972,12 @@ button.primary:hover:not(:disabled) {
   100% { box-shadow: 0 0 0 0 rgba(217,142,4,0); }
 }
 
+.admin-backfill {
+  margin-top: 0.75rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+}
+
 /* Measured flatness on the spot detail */
 .spot-flatness {
   display: flex;
