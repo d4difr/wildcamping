@@ -30,6 +30,106 @@ const HAMMOCK_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"
   <line x1="20" y1="7.5" x2="16" y2="9.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
 </svg>`
 
+const PLAIN_ACCESS_LABELS = {
+  'road': 'Bilvei',
+  'short-hike': 'Kort tur (< 1 t)',
+  'day-hike': 'Dagstur (1–3 t)',
+  'remote': 'Avsidesliggende (3 t+)',
+}
+
+function escapeXml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+// Human-readable summary used as the waypoint description in the GPX file.
+function spotSummary(spot) {
+  const parts = [
+    spot.spot_type === 'hammock' ? 'Hengekøye' : 'Telt',
+    spot.access ? PLAIN_ACCESS_LABELS[spot.access] : null,
+    spot.region,
+  ].filter(Boolean)
+  const line = parts.join(' · ')
+  return spot.description ? `${line}\n\n${spot.description}` : line
+}
+
+// GPX 1.1 waypoint file. Consumed by Garmin, COROS, Google Earth, gpx.studio,
+// Gaia, Komoot, OsmAnd — anything that reads <wpt>.
+function buildGpx(spots, docName) {
+  const wpts = spots.map((spot) => {
+    const url = `https://vildakart.no/?spot=${spot.id}`
+    return `  <wpt lat="${spot.latitude}" lon="${spot.longitude}">
+    <name>${escapeXml(spot.name)}</name>
+    <desc>${escapeXml(spotSummary(spot))}</desc>
+    <sym>Campground</sym>
+    <type>Camping</type>
+    <link href="${escapeXml(url)}"><text>Vildakart</text></link>
+  </wpt>`
+  }).join('\n')
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Vildakart"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>${escapeXml(docName)}</name>
+    <link href="https://vildakart.no"><text>Vildakart</text></link>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+${wpts}
+</gpx>
+`
+}
+
+function slugifyFilename(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[æå]/g, 'a').replace(/ø/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'leirplass'
+}
+
+function downloadGpx(spots, docName) {
+  const blob = new Blob([buildGpx(spots, docName)], { type: 'application/gpx+xml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${slugifyFilename(docName)}.gpx`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    // Clipboard API needs a secure context; fall back to a temporary textarea.
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.setAttribute('readonly', '')
+      ta.style.position = 'absolute'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      return ok
+    } catch {
+      return false
+    }
+  }
+}
+
 function SpotMarker({ spot, active, onClick }) {
   const bg = SPOT_COLORS[spot.spot_type] ?? SPOT_COLORS.tent
   const svg = spot.spot_type === 'hammock' ? HAMMOCK_SVG : TENT_SVG
@@ -141,10 +241,16 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [copyState, setCopyState] = useState('idle') // 'idle' | 'ok' | 'fail'
   const staticMap = `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},13,0/600x240@2x?access_token=${TOKEN}`
   function handleReportSubmit(spot, reason, comment) {
     setShowReportModal(false)
     onReport(spot, reason, comment)
+  }
+  async function handleCopyCoords() {
+    const ok = await copyText(`${spot.latitude.toFixed(5)}, ${spot.longitude.toFixed(5)}`)
+    setCopyState(ok ? 'ok' : 'fail')
+    setTimeout(() => setCopyState('idle'), 2000)
   }
   return (
     <div className="spot-detail">
@@ -168,6 +274,15 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
         {' · '}
         <a href={`https://www.google.com/maps?q=${spot.latitude},${spot.longitude}`} target="_blank" rel="noopener noreferrer">Åpne i Google Maps</a>
       </p>
+      <div className="spot-export">
+        <button className="spot-export-btn" onClick={handleCopyCoords}>
+          {copyState === 'ok' ? '✓ Kopiert' : copyState === 'fail' ? 'Merk teksten over' : '⧉ Kopier koordinater'}
+        </button>
+        <button className="spot-export-btn spot-export-btn--gpx" onClick={() => downloadGpx([spot], spot.name)}>
+          ↓ Last ned GPX
+        </button>
+      </div>
+      <p className="spot-export-hint">GPX-filen kan importeres i Garmin, COROS, Google Earth, gpx.studio og de fleste turplanleggere.</p>
       <button
         className={`report-btn${alreadyReported ? ' report-btn--done' : ''}`}
         onClick={() => !alreadyReported && setShowReportModal(true)}

@@ -817,6 +817,53 @@ body {
   margin: 0.6rem 0 0;
 }
 
+/* Export actions: copy coordinates / download GPX */
+.spot-export {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.spot-export-btn {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--granite);
+  cursor: pointer;
+  box-shadow: none;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.spot-export-btn:hover {
+  background: var(--birch);
+  border-color: var(--fjord);
+  color: var(--forest);
+}
+
+.spot-export-btn--gpx {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fff;
+}
+
+.spot-export-btn--gpx:hover {
+  background: #143728;
+  border-color: #143728;
+  color: #fff;
+}
+
+.spot-export-hint {
+  font-size: 0.7rem;
+  color: #9a9d97;
+  line-height: 1.4;
+  margin: 0.45rem 0 0;
+}
+
 .go-back-btn {
   margin-bottom: 0.6rem;
   background: none;
