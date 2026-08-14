@@ -1658,6 +1658,12 @@ export default function CampingMap() {
             {...viewState}
             onMove={e => setViewState(e.viewState)}
             mapStyle={BASEMAPS[basemapIndex].style}
+            // react-map-gl defaults to setStyle(..., {diff: true}). Diffing is
+            // meant for small tweaks to the same style; going from a full Mapbox
+            // vector style to a single raster source has nothing meaningful to
+            // diff, and the swap can silently no-op. Force a clean reload — the
+            // overlays re-attach on style.load either way.
+            styleDiffing={false}
             mapboxAccessToken={TOKEN}
             projection={terrain3D ? 'globe' : 'mercator'}
             maxPitch={terrain3D ? 85 : 0}
