@@ -27,16 +27,20 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 // A sequential ramp rather than two flat bands — the extra steps read as terrain
 // shape, not just a yes/no mask.
 //
-// Saturation falls as slope rises, so the flattest ground still pops even though
-// every band is coloured. Above the last band nothing is drawn at all, which is
-// what stops the whole map turning to mush over the green basemap (the original
-// four-band blue version coloured 100% of every pixel and vanished into teal).
+// The first band is deliberately much darker than the second rather than one
+// even step in the ramp — that jump is what makes prime camping ground jump out
+// instead of blending into its neighbours.
+//
+// Blue works here where it failed before because the ramp now runs dark-to-pale
+// with FLAT at the dark end. The original version had flat as the palest colour
+// and painted every pixel including steep ground, so it washed to teal over the
+// green basemap. Here everything above 13° is left undrawn.
 const BANDS = [
-  { max: 2,  rgb: [255, 194,  46] }, // helt flatt
-  { max: 4,  rgb: [255, 211,  92] },
-  { max: 6,  rgb: [255, 225, 140] },
-  { max: 9,  rgb: [251, 235, 187] },
-  { max: 13, rgb: [230, 224, 200] }, // skrått — nearly neutral, fading out
+  { max: 2,  rgb: [ 21,  83, 127] }, // helt flatt — deliberately dark and saturated
+  { max: 4,  rgb: [ 95, 168, 208] }, // big jump, so band 1 reads as "here"
+  { max: 6,  rgb: [150, 200, 226] },
+  { max: 9,  rgb: [196, 223, 238] },
+  { max: 13, rgb: [229, 240, 247] }, // skrått — almost gone
 ]
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])
