@@ -41,6 +41,22 @@ const HELNING_BANDS = [
   { color: '#FFE9AE', label: 'Litt skrått', hint: '3–8° — går an, men du merker det' },
 ]
 
+// Overlay tiles are cached for 30 days at the edge and a day in the browser, and
+// the URL is the cache key. Changing a palette or threshold without changing the
+// URL leaves stale tiles served alongside fresh ones — which showed up as a
+// patchwork of old blue and new gold tiles after the Helning recolour.
+//
+// Deriving the key from the band definitions means any style edit busts the
+// cache on its own; there is no version constant to remember to bump. Keep the
+// hints in sync with the thresholds in the API so threshold-only changes are
+// caught too.
+function styleKey(bands) {
+  const s = bands.map((b) => `${b.color}${b.label}${b.hint}`).join('|')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+  return Math.abs(h).toString(36)
+}
+
 const TERRENGTYPE_BANDS = [
   { color: '#4C9A5A', label: 'Lett', hint: 'Åpen mark eller glissen skog' },
   { color: '#D98E04', label: 'Middels', hint: 'Skog med moderat tetthet, eller fuktig mark' },
@@ -1529,7 +1545,7 @@ export default function CampingMap() {
                 if (!map.getSource('ar50-terrengtype')) {
                   map.addSource('ar50-terrengtype', {
                     type: 'raster',
-                    tiles: ['/api/ar50-tile?bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/ar50-tile?v=${styleKey(TERRENGTYPE_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: TERRENGTYPE_MIN_ZOOM,
                     maxzoom: 16,
@@ -1554,7 +1570,7 @@ export default function CampingMap() {
                 if (!map.getSource('kv-helning')) {
                   map.addSource('kv-helning', {
                     type: 'raster',
-                    tiles: ['/api/slope-tile?bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/slope-tile?v=${styleKey(HELNING_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: HELNING_MIN_ZOOM,
                     maxzoom: 16,
