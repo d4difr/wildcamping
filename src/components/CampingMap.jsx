@@ -61,7 +61,7 @@ const TOPO_STYLE = {
       tiles: ['https://cache.kartverket.no/v1/service?service=WMTS&request=GetTile&version=1.0.0&layer=topo&style=default&tilematrixset=webmercator&TileMatrix={z}&TileRow={y}&TileCol={x}&format=image/png'],
       tileSize: 256,
       maxzoom: 18,
-      attribution: '<a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>',
+      attribution: '© <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>',
     },
   },
   layers: [{ id: 'kv-topo-layer', type: 'raster', source: 'kv-topo' }],
@@ -1713,7 +1713,7 @@ export default function CampingMap() {
                     tileSize: 256,
                     minzoom: TERRENGTYPE_MIN_ZOOM,
                     maxzoom: 16,
-                    attribution: 'Terrengtype: Kilde NIBIO',
+                    attribution: 'Kilde: <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
                   })
                 }
                 if (!map.getLayer('ar50-terrengtype')) {
@@ -1736,7 +1736,7 @@ export default function CampingMap() {
                     tileSize: 256,
                     minzoom: HELNING_MIN_ZOOM,
                     maxzoom: 16,
-                    attribution: 'Helning: Kilde Kartverket',
+                    attribution: 'Kilde: <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>',
                   })
                 }
                 if (!map.getLayer('kv-helning')) {
@@ -1758,7 +1758,7 @@ export default function CampingMap() {
                     tiles: [`/api/vern-tile?v=${styleKey(VERN_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     maxzoom: 16,
-                    attribution: 'Vern: Kilde Miljødirektoratet',
+                    attribution: 'Kilde: <a href="https://www.miljodirektoratet.no/" target="_blank" rel="noopener">Miljødirektoratet</a>',
                   })
                 }
                 if (!map.getLayer('md-vern')) {
@@ -1780,7 +1780,7 @@ export default function CampingMap() {
                     tileSize: 256,
                     minzoom: TURRUTER_MIN_ZOOM,
                     maxzoom: 16,
-                    attribution: 'Turruter: Kilde Kartverket',
+                    attribution: 'Kilde: <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>',
                   })
                 }
                 if (!map.getLayer('kv-turruter')) {
