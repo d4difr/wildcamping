@@ -37,11 +37,11 @@ const HELNING_MIN_ZOOM = 13
 // Mirrors api/slope-tile.js. Only campable ground is coloured; steeper ground is
 // left unmarked so the eye goes straight to where a tent could actually go.
 const HELNING_BANDS = [
-  { color: '#15537F', label: 'Helt flatt', hint: 'Under 2°' },
-  { color: '#5FA8D0', label: 'Nesten flatt', hint: '2–4°' },
-  { color: '#96C8E2', label: 'Svakt skrått', hint: '4–6°' },
-  { color: '#C4DFEE', label: 'Merkbar helling', hint: '6–9°' },
-  { color: '#E5F0F7', label: 'Skrått', hint: '9–13°' },
+  { color: '#1F2060', label: 'Helt flatt', hint: 'Under 2°' },
+  { color: '#A8A8D4', label: 'Nesten flatt', hint: '2–4°' },
+  { color: '#C2C2E2', label: 'Svakt skrått', hint: '4–6°' },
+  { color: '#D8D8EE', label: 'Merkbar helling', hint: '6–9°' },
+  { color: '#ECECF7', label: 'Skrått', hint: '9–13°' },
 ]
 
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.

@@ -35,12 +35,20 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 // with FLAT at the dark end. The original version had flat as the palest colour
 // and painted every pixel including steep ground, so it washed to teal over the
 // green basemap. Here everything above 13° is left undrawn.
+// Indigo rather than plain blue: the basemap already draws lakes in cyan-blue,
+// and a blue "helt flatt" patch beside a shoreline was ambiguous. Indigo shares
+// no hue with water (cyan), land (green) or routes (orange).
+// Band 1 is separated from the rest by VALUE, not hue. Indigo sits only ~29° from
+// the basemap's lake blue, so hue alone was not enough to stop flat shoreline
+// reading as water — but nothing on the basemap is this dark, so a near-navy
+// patch is unambiguous. Bands 2-5 are then a tight pale ramp, which keeps the
+// gradient without competing with band 1 for attention.
 const BANDS = [
-  { max: 2,  rgb: [ 21,  83, 127] }, // helt flatt — deliberately dark and saturated
-  { max: 4,  rgb: [ 95, 168, 208] }, // big jump, so band 1 reads as "here"
-  { max: 6,  rgb: [150, 200, 226] },
-  { max: 9,  rgb: [196, 223, 238] },
-  { max: 13, rgb: [229, 240, 247] }, // skrått — almost gone
+  { max: 2,  rgb: [ 31,  32,  96] }, // helt flatt — very dark, unmistakable
+  { max: 4,  rgb: [168, 168, 212] }, // deliberate leap in lightness
+  { max: 6,  rgb: [194, 194, 226] },
+  { max: 9,  rgb: [216, 216, 238] },
+  { max: 13, rgb: [236, 236, 247] }, // skrått — almost gone
 ]
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])
