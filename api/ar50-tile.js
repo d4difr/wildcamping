@@ -11,9 +11,16 @@
 
 const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
 
-const LETT = '#4C9A5A'
-const MIDDELS = '#D98E04'
-const KREVENDE = '#A6432B'
+// Descriptive, not judgemental. "Dense forest" is bad for a tent and ideal for a
+// hammock — rating it "krevende" would be wrong for half the users. The layer
+// says what the ground IS; the camper decides what that means for them.
+const AAPEN_MARK = '#EBD98A'   // open, dry ground
+const FUKTIG_MARK = '#7FC3B0'  // open but moist
+const BART_FJELL = '#B0AAA0'   // bare rock
+const GLISSEN_SKOG = '#C3E09A' // scattered trees
+const SKOG = '#6FA85C'         // ordinary forest
+const TETT_SKOG = '#2E6B3C'    // dense, productive forest
+const MYR = '#9B7FB0'          // bog
 
 const eq = (p, v) =>
   `<ogc:PropertyIsEqualTo><ogc:PropertyName>${p}</ogc:PropertyName><ogc:Literal>${v}</ogc:Literal></ogc:PropertyIsEqualTo>`
@@ -30,14 +37,14 @@ const rule = (filter, color) =>
 // arskogbon: 11 impediment .. 18 høg og særs høg — productivity as a density proxy
 // arveget:   51 bar mark, 52 flekkvis, 54 samanhengande tørr, 55 frisk
 const RULES = [
-  [and(eq('artype', 50), eq('arveget', 51)), KREVENDE], // bare rock — nowhere to peg
-  [and(eq('artype', 50), eq('arveget', 52)), LETT],
-  [and(eq('artype', 50), eq('arveget', 54)), LETT],     // continuous dry cover — ideal
-  [and(eq('artype', 50), eq('arveget', 55)), MIDDELS],  // moist
-  [and(eq('artype', 30), eq('arskogbon', 11)), LETT],   // impediment forest — sparse, stunted
-  [and(eq('artype', 30), between('arskogbon', 12, 13)), MIDDELS],
-  [and(eq('artype', 30), between('arskogbon', 14, 18)), KREVENDE],
-  [eq('artype', 60), KREVENDE],                          // myr — wet ground
+  [and(eq('artype', 50), eq('arveget', 51)), BART_FJELL],
+  [and(eq('artype', 50), eq('arveget', 52)), AAPEN_MARK],
+  [and(eq('artype', 50), eq('arveget', 54)), AAPEN_MARK],
+  [and(eq('artype', 50), eq('arveget', 55)), FUKTIG_MARK],
+  [and(eq('artype', 30), eq('arskogbon', 11)), GLISSEN_SKOG], // impediment — sparse, stunted
+  [and(eq('artype', 30), between('arskogbon', 12, 13)), SKOG],
+  [and(eq('artype', 30), between('arskogbon', 14, 18)), TETT_SKOG],
+  [eq('artype', 60), MYR],
 ]
 
 const SLD =

@@ -68,10 +68,17 @@ function styleKey(bands) {
   return Math.abs(h).toString(36)
 }
 
+// Mirrors api/ar50-tile.js. Describes what the ground IS rather than rating it —
+// dense forest is poor for a tent and ideal for a hammock, so a single "krevende"
+// verdict would be wrong for half the users. Hints name the trade-off instead.
 const TERRENGTYPE_BANDS = [
-  { color: '#4C9A5A', label: 'Lett', hint: 'Åpen mark eller glissen skog' },
-  { color: '#D98E04', label: 'Middels', hint: 'Skog med moderat tetthet, eller fuktig mark' },
-  { color: '#A6432B', label: 'Krevende', hint: 'Tett skog, myr eller bart fjell' },
+  { color: '#EBD98A', label: 'Åpen mark', hint: 'Tørr, åpen bakke. Bra for telt — ingen trær til hengekøye' },
+  { color: '#7FC3B0', label: 'Fuktig mark', hint: 'Åpen, men fuktig underlag' },
+  { color: '#B0AAA0', label: 'Bart fjell', hint: 'Lite jord — vanskelig å få ned plugger' },
+  { color: '#C3E09A', label: 'Glissen skog', hint: 'Spredte trær — ofte lett å finne plass til begge deler' },
+  { color: '#6FA85C', label: 'Skog', hint: 'Vanlig skog. Trær til hengekøye, plass mellom stammene til telt' },
+  { color: '#2E6B3C', label: 'Tett skog', hint: 'Tett og produktiv skog. Fint for hengekøye, trangt for telt' },
+  { color: '#9B7FB0', label: 'Myr', hint: 'Vått underlag — sjelden egnet til telt' },
 ]
 
 const TENT_SVG = `<svg width="17" height="17" viewBox="0 0 24 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1837,8 +1844,9 @@ export default function CampingMap() {
                     ))}
                   </div>
                   <p className="terrengtype-disclaimer">
-                    Grov pekepinn på hvor lett det er å finne teltplass, basert på NIBIOs arealdata.
-                    Sier ingenting om stein, røtter eller helning — sjekk alltid selv.
+                    Viser hva slags terreng det er, basert på NIBIOs arealdata — ikke
+                    hvor bra det er å telte. Sier ingenting om stein, røtter eller
+                    helning, så sjekk alltid selv.
                   </p>
                 </>
               )}
