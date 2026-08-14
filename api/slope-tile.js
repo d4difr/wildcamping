@@ -24,9 +24,19 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 //
 // Warm gold is used because it stands out against Outdoors' greens; the earlier
 // blue ramp turned to teal and disappeared.
+// A sequential ramp rather than two flat bands — the extra steps read as terrain
+// shape, not just a yes/no mask.
+//
+// Saturation falls as slope rises, so the flattest ground still pops even though
+// every band is coloured. Above the last band nothing is drawn at all, which is
+// what stops the whole map turning to mush over the green basemap (the original
+// four-band blue version coloured 100% of every pixel and vanished into teal).
 const BANDS = [
-  { max: 3, rgb: [255, 209, 102] }, // best — comfortable pitch
-  { max: 8, rgb: [255, 233, 174] }, // usable, but you'll notice the slope
+  { max: 2,  rgb: [255, 194,  46] }, // helt flatt
+  { max: 4,  rgb: [255, 211,  92] },
+  { max: 6,  rgb: [255, 225, 140] },
+  { max: 9,  rgb: [251, 235, 187] },
+  { max: 13, rgb: [230, 224, 200] }, // skrått — nearly neutral, fading out
 ]
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])
