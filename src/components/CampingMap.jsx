@@ -45,6 +45,24 @@ const HELNING_BANDS = [
   { color: '#171A42', label: 'Bratt', hint: 'Over 13°' },
 ]
 
+// Kartverket's navneobjekttype is a long controlled vocabulary (Vann, Nut, Myr,
+// Gard, Tettbebyggelse …), so match on word stems rather than listing every value.
+const STEDSNAVN_ICONS = [
+  [/vann|vatn|tjern|tjønn|innsjø|elv|bekk|foss|fjord|bukt|vik|sjø/i, '💧'],
+  [/fjell|berg|nut|topp|haug|ås|hei|kolle|tind|pigg/i, '⛰'],
+  [/myr|mo|slette|eng/i, '🌾'],
+  [/vidde|vidda|platå/i, '⛰'],
+  [/skog|li$|lia|dal/i, '🌲'],
+  [/øy|holme|skjær|nes|odde|strand/i, '🏝'],
+  [/by|tettbe|bygd|grend|sted/i, '🏘'],
+  [/gard|gård|bruk|plass|seter|hytte|bu$/i, '🏠'],
+]
+
+function stedsnavnIcon(type) {
+  for (const [re, icon] of STEDSNAVN_ICONS) if (re.test(type || '')) return icon
+  return '📍'
+}
+
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
 const TURRUTER_MIN_ZOOM = 10
 
@@ -1341,10 +1359,63 @@ export default function CampingMap() {
     searchTimeout.current = setTimeout(async () => {
       const map = nativeMap.current
       const center = map ? map.getCenter() : { lng: 9.5, lat: 62 }
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${center.lng},${center.lat}&access_token=${TOKEN}`
-      const res = await fetch(url)
-      const data = await res.json()
-      setSearchResults(data.features || [])
+
+      // Kartverket's register knows Norwegian nature names — lakes, peaks, bogs —
+      // that Mapbox simply doesn't have. Neither is a superset of the other, so
+      // ask both and merge rather than replacing one with the other.
+      const [kv, mb] = await Promise.allSettled([
+        fetch(`https://ws.geonorge.no/stedsnavn/v1/navn?sok=${encodeURIComponent(q)}&treffPerSide=10&utkoordsys=4258`,
+          { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${center.lng},${center.lat}&access_token=${TOKEN}`,
+          { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+      ])
+
+      const fromKv = (kv.status === 'fulfilled' ? kv.value?.navn ?? [] : [])
+        // Street and property records are noise on a wild camping map.
+        .filter((n) => !/adressenavn|eiendom/i.test(n.navneobjekttype || ''))
+        .map((n) => ({
+          id: `kv-${n.stedsnummer}`,
+          name: n.skrivemåte,
+          sub: [n.navneobjekttype, n.kommuner?.[0]?.kommunenavn].filter(Boolean).join(' · '),
+          lng: n.representasjonspunkt?.øst,
+          lat: n.representasjonspunkt?.nord,
+          icon: stedsnavnIcon(n.navneobjekttype),
+        }))
+        .filter((r) => Number.isFinite(r.lng) && Number.isFinite(r.lat))
+
+      // The register fuzzy-matches, so "Krokevann" can return "Kråkevatnet" first.
+      // Rank exact, then prefix, then nearest to what the user is looking at.
+      const dist = (r) => (r.lat - center.lat) ** 2 + (r.lng - center.lng) ** 2
+      const rank = (r) => {
+        const n = r.name.toLowerCase()
+        return n === lower ? 0 : n.startsWith(lower) ? 1 : 2
+      }
+      fromKv.sort((a, b) => rank(a) - rank(b) || dist(a) - dist(b))
+
+      const fromMb = (mb.status === 'fulfilled' ? mb.value?.features ?? [] : [])
+        .filter((f) => Array.isArray(f.center))
+        .map((f) => ({
+          id: `mb-${f.id}`,
+          name: f.text,
+          sub: f.context?.slice(0, 2).map((c) => c.text).join(', ') ?? '',
+          lng: f.center[0],
+          lat: f.center[1],
+          icon: placeIcon(f.place_type),
+        }))
+
+      // Cap the register's share so Mapbox always keeps a couple of slots —
+      // otherwise a common name fills the whole list and the places only Mapbox
+      // knows (towns, POIs) never surface.
+      const seen = new Set()
+      const merged = []
+      for (const r of [...fromKv.slice(0, 6), ...fromMb]) {
+        const key = `${r.name.toLowerCase()}|${r.lat.toFixed(2)},${r.lng.toFixed(2)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        merged.push(r)
+      }
+
+      setSearchResults(merged.slice(0, 8))
       setSearchHighlight(-1)
       setSearchLoading(false)
     }, 300)
@@ -1361,10 +1432,10 @@ export default function CampingMap() {
     if (mobile) setSheetState('open')
   }
 
-  function handleSearchSelect(feature) {
-    const [lng, lat] = feature.center
+  function handleSearchSelect(result) {
+    const { lng, lat } = result
     flyTo(lng, lat)
-    setSearchQuery(feature.text)
+    setSearchQuery(result.name)
     setSearchResults([])
     setSearchOpen(false)
     clearTimeout(searchMarkerTimeout.current)
@@ -1409,12 +1480,12 @@ export default function CampingMap() {
                   </li>
                 ))}
                 {spotMatches.length > 0 && searchResults.length > 0 && <li className="search-divider" aria-hidden="true" />}
-                {searchResults.map((f, i) => (
-                  <li key={f.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(f)}>
-                    <span className="search-result-icon">{placeIcon(f.place_type)}</span>
+                {searchResults.map((r, i) => (
+                  <li key={r.id} className={i === searchHighlight ? 'search-result--active' : ''} onClick={() => handleSearchSelect(r)}>
+                    <span className="search-result-icon">{r.icon}</span>
                     <span>
-                      <span className="search-result-name">{f.text}</span>
-                      {f.context?.length > 0 && <span className="search-result-sub">{f.context.slice(0, 2).map(c => c.text).join(', ')}</span>}
+                      <span className="search-result-name">{r.name}</span>
+                      {r.sub && <span className="search-result-sub">{r.sub}</span>}
                     </span>
                   </li>
                 ))}
