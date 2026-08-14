@@ -38,17 +38,28 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 // Indigo rather than plain blue: the basemap already draws lakes in cyan-blue,
 // and a blue "helt flatt" patch beside a shoreline was ambiguous. Indigo shares
 // no hue with water (cyan), land (green) or routes (orange).
-// Band 1 is separated from the rest by VALUE, not hue. Indigo sits only ~29° from
-// the basemap's lake blue, so hue alone was not enough to stop flat shoreline
-// reading as water — but nothing on the basemap is this dark, so a near-navy
-// patch is unambiguous. Bands 2-5 are then a tight pale ramp, which keeps the
-// gradient without competing with band 1 for attention.
+// Light-to-dark: flat ground is pale, steep ground is deep indigo. That is the
+// conventional reading for terrain and matches how a shaded relief map behaves.
+//
+// Band 1 is still isolated from the rest, but now by a large gap at the LIGHT
+// end rather than the dark end — the step from band 1 to band 2 is several times
+// any later step, so prime ground reads as a distinct pale patch instead of the
+// top of a smooth ramp.
+//
+// Every slope is now coloured, including steep ground. That was previously left
+// transparent to stop the map washing out, but the old pale bands had almost no
+// contrast between them; a proper light-to-dark ramp carries full coverage fine
+// and reads as terrain shape. Only NoData stays clear.
+//
+// Water no longer matters here: the fills are drawn beneath the basemap's water
+// layer, so lakes keep their own colour regardless of what the DTM reports.
 const BANDS = [
-  { max: 2,  rgb: [ 31,  32,  96] }, // helt flatt — very dark, unmistakable
-  { max: 4,  rgb: [168, 168, 212] }, // deliberate leap in lightness
-  { max: 6,  rgb: [194, 194, 226] },
-  { max: 9,  rgb: [216, 216, 238] },
-  { max: 13, rgb: [236, 236, 247] }, // skrått — almost gone
+  { max: 2,  rgb: [240, 243, 255] }, // helt flatt — very light, isolated
+  { max: 4,  rgb: [168, 172, 216] }, // deliberate leap in darkness
+  { max: 6,  rgb: [122, 127, 187] },
+  { max: 9,  rgb: [ 82,  87, 156] },
+  { max: 13, rgb: [ 46,  51, 114] },
+  { max: 90, rgb: [ 23,  26,  66] }, // bratt — everything steeper, one band
 ]
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])

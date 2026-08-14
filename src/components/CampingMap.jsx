@@ -37,11 +37,12 @@ const HELNING_MIN_ZOOM = 13
 // Mirrors api/slope-tile.js. Only campable ground is coloured; steeper ground is
 // left unmarked so the eye goes straight to where a tent could actually go.
 const HELNING_BANDS = [
-  { color: '#1F2060', label: 'Helt flatt', hint: 'Under 2°' },
-  { color: '#A8A8D4', label: 'Nesten flatt', hint: '2–4°' },
-  { color: '#C2C2E2', label: 'Svakt skrått', hint: '4–6°' },
-  { color: '#D8D8EE', label: 'Merkbar helling', hint: '6–9°' },
-  { color: '#ECECF7', label: 'Skrått', hint: '9–13°' },
+  { color: '#F0F3FF', label: 'Helt flatt', hint: 'Under 2°' },
+  { color: '#A8ACD8', label: 'Nesten flatt', hint: '2–4°' },
+  { color: '#7A7FBB', label: 'Svakt skrått', hint: '4–6°' },
+  { color: '#52579C', label: 'Merkbar helling', hint: '6–9°' },
+  { color: '#2E3372', label: 'Skrått', hint: '9–13°' },
+  { color: '#171A42', label: 'Bratt', hint: 'Over 13°' },
 ]
 
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
@@ -1833,9 +1834,8 @@ export default function CampingMap() {
                     ))}
                   </div>
                   <p className="terrengtype-disclaimer">
-                    Brattere enn 13° er ikke markert. Målt i Kartverkets
-                    terrengmodell — viser formen på bakken, ikke stein, røtter
-                    eller vegetasjon.
+                    Målt i Kartverkets terrengmodell — viser formen på bakken,
+                    ikke stein, røtter eller vegetasjon.
                   </p>
                 </>
               )}
