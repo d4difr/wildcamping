@@ -1569,6 +1569,20 @@ export default function CampingMap() {
               const map = e.target
               nativeMap.current = map
 
+              // Where to slot the coloured fills. Beneath the basemap's water if
+              // it has one, so lakes and sea keep their own colour: the terrain
+              // model treats a lake surface as perfectly flat ground, so Helning
+              // would otherwise paint Tyrifjorden as prime camping (measured
+              // 0.011°). Satellite has no water fill — water is part of the
+              // imagery — so there we fall back to sitting under the labels.
+              function fillInsertId() {
+                const layers = map.getStyle().layers
+                const water = layers.find((l) => l.id === 'water-shadow')
+                  || layers.find((l) => l.id === 'water')
+                  || layers.find((l) => l.type === 'fill' && /^water/.test(l.id))
+                return water?.id ?? layers.find((l) => l.type === 'symbol')?.id
+              }
+
               function initTerrainLayers() {
                 if (!map.getSource('mapbox-dem')) {
                   map.addSource('mapbox-dem', {
@@ -1596,8 +1610,6 @@ export default function CampingMap() {
                   })
                 }
                 if (!map.getLayer('ar50-terrengtype')) {
-                  // Keep place labels legible by inserting under the first symbol layer
-                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
                   map.addLayer({
                     id: 'ar50-terrengtype',
                     type: 'raster',
@@ -1605,7 +1617,7 @@ export default function CampingMap() {
                     minzoom: TERRENGTYPE_MIN_ZOOM,
                     paint: { 'raster-opacity': 0.55 },
                     layout: { visibility: terrengtypeRef.current ? 'visible' : 'none' },
-                  }, firstSymbol)
+                  }, fillInsertId())
                 }
 
                 // Helning (slope) from Kartverket. No minzoom — this one renders
@@ -1621,7 +1633,6 @@ export default function CampingMap() {
                   })
                 }
                 if (!map.getLayer('kv-helning')) {
-                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
                   map.addLayer({
                     id: 'kv-helning',
                     type: 'raster',
@@ -1629,7 +1640,7 @@ export default function CampingMap() {
                     minzoom: HELNING_MIN_ZOOM,
                     paint: { 'raster-opacity': 0.65 },
                     layout: { visibility: helningRef.current ? 'visible' : 'none' },
-                  }, firstSymbol)
+                  }, fillInsertId())
                 }
 
                 // Verneområder. Vector polygons upstream, so unlike Helning this
@@ -1644,14 +1655,13 @@ export default function CampingMap() {
                   })
                 }
                 if (!map.getLayer('md-vern')) {
-                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
                   map.addLayer({
                     id: 'md-vern',
                     type: 'raster',
                     source: 'md-vern',
                     paint: { 'raster-opacity': 0.45 },
                     layout: { visibility: vernRef.current ? 'visible' : 'none' },
-                  }, firstSymbol)
+                  }, fillInsertId())
                 }
 
                 // Turruter — lines, so it sits ABOVE the fills rather than under
