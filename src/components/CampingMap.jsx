@@ -1779,7 +1779,9 @@ export default function CampingMap() {
             </button>
           </div>
 
-          {isAdmin && vern && (
+          {/* Legends sit where the Planlegg menu opens, so they yield to it.
+              The menu already shows which layers are on. */}
+          {isAdmin && vern && !planleggOpen && (
             <div className="terrengtype-legend">
               <div className="terrengtype-legend-rows">
                 {VERN_BANDS.map((b) => (
@@ -1796,7 +1798,7 @@ export default function CampingMap() {
             </div>
           )}
 
-          {isAdmin && helning && (
+          {isAdmin && helning && !planleggOpen && (
             <div className="terrengtype-legend">
               {viewState.zoom < HELNING_MIN_ZOOM ? (
                 <p className="terrengtype-zoom-hint">Zoom inn for å vise helning</p>
@@ -1820,7 +1822,7 @@ export default function CampingMap() {
             </div>
           )}
 
-          {isAdmin && terrengtype && (
+          {isAdmin && terrengtype && !planleggOpen && (
             <div className="terrengtype-legend">
               {viewState.zoom < TERRENGTYPE_MIN_ZOOM ? (
                 <p className="terrengtype-zoom-hint">Zoom inn for å vise terrengtype</p>
