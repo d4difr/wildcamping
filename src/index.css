@@ -2010,6 +2010,95 @@ button.primary:hover:not(:disabled) {
   color: #9a9d97;
 }
 
+/* Distance measuring panel */
+.measure-panel {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  background: var(--birch-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.85rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  min-width: 240px;
+  text-align: center;
+}
+
+.measure-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--granite);
+}
+
+.measure-readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.measure-distance {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.measure-points-count {
+  font-size: 0.7rem;
+  color: #9a9d97;
+}
+
+.measure-elev {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--granite);
+  font-variant-numeric: tabular-nums;
+}
+
+.measure-elev-muted { color: #9a9d97; }
+
+.measure-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.measure-actions button {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--granite);
+  cursor: pointer;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.measure-actions button:disabled { opacity: 0.4; cursor: default; }
+.measure-actions button:not(:disabled):hover { background: var(--birch); }
+
+.measure-actions .measure-close {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fff;
+}
+.measure-actions .measure-close:hover { background: #143728; }
+
+@media (max-width: 767px) {
+  .measure-panel { bottom: 5.5rem; min-width: 210px; }
+}
+
 /* Planlegg dropdown — groups the planning layers so the control bar stays short */
 .ctrl-menu-wrap {
   position: relative;

@@ -73,6 +73,58 @@ const BASEMAPS = [
   { key: 'topo', label: '🇳🇴 Topografisk', hint: 'Kartverkets norgeskart — stier, hytter, myr', style: TOPO_STYLE },
 ]
 
+// --- Distance measuring -----------------------------------------------------
+// Aimed at "how far is this spot from the road", not route planning: a few
+// clicked points, the distance along them, and how much climbing is involved.
+
+const EARTH_R = 6371000
+
+function haversine(a, b) {
+  const rad = (d) => (d * Math.PI) / 180
+  const dLat = rad(b.lat - a.lat)
+  const dLng = rad(b.lng - a.lng)
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_R * Math.asin(Math.sqrt(h))
+}
+
+function pathLength(points) {
+  let m = 0
+  for (let i = 1; i < points.length; i++) m += haversine(points[i - 1], points[i])
+  return m
+}
+
+function formatDistance(m) {
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`.replace('.', ',')
+}
+
+// Evenly spaced points along the path, for sampling an elevation profile.
+// Capped so a long path doesn't turn into a huge request.
+function sampleAlong(points, count = 80) {
+  if (points.length < 2) return points
+  const segs = []
+  let total = 0
+  for (let i = 1; i < points.length; i++) {
+    const d = haversine(points[i - 1], points[i])
+    segs.push({ a: points[i - 1], b: points[i], d })
+    total += d
+  }
+  if (total === 0) return points
+  const out = []
+  for (let i = 0; i < count; i++) {
+    let target = (total * i) / (count - 1)
+    for (const s of segs) {
+      if (target <= s.d || s === segs[segs.length - 1]) {
+        const t = s.d === 0 ? 0 : Math.min(1, target / s.d)
+        out.push({ lng: s.a.lng + (s.b.lng - s.a.lng) * t, lat: s.a.lat + (s.b.lat - s.a.lat) * t })
+        break
+      }
+      target -= s.d
+    }
+  }
+  return out
+}
+
 // Kartverket's navneobjekttype is a long controlled vocabulary (Vann, Nut, Myr,
 // Gard, Tettbebyggelse …), so match on word stems rather than listing every value.
 const STEDSNAVN_ICONS = [
@@ -955,6 +1007,10 @@ export default function CampingMap() {
   // competing — kept outside the one-at-a-time group on purpose.
   const [turruter, setTurruter] = useState(false)
   const [openMenu, setOpenMenu] = useState(null) // null | 'kart' | 'planlegg'
+  const [measuring, setMeasuring] = useState(false)
+  const [measurePoints, setMeasurePoints] = useState([])
+  const [elevation, setElevation] = useState(null) // null | 'loading' | 'error' | { gain, loss, min, max }
+  const elevationTimeout = useRef(null)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -1341,9 +1397,64 @@ export default function CampingMap() {
   }
 
   function handleMapClick(e) {
+    if (measuring) {
+      setMeasurePoints((p) => [...p, { lng: e.lngLat.lng, lat: e.lngLat.lat }])
+      return
+    }
     if (!dropMode) return
     placePin(e.lngLat.lat, e.lngLat.lng).finally(() => setLocationChecking(false))
   }
+
+  function stopMeasuring() {
+    setMeasuring(false)
+    setMeasurePoints([])
+    setElevation(null)
+    clearTimeout(elevationTimeout.current)
+  }
+
+  // Sample the terrain model along the drawn path. Kartverket allows this
+  // straight from the browser (CORS *), so no proxy — but it can be slow on a
+  // cold call, hence the debounce and the explicit loading state.
+  useEffect(() => {
+    clearTimeout(elevationTimeout.current)
+    if (measurePoints.length < 2) { setElevation(null); return }
+    setElevation('loading')
+    let cancelled = false
+    elevationTimeout.current = setTimeout(async () => {
+      const pts = sampleAlong(measurePoints, 80)
+      const body = new URLSearchParams({
+        geometry: JSON.stringify({ points: pts.map((p) => [p.lng, p.lat]), spatialReference: { wkid: 4326 } }),
+        geometryType: 'esriGeometryMultipoint',
+        returnFirstValueOnly: 'true',
+        interpolation: 'RSP_BilinearInterpolation',
+        f: 'json',
+      })
+      try {
+        const res = await fetch('https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/getSamples', {
+          method: 'POST', body, signal: AbortSignal.timeout(20000),
+        })
+        const json = await res.json()
+        if (cancelled) return
+        const z = new Array(pts.length).fill(NaN)
+        for (const s of json.samples ?? []) {
+          const v = parseFloat(s.value)
+          if (Number.isFinite(v) && Number.isInteger(s.locationId)) z[s.locationId] = v
+        }
+        const known = z.filter(Number.isFinite)
+        if (known.length < 2) { setElevation('error'); return }
+        let gain = 0, loss = 0, prev = null
+        for (const v of z) {
+          if (!Number.isFinite(v)) continue
+          if (prev !== null) { const d = v - prev; if (d > 0) gain += d; else loss -= d }
+          prev = v
+        }
+        setElevation({ gain: Math.round(gain), loss: Math.round(loss), min: Math.round(Math.min(...known)), max: Math.round(Math.max(...known)) })
+      } catch {
+        if (!cancelled) setElevation('error')
+      }
+    }, 400)
+    return () => { cancelled = true }
+  }, [measurePoints])
 
   function handleCancel() { setPendingPosition(null); setDropMode(false); setCoordInput({ lat: '', lng: '' }); setCoordError(''); setCoordExpanded(false); setLocationError('') }
 
@@ -1472,7 +1583,8 @@ export default function CampingMap() {
     searchMarkerTimeout.current = setTimeout(() => setSearchMarker(null), 4000)
   }
 
-  const cursor = dropMode ? 'crosshair' : 'grab'
+  const cursor = (dropMode || measuring) ? 'crosshair' : 'grab'
+  const measureDistance = pathLength(measurePoints)
 
   return (
     <div className="app-root">
@@ -1841,11 +1953,58 @@ export default function CampingMap() {
                 <div className="search-marker-pin" />
               </Marker>
             )}
+
+            {measurePoints.length > 0 && (
+              <Source
+                id="measure"
+                type="geojson"
+                data={{
+                  type: 'FeatureCollection',
+                  features: [
+                    ...(measurePoints.length > 1 ? [{
+                      type: 'Feature',
+                      geometry: { type: 'LineString', coordinates: measurePoints.map((p) => [p.lng, p.lat]) },
+                    }] : []),
+                    ...measurePoints.map((p) => ({
+                      type: 'Feature',
+                      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+                    })),
+                  ],
+                }}
+              >
+                <Layer
+                  id="measure-line-casing"
+                  type="line"
+                  filter={['==', '$type', 'LineString']}
+                  paint={{ 'line-color': '#fff', 'line-width': 6, 'line-opacity': 0.9 }}
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                />
+                <Layer
+                  id="measure-line"
+                  type="line"
+                  filter={['==', '$type', 'LineString']}
+                  paint={{ 'line-color': '#d98e04', 'line-width': 3 }}
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                />
+                <Layer
+                  id="measure-points"
+                  type="circle"
+                  filter={['==', '$type', 'Point']}
+                  paint={{ 'circle-radius': 5, 'circle-color': '#d98e04', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' }}
+                />
+              </Source>
+            )}
           </Map>
 
           <div className="controls">
             <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
               {terrain3D ? '🏔 3D på' : '🏔 3D'}
+            </button>
+            <button
+              className={`layer-toggle${measuring ? ' layer-toggle--active' : ''}`}
+              onClick={() => (measuring ? stopMeasuring() : (setMeasuring(true), setOpenMenu(null)))}
+            >
+              📏 Mål
             </button>
             <div className="ctrl-menu-wrap" ref={kartRef}>
               <button
@@ -1931,6 +2090,45 @@ export default function CampingMap() {
 
           {/* Legends sit where the Planlegg menu opens, so they yield to it.
               The menu already shows which layers are on. */}
+          {measuring && (
+            <div className="measure-panel">
+              {measurePoints.length < 2 ? (
+                <p className="measure-hint">
+                  {measurePoints.length === 0
+                    ? 'Klikk i kartet for å måle avstand'
+                    : 'Klikk et punkt til'}
+                </p>
+              ) : (
+                <>
+                  <div className="measure-readout">
+                    <span className="measure-distance">{formatDistance(measureDistance)}</span>
+                    <span className="measure-points-count">{measurePoints.length} punkter</span>
+                  </div>
+                  <div className="measure-elev">
+                    {elevation === 'loading' && <span className="measure-elev-muted">Henter høyde…</span>}
+                    {elevation === 'error' && <span className="measure-elev-muted">Ingen høydedata her</span>}
+                    {elevation && typeof elevation === 'object' && (
+                      <>
+                        <span>↑ {elevation.gain} m</span>
+                        <span>↓ {elevation.loss} m</span>
+                        <span className="measure-elev-muted">{elevation.min}–{elevation.max} moh.</span>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+              <div className="measure-actions">
+                <button onClick={() => setMeasurePoints((p) => p.slice(0, -1))} disabled={!measurePoints.length}>
+                  ↩ Angre
+                </button>
+                <button onClick={() => setMeasurePoints([])} disabled={!measurePoints.length}>
+                  Nullstill
+                </button>
+                <button className="measure-close" onClick={stopMeasuring}>Ferdig</button>
+              </div>
+            </div>
+          )}
+
           {isAdmin && vern && !openMenu && (
             <div className="terrengtype-legend">
               <div className="terrengtype-legend-rows">
