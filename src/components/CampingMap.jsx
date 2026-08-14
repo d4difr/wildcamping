@@ -41,6 +41,9 @@ const HELNING_BANDS = [
   { color: '#FFE9AE', label: 'Litt skrått', hint: '3–8° — går an, men du merker det' },
 ]
 
+// Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
+const TURRUTER_MIN_ZOOM = 10
+
 // Mirrors api/vern-tile.js. A legal layer, not a terrain one — purple family so
 // it never reads as "the ground looks like this".
 const VERN_BANDS = [
@@ -883,11 +886,17 @@ export default function CampingMap() {
   const terrengtypeRef = useRef(false)
   const helningRef = useRef(false)
   const vernRef = useRef(false)
+  const turruterRef = useRef(false)
+  const planleggRef = useRef(null)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [terrengtype, setTerrengtype] = useState(false)
   const [helning, setHelning] = useState(false)
   const [vern, setVern] = useState(false)
+  // Turruter draws lines, not fills, so it stacks with the others rather than
+  // competing — kept outside the one-at-a-time group on purpose.
+  const [turruter, setTurruter] = useState(false)
+  const [planleggOpen, setPlanleggOpen] = useState(false)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -1010,7 +1019,18 @@ export default function CampingMap() {
   // Terrengtype is admin-only while in development. If admin logs out with the
   // layer on, the toggle disappears — so turn the layer off too.
   useEffect(() => {
+    if (!planleggOpen) return
+    function onDown(e) {
+      if (!planleggRef.current?.contains(e.target)) setPlanleggOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [planleggOpen])
+
+  useEffect(() => {
     if (isAdmin) return
+    setPlanleggOpen(false)
+    if (turruterRef.current) toggleTurruter()
     if (!terrengtypeRef.current && !helningRef.current && !vernRef.current) return
     setOverlay(null)
   }, [isAdmin])
@@ -1140,6 +1160,17 @@ export default function CampingMap() {
   function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
   function toggleHelning() { setOverlay(helning ? null : 'helning') }
   function toggleVern() { setOverlay(vern ? null : 'vern') }
+
+  // Independent of the fill group — routes are meant to be read on top of terrain.
+  function toggleTurruter() {
+    const next = !turruter
+    setTurruter(next)
+    turruterRef.current = next
+    const map = nativeMap.current
+    if (map?.getLayer('kv-turruter')) {
+      map.setLayoutProperty('kv-turruter', 'visibility', next ? 'visible' : 'none')
+    }
+  }
 
   function flyTo(lng, lat, zoom = null, bottomPadding = 0) {
     const map = nativeMap.current
@@ -1612,6 +1643,30 @@ export default function CampingMap() {
                     layout: { visibility: vernRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
+
+                // Turruter — lines, so it sits ABOVE the fills rather than under
+                // them, otherwise a fill would wash the routes out.
+                if (!map.getSource('kv-turruter')) {
+                  map.addSource('kv-turruter', {
+                    type: 'raster',
+                    tiles: ['/api/turrute-tile?bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    minzoom: TURRUTER_MIN_ZOOM,
+                    maxzoom: 16,
+                    attribution: 'Turruter: Kilde Kartverket',
+                  })
+                }
+                if (!map.getLayer('kv-turruter')) {
+                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
+                  map.addLayer({
+                    id: 'kv-turruter',
+                    type: 'raster',
+                    source: 'kv-turruter',
+                    minzoom: TURRUTER_MIN_ZOOM,
+                    paint: { 'raster-opacity': 0.9 },
+                    layout: { visibility: turruterRef.current ? 'visible' : 'none' },
+                  }, firstSymbol)
+                }
               }
 
               initTerrainLayers()
@@ -1669,19 +1724,53 @@ export default function CampingMap() {
               {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
             </button>
             {/* Under utvikling — kun synlig for admin */}
-            {isAdmin && (
-              <>
-                <button className={`layer-toggle${terrengtype ? ' layer-toggle--active' : ''}`} onClick={toggleTerrengtype}>
-                  {terrengtype ? '🌲 Terrengtype på' : '🌲 Terrengtype'}
-                </button>
-                <button className={`layer-toggle${helning ? ' layer-toggle--active' : ''}`} onClick={toggleHelning}>
-                  {helning ? '📐 Helning på' : '📐 Helning'}
-                </button>
-                <button className={`layer-toggle${vern ? ' layer-toggle--active' : ''}`} onClick={toggleVern}>
-                  {vern ? '🛡 Vern på' : '🛡 Vern'}
-                </button>
-              </>
-            )}
+            {isAdmin && (() => {
+              const active = [terrengtype, helning, vern, turruter].filter(Boolean).length
+              const fills = [
+                { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Skog, myr og åpen mark' },
+                { on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
+                { on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
+              ]
+              return (
+                <div className="planlegg-wrap" ref={planleggRef}>
+                  <button
+                    className={`layer-toggle${active ? ' layer-toggle--active' : ''}`}
+                    onClick={() => setPlanleggOpen((o) => !o)}
+                  >
+                    🧭 Planlegg{active > 0 && <span className="planlegg-count">{active}</span>}
+                  </button>
+                  {planleggOpen && (
+                    <div className="planlegg-menu">
+                      <p className="planlegg-group">Terreng <span>· velg én</span></p>
+                      {fills.map((f) => (
+                        <button
+                          key={f.label}
+                          className={`planlegg-item${f.on ? ' planlegg-item--on' : ''}`}
+                          onClick={f.toggle}
+                        >
+                          <span className="planlegg-check">{f.on ? '✓' : ''}</span>
+                          <span className="planlegg-item-text">
+                            <strong>{f.icon} {f.label}</strong>
+                            <span>{f.hint}</span>
+                          </span>
+                        </button>
+                      ))}
+                      <p className="planlegg-group">Ruter</p>
+                      <button
+                        className={`planlegg-item${turruter ? ' planlegg-item--on' : ''}`}
+                        onClick={toggleTurruter}
+                      >
+                        <span className="planlegg-check">{turruter ? '✓' : ''}</span>
+                        <span className="planlegg-item-text">
+                          <strong>🥾 Turruter</strong>
+                          <span>Merkede stier — kan vises sammen med terreng</span>
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
               onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}

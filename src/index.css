@@ -2010,6 +2010,97 @@ button.primary:hover:not(:disabled) {
   color: #9a9d97;
 }
 
+/* Planlegg dropdown — groups the planning layers so the control bar stays short */
+.planlegg-wrap {
+  position: relative;
+}
+
+.planlegg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 0.35rem;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.9);
+  color: var(--forest);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.planlegg-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1002;
+  min-width: 260px;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--birch-card);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+}
+
+.planlegg-group {
+  margin: 0.35rem 0 0.3rem;
+  padding: 0 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a9d97;
+}
+.planlegg-group span {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.planlegg-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.4rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.planlegg-item:hover { background: var(--birch); }
+
+.planlegg-item--on { background: rgba(27,67,50,0.07); }
+
+.planlegg-check {
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--forest);
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.planlegg-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.planlegg-item-text strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--granite);
+}
+.planlegg-item-text span {
+  font-size: 0.68rem;
+  color: #8a8d87;
+  line-height: 1.3;
+}
+
 /* Terrengtype overlay legend */
 .terrengtype-legend {
   position: absolute;
