@@ -4,21 +4,29 @@
 // Slope -> Remap -> Colormap chain and it returns a finished image. Nothing is
 // precomputed or stored on our side.
 //
-// Unlike the AR50 Terrengtype layer, this renders at every zoom level — verified
-// from z5 (whole country) to z14 — so it works as a national overview.
+// IMPORTANT — this renders at any zoom but is only *meaningful* when zoomed in.
+// ArcGIS computes slope at the requested output resolution, so a zoomed-out tile
+// averages steep ground into gentle ground. Measured on one Lofoten tile, the
+// share reading "flat" went 82% at z11 -> 51% at z13 -> 12% at z15, for the same
+// cliffs. The layer is therefore gated to TERRENGTYPE/HELNING min zoom on the
+// client; do not lower it without re-measuring that drift.
 //
 // Kartverket høydedata, open data. Attribution: "Kilde: Kartverket".
 
 const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportImage'
 
 // Slope bands in degrees, chosen for pitching a tent rather than avalanche risk.
-// Kept deliberately distinct from the Terrengtype palette so the two layers are
-// never confused for one another.
+//
+// Only campable ground is coloured. Anything steeper than the last band is left
+// transparent (AllowUnmatched: false), so the map highlights where you *could*
+// pitch rather than washing every pixel in colour — which read as mush over the
+// green basemap and buried the signal.
+//
+// Warm gold is used because it stands out against Outdoors' greens; the earlier
+// blue ramp turned to teal and disappeared.
 const BANDS = [
-  { max: 5,  rgb: [168, 213, 232] }, // flat enough to sleep on
-  { max: 10, rgb: [91, 155, 196] },  // noticeably sloping
-  { max: 20, rgb: [74, 92, 155] },   // hard work
-  { max: 90, rgb: [61, 46, 90] },    // steep
+  { max: 3, rgb: [255, 209, 102] }, // best — comfortable pitch
+  { max: 8, rgb: [255, 233, 174] }, // usable, but you'll notice the slope
 ]
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])

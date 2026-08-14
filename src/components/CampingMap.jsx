@@ -29,13 +29,16 @@ function flatnessLabel(deg) {
   return { text: 'Bratt', tone: 'poor' }
 }
 
-// Slope bands, mirroring api/slope-tile.js. Palette is deliberately unlike the
-// Terrengtype one so the two layers can't be mistaken for each other.
+// Slope only carries its stated meaning when zoomed in — a zoomed-out tile
+// averages steep ground into gentle ground. Measured drift on one Lofoten tile:
+// 82% "flat" at z11, 51% at z13, 12% at z15, for the same cliffs.
+const HELNING_MIN_ZOOM = 13
+
+// Mirrors api/slope-tile.js. Only campable ground is coloured; steeper ground is
+// left unmarked so the eye goes straight to where a tent could actually go.
 const HELNING_BANDS = [
-  { color: '#A8D5E8', label: 'Flatt', hint: 'Under 5° — fint å telte' },
-  { color: '#5B9BC4', label: 'Svak helling', hint: '5–10° — mulig, men skrår' },
-  { color: '#4A5C9B', label: 'Bratt', hint: '10–20° — vanskelig' },
-  { color: '#3D2E5A', label: 'Svært bratt', hint: 'Over 20°' },
+  { color: '#FFD166', label: 'Flatt', hint: 'Under 3° — behagelig teltplass' },
+  { color: '#FFE9AE', label: 'Litt skrått', hint: '3–8° — går an, men du merker det' },
 ]
 
 const TERRENGTYPE_BANDS = [
@@ -1553,6 +1556,7 @@ export default function CampingMap() {
                     type: 'raster',
                     tiles: ['/api/slope-tile?bbox={bbox-epsg-3857}'],
                     tileSize: 256,
+                    minzoom: HELNING_MIN_ZOOM,
                     maxzoom: 16,
                     attribution: 'Helning: Kilde Kartverket',
                   })
@@ -1563,7 +1567,8 @@ export default function CampingMap() {
                     id: 'kv-helning',
                     type: 'raster',
                     source: 'kv-helning',
-                    paint: { 'raster-opacity': 0.5 },
+                    minzoom: HELNING_MIN_ZOOM,
+                    paint: { 'raster-opacity': 0.65 },
                     layout: { visibility: helningRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
@@ -1644,18 +1649,25 @@ export default function CampingMap() {
 
           {isAdmin && helning && (
             <div className="terrengtype-legend">
-              <div className="terrengtype-legend-rows">
-                {HELNING_BANDS.map((b) => (
-                  <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
-                    <span className="terrengtype-swatch" style={{ background: b.color }} />
-                    <span className="terrengtype-legend-label">{b.label}</span>
+              {viewState.zoom < HELNING_MIN_ZOOM ? (
+                <p className="terrengtype-zoom-hint">Zoom inn for å vise helning</p>
+              ) : (
+                <>
+                  <div className="terrengtype-legend-rows">
+                    {HELNING_BANDS.map((b) => (
+                      <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
+                        <span className="terrengtype-swatch" style={{ background: b.color }} />
+                        <span className="terrengtype-legend-label">{b.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <p className="terrengtype-disclaimer">
-                Hvor bratt bakken er, målt i Kartverkets terrengmodell. Viser
-                formen på bakken — ikke stein, røtter eller vegetasjon.
-              </p>
+                  <p className="terrengtype-disclaimer">
+                    Brattere enn 8° er ikke markert. Målt i Kartverkets
+                    terrengmodell — viser formen på bakken, ikke stein, røtter
+                    eller vegetasjon.
+                  </p>
+                </>
+              )}
             </div>
           )}
 
