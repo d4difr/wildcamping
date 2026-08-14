@@ -68,9 +68,9 @@ const TOPO_STYLE = {
 }
 
 const BASEMAPS = [
-  { key: 'outdoors', label: '🗺 Outdoors', style: 'mapbox://styles/mapbox/outdoors-v12' },
-  { key: 'satellite', label: '🛰 Satellite', style: 'mapbox://styles/mapbox/satellite-streets-v12' },
-  { key: 'topo', label: '🇳🇴 Topo', style: TOPO_STYLE },
+  { key: 'outdoors', label: '🗺 Outdoors', hint: 'Mapbox friluftskart', style: 'mapbox://styles/mapbox/outdoors-v12' },
+  { key: 'satellite', label: '🛰 Satellitt', hint: 'Flyfoto', style: 'mapbox://styles/mapbox/satellite-streets-v12' },
+  { key: 'topo', label: '🇳🇴 Topografisk', hint: 'Kartverkets norgeskart — stier, hytter, myr', style: TOPO_STYLE },
 ]
 
 // Kartverket's navneobjekttype is a long controlled vocabulary (Vann, Nut, Myr,
@@ -945,6 +945,7 @@ export default function CampingMap() {
   const vernRef = useRef(false)
   const turruterRef = useRef(false)
   const planleggRef = useRef(null)
+  const kartRef = useRef(null)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [terrengtype, setTerrengtype] = useState(false)
@@ -953,7 +954,7 @@ export default function CampingMap() {
   // Turruter draws lines, not fills, so it stacks with the others rather than
   // competing — kept outside the one-at-a-time group on purpose.
   const [turruter, setTurruter] = useState(false)
-  const [planleggOpen, setPlanleggOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState(null) // null | 'kart' | 'planlegg'
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -1075,17 +1076,18 @@ export default function CampingMap() {
   // Terrengtype is admin-only while in development. If admin logs out with the
   // layer on, the toggle disappears — so turn the layer off too.
   useEffect(() => {
-    if (!planleggOpen) return
+    if (!openMenu) return
     function onDown(e) {
-      if (!planleggRef.current?.contains(e.target)) setPlanleggOpen(false)
+      const wrap = openMenu === 'kart' ? kartRef.current : planleggRef.current
+      if (!wrap?.contains(e.target)) setOpenMenu(null)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
-  }, [planleggOpen])
+  }, [openMenu])
 
   useEffect(() => {
     if (isAdmin) return
-    setPlanleggOpen(false)
+    setOpenMenu(null)
     if (turruterRef.current) toggleTurruter()
     if (!terrengtypeRef.current && !helningRef.current && !vernRef.current) return
     setOverlay(null)
@@ -1128,7 +1130,6 @@ export default function CampingMap() {
   const activeAdminPendingSpot = isAdminPendingActive ? adminPendingSpots.find(s => `adminPending:${s.id}` === activeId) || null : null
   const activeSpot = (isPendingActive || isAdminPendingActive) ? null : spots.find((s) => s.id === activeId) || null
   const basemapIndex = Math.max(0, BASEMAPS.findIndex((b) => b.key === basemap))
-  const nextBasemap = BASEMAPS[(basemapIndex + 1) % BASEMAPS.length]
 
   // Measure flatness the first time a spot is opened, then reuse the stored
   // value. Kartverket is only asked once per spot.
@@ -1846,10 +1847,32 @@ export default function CampingMap() {
             <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
               {terrain3D ? '🏔 3D på' : '🏔 3D'}
             </button>
-            {/* Cycles Outdoors -> Satellite -> Topo. Label shows what you get next. */}
-            <button className="layer-toggle" onClick={() => setBasemap(nextBasemap.key)}>
-              {nextBasemap.label}
-            </button>
+            <div className="ctrl-menu-wrap" ref={kartRef}>
+              <button
+                className="layer-toggle"
+                onClick={() => setOpenMenu((m) => (m === 'kart' ? null : 'kart'))}
+              >
+                {BASEMAPS[basemapIndex].label}
+              </button>
+              {openMenu === 'kart' && (
+                <div className="ctrl-menu">
+                  <p className="ctrl-menu-group">Kart</p>
+                  {BASEMAPS.map((b) => (
+                    <button
+                      key={b.key}
+                      className={`ctrl-menu-item${b.key === basemap ? ' ctrl-menu-item--on' : ''}`}
+                      onClick={() => { setBasemap(b.key); setOpenMenu(null) }}
+                    >
+                      <span className="ctrl-menu-check">{b.key === basemap ? '✓' : ''}</span>
+                      <span className="ctrl-menu-item-text">
+                        <strong>{b.label}</strong>
+                        <span>{b.hint}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {/* Under utvikling — kun synlig for admin */}
             {isAdmin && (() => {
               const active = [terrengtype, helning, vern, turruter].filter(Boolean).length
@@ -1859,36 +1882,36 @@ export default function CampingMap() {
                 { on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
               ]
               return (
-                <div className="planlegg-wrap" ref={planleggRef}>
+                <div className="ctrl-menu-wrap" ref={planleggRef}>
                   <button
                     className={`layer-toggle${active ? ' layer-toggle--active' : ''}`}
-                    onClick={() => setPlanleggOpen((o) => !o)}
+                    onClick={() => setOpenMenu((m) => (m === 'planlegg' ? null : 'planlegg'))}
                   >
-                    🧭 Planlegg{active > 0 && <span className="planlegg-count">{active}</span>}
+                    🧭 Planlegg{active > 0 && <span className="ctrl-menu-count">{active}</span>}
                   </button>
-                  {planleggOpen && (
-                    <div className="planlegg-menu">
-                      <p className="planlegg-group">Terreng <span>· velg én</span></p>
+                  {openMenu === 'planlegg' && (
+                    <div className="ctrl-menu">
+                      <p className="ctrl-menu-group">Terreng <span>· velg én</span></p>
                       {fills.map((f) => (
                         <button
                           key={f.label}
-                          className={`planlegg-item${f.on ? ' planlegg-item--on' : ''}`}
+                          className={`ctrl-menu-item${f.on ? ' ctrl-menu-item--on' : ''}`}
                           onClick={f.toggle}
                         >
-                          <span className="planlegg-check">{f.on ? '✓' : ''}</span>
-                          <span className="planlegg-item-text">
+                          <span className="ctrl-menu-check">{f.on ? '✓' : ''}</span>
+                          <span className="ctrl-menu-item-text">
                             <strong>{f.icon} {f.label}</strong>
                             <span>{f.hint}</span>
                           </span>
                         </button>
                       ))}
-                      <p className="planlegg-group">Ruter</p>
+                      <p className="ctrl-menu-group">Ruter</p>
                       <button
-                        className={`planlegg-item${turruter ? ' planlegg-item--on' : ''}`}
+                        className={`ctrl-menu-item${turruter ? ' ctrl-menu-item--on' : ''}`}
                         onClick={toggleTurruter}
                       >
-                        <span className="planlegg-check">{turruter ? '✓' : ''}</span>
-                        <span className="planlegg-item-text">
+                        <span className="ctrl-menu-check">{turruter ? '✓' : ''}</span>
+                        <span className="ctrl-menu-item-text">
                           <strong>🥾 Turruter</strong>
                           <span>Merkede stier — kan vises sammen med terreng</span>
                         </span>
@@ -1908,7 +1931,7 @@ export default function CampingMap() {
 
           {/* Legends sit where the Planlegg menu opens, so they yield to it.
               The menu already shows which layers are on. */}
-          {isAdmin && vern && !planleggOpen && (
+          {isAdmin && vern && !openMenu && (
             <div className="terrengtype-legend">
               <div className="terrengtype-legend-rows">
                 {VERN_BANDS.map((b) => (
@@ -1925,7 +1948,7 @@ export default function CampingMap() {
             </div>
           )}
 
-          {isAdmin && helning && !planleggOpen && (
+          {isAdmin && helning && !openMenu && (
             <div className="terrengtype-legend">
               {viewState.zoom < HELNING_MIN_ZOOM ? (
                 <p className="terrengtype-zoom-hint">Zoom inn for å vise helning</p>
@@ -1948,7 +1971,7 @@ export default function CampingMap() {
             </div>
           )}
 
-          {isAdmin && terrengtype && !planleggOpen && (
+          {isAdmin && terrengtype && !openMenu && (
             <div className="terrengtype-legend">
               {viewState.zoom < TERRENGTYPE_MIN_ZOOM ? (
                 <p className="terrengtype-zoom-hint">Zoom inn for å vise terrengtype</p>
