@@ -45,6 +45,34 @@ const HELNING_BANDS = [
   { color: '#171A42', label: 'Bratt', hint: 'Over 13°' },
 ]
 
+// Kartverket's topographic map, served from their open tile cache — no token,
+// CORS *, and it renders z4-z18 (verified). This is the map Norwegians know from
+// norgeskart.no and DNT: marked trails, cabins and terrain naming that Mapbox
+// Outdoors doesn't carry for Norway.
+//
+// A minimal style rather than a Mapbox style URL. It has no symbol layers, so no
+// glyphs/sprite are needed; the overlay layers are all raster and get added
+// programmatically on style.load as usual.
+const TOPO_STYLE = {
+  version: 8,
+  sources: {
+    'kv-topo': {
+      type: 'raster',
+      tiles: ['https://cache.kartverket.no/v1/service?service=WMTS&request=GetTile&version=1.0.0&layer=topo&style=default&tilematrixset=webmercator&TileMatrix={z}&TileRow={y}&TileCol={x}&format=image/png'],
+      tileSize: 256,
+      maxzoom: 18,
+      attribution: '<a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>',
+    },
+  },
+  layers: [{ id: 'kv-topo-layer', type: 'raster', source: 'kv-topo' }],
+}
+
+const BASEMAPS = [
+  { key: 'outdoors', label: '🗺 Outdoors', style: 'mapbox://styles/mapbox/outdoors-v12' },
+  { key: 'satellite', label: '🛰 Satellite', style: 'mapbox://styles/mapbox/satellite-streets-v12' },
+  { key: 'topo', label: '🇳🇴 Topo', style: TOPO_STYLE },
+]
+
 // Kartverket's navneobjekttype is a long controlled vocabulary (Vann, Nut, Myr,
 // Gard, Tettbebyggelse …), so match on word stems rather than listing every value.
 const STEDSNAVN_ICONS = [
@@ -932,7 +960,7 @@ export default function CampingMap() {
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState(() => { const p = new URLSearchParams(window.location.search); return p.get('spot') || null })
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/outdoors-v12')
+  const [basemap, setBasemap] = useState('outdoors')
   const [filters, setFilters] = useState({ types: [], access: [], regions: [] })
   const [dropMode, setDropMode] = useState(false)
   const [locationChecking, setLocationChecking] = useState(false)
@@ -970,7 +998,6 @@ export default function CampingMap() {
   const sheetRef = useRef(null)
   const dragStartY = useRef(null)
   const dragStartTranslateY = useRef(0)
-  const isSatellite = mapStyle.includes('satellite')
 
   useEffect(() => {
     function onResize() { setIsMobile(window.innerWidth < 768) }
@@ -1100,7 +1127,8 @@ export default function CampingMap() {
   const activePendingSpot = isPendingActive ? ownPendingSpots.find(s => `pending:${s.id}` === activeId) || null : null
   const activeAdminPendingSpot = isAdminPendingActive ? adminPendingSpots.find(s => `adminPending:${s.id}` === activeId) || null : null
   const activeSpot = (isPendingActive || isAdminPendingActive) ? null : spots.find((s) => s.id === activeId) || null
-  const isSatelliteStyle = mapStyle.includes('satellite')
+  const basemapIndex = Math.max(0, BASEMAPS.findIndex((b) => b.key === basemap))
+  const nextBasemap = BASEMAPS[(basemapIndex + 1) % BASEMAPS.length]
 
   // Measure flatness the first time a spot is opened, then reuse the stored
   // value. Kartverket is only asked once per spot.
@@ -1629,7 +1657,7 @@ export default function CampingMap() {
             ref={mapRef}
             {...viewState}
             onMove={e => setViewState(e.viewState)}
-            mapStyle={mapStyle}
+            mapStyle={BASEMAPS[basemapIndex].style}
             mapboxAccessToken={TOKEN}
             projection={terrain3D ? 'globe' : 'mercator'}
             maxPitch={terrain3D ? 85 : 0}
@@ -1812,8 +1840,9 @@ export default function CampingMap() {
             <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
               {terrain3D ? '🏔 3D på' : '🏔 3D'}
             </button>
-            <button className="layer-toggle" onClick={() => setMapStyle(isSatelliteStyle ? 'mapbox://styles/mapbox/outdoors-v12' : 'mapbox://styles/mapbox/satellite-streets-v12')}>
-              {isSatelliteStyle ? '🗺 Outdoors' : '🛰 Satellite'}
+            {/* Cycles Outdoors -> Satellite -> Topo. Label shows what you get next. */}
+            <button className="layer-toggle" onClick={() => setBasemap(nextBasemap.key)}>
+              {nextBasemap.label}
             </button>
             {/* Under utvikling — kun synlig for admin */}
             {isAdmin && (() => {
