@@ -41,6 +41,14 @@ const HELNING_BANDS = [
   { color: '#FFE9AE', label: 'Litt skrått', hint: '3–8° — går an, men du merker det' },
 ]
 
+// Mirrors api/vern-tile.js. A legal layer, not a terrain one — purple family so
+// it never reads as "the ground looks like this".
+const VERN_BANDS = [
+  { color: '#B03060', label: 'Naturreservat', hint: 'Ofte forbud mot telting' },
+  { color: '#7B4B94', label: 'Nasjonalpark', hint: 'Telting normalt tillatt, men egne regler' },
+  { color: '#A98FC4', label: 'Landskapsvern m.m.', hint: 'Som regel tillatt' },
+]
+
 // Overlay tiles are cached for 30 days at the edge and a day in the browser, and
 // the URL is the cache key. Changing a palette or threshold without changing the
 // URL leaves stale tiles served alongside fresh ones — which showed up as a
@@ -874,10 +882,12 @@ export default function CampingMap() {
   const terrain3DRef = useRef(false)
   const terrengtypeRef = useRef(false)
   const helningRef = useRef(false)
+  const vernRef = useRef(false)
   const [viewState, setViewState] = useState({ longitude: 9.5, latitude: 62.0, zoom: 5, pitch: 0, bearing: 0 })
   const [terrain3D, setTerrain3D] = useState(false)
   const [terrengtype, setTerrengtype] = useState(false)
   const [helning, setHelning] = useState(false)
+  const [vern, setVern] = useState(false)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
@@ -1000,18 +1010,9 @@ export default function CampingMap() {
   // Terrengtype is admin-only while in development. If admin logs out with the
   // layer on, the toggle disappears — so turn the layer off too.
   useEffect(() => {
-    if (isAdmin || (!terrengtypeRef.current && !helningRef.current)) return
-    setTerrengtype(false)
-    terrengtypeRef.current = false
-    setHelning(false)
-    helningRef.current = false
-    const map = nativeMap.current
-    if (map?.getLayer('ar50-terrengtype')) {
-      map.setLayoutProperty('ar50-terrengtype', 'visibility', 'none')
-    }
-    if (map?.getLayer('kv-helning')) {
-      map.setLayoutProperty('kv-helning', 'visibility', 'none')
-    }
+    if (isAdmin) return
+    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current) return
+    setOverlay(null)
   }, [isAdmin])
 
   useEffect(() => {
@@ -1116,28 +1117,29 @@ export default function CampingMap() {
     }
   }
 
-  // Terrengtype and Helning are never shown together — two coloured overlays at
-  // once is unreadable, and they mean different things.
+  // Only one coloured overlay at a time — stacking them is unreadable, and they
+  // mean different things. Table-driven so adding a layer can't half-wire it.
+  const OVERLAYS = [
+    { key: 'terrengtype', layer: 'ar50-terrengtype', set: setTerrengtype, ref: terrengtypeRef },
+    { key: 'helning', layer: 'kv-helning', set: setHelning, ref: helningRef },
+    { key: 'vern', layer: 'md-vern', set: setVern, ref: vernRef },
+  ]
+
   function setOverlay(which) {
     const map = nativeMap.current
-    const wantTerreng = which === 'terrengtype'
-    const wantHelning = which === 'helning'
-
-    setTerrengtype(wantTerreng)
-    terrengtypeRef.current = wantTerreng
-    setHelning(wantHelning)
-    helningRef.current = wantHelning
-
-    if (map?.getLayer('ar50-terrengtype')) {
-      map.setLayoutProperty('ar50-terrengtype', 'visibility', wantTerreng ? 'visible' : 'none')
-    }
-    if (map?.getLayer('kv-helning')) {
-      map.setLayoutProperty('kv-helning', 'visibility', wantHelning ? 'visible' : 'none')
+    for (const o of OVERLAYS) {
+      const on = o.key === which
+      o.set(on)
+      o.ref.current = on
+      if (map?.getLayer(o.layer)) {
+        map.setLayoutProperty(o.layer, 'visibility', on ? 'visible' : 'none')
+      }
     }
   }
 
   function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
   function toggleHelning() { setOverlay(helning ? null : 'helning') }
+  function toggleVern() { setOverlay(vern ? null : 'vern') }
 
   function flyTo(lng, lat, zoom = null, bottomPadding = 0) {
     const map = nativeMap.current
@@ -1588,6 +1590,28 @@ export default function CampingMap() {
                     layout: { visibility: helningRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
+
+                // Verneområder. Vector polygons upstream, so unlike Helning this
+                // stays meaningful at every zoom — no minzoom needed.
+                if (!map.getSource('md-vern')) {
+                  map.addSource('md-vern', {
+                    type: 'raster',
+                    tiles: [`/api/vern-tile?v=${styleKey(VERN_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tileSize: 256,
+                    maxzoom: 16,
+                    attribution: 'Vern: Kilde Miljødirektoratet',
+                  })
+                }
+                if (!map.getLayer('md-vern')) {
+                  const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
+                  map.addLayer({
+                    id: 'md-vern',
+                    type: 'raster',
+                    source: 'md-vern',
+                    paint: { 'raster-opacity': 0.45 },
+                    layout: { visibility: vernRef.current ? 'visible' : 'none' },
+                  }, firstSymbol)
+                }
               }
 
               initTerrainLayers()
@@ -1653,6 +1677,9 @@ export default function CampingMap() {
                 <button className={`layer-toggle${helning ? ' layer-toggle--active' : ''}`} onClick={toggleHelning}>
                   {helning ? '📐 Helning på' : '📐 Helning'}
                 </button>
+                <button className={`layer-toggle${vern ? ' layer-toggle--active' : ''}`} onClick={toggleVern}>
+                  {vern ? '🛡 Vern på' : '🛡 Vern'}
+                </button>
               </>
             )}
             <button
@@ -1662,6 +1689,23 @@ export default function CampingMap() {
               {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
           </div>
+
+          {isAdmin && vern && (
+            <div className="terrengtype-legend">
+              <div className="terrengtype-legend-rows">
+                {VERN_BANDS.map((b) => (
+                  <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
+                    <span className="terrengtype-swatch" style={{ background: b.color }} />
+                    <span className="terrengtype-legend-label">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="terrengtype-disclaimer">
+                Hvert verneområde har sin egen forskrift. Kartet viser bare hvor
+                vernet gjelder — sjekk alltid reglene før du telter.
+              </p>
+            </div>
+          )}
 
           {isAdmin && helning && (
             <div className="terrengtype-legend">
