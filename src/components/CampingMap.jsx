@@ -169,6 +169,16 @@ const KRONEDEKNING_BANDS = [
   { color: '#00441B', label: 'Tett', hint: 'Nesten helt lukket kronedekke' },
 ]
 
+// Egnet needs slope, which only carries its meaning from z13 (see slope-tile.js).
+const EGNET_MIN_ZOOM = 13
+
+const EGNET_TELT_BANDS = [
+  { color: '#1B5E20', label: 'Egnet for telt', hint: 'Flatt (under 2°) og ikke tett skog' },
+]
+const EGNET_HENGEKOYE_BANDS = [
+  { color: '#5C4A1E', label: 'Egnet for hengekøye', hint: 'Trær å henge i — helning spiller mindre rolle' },
+]
+
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
 const TURRUTER_MIN_ZOOM = 10
 
@@ -1027,6 +1037,8 @@ export default function CampingMap() {
   const helningRef = useRef(false)
   const vernRef = useRef(false)
   const kronedekningRef = useRef(false)
+  const egnetTeltRef = useRef(false)
+  const egnetHengekoyeRef = useRef(false)
   const turruterRef = useRef(false)
   const planleggRef = useRef(null)
   const kartRef = useRef(null)
@@ -1036,6 +1048,8 @@ export default function CampingMap() {
   const [helning, setHelning] = useState(false)
   const [vern, setVern] = useState(false)
   const [kronedekning, setKronedekning] = useState(false)
+  const [egnetTelt, setEgnetTelt] = useState(false)
+  const [egnetHengekoye, setEgnetHengekoye] = useState(false)
   // Turruter draws lines, not fills, so it stacks with the others rather than
   // competing — kept outside the one-at-a-time group on purpose.
   const [turruter, setTurruter] = useState(false)
@@ -1043,7 +1057,7 @@ export default function CampingMap() {
   // Per-layer opacity. Defaults differ because the layers cover different amounts
   // of ground — Vern is sparse polygons, Turruter is thin lines.
   const [opacity, setOpacity] = useState({
-    terrengtype: 0.55, helning: 0.65, vern: 0.45, turruter: 0.9, kronedekning: 0.6,
+    terrengtype: 0.55, helning: 0.65, vern: 0.45, turruter: 0.9, kronedekning: 0.6, egnetTelt: 0.8, egnetHengekoye: 0.8,
   })
   const opacityRef = useRef(opacity)
   const [measuring, setMeasuring] = useState(false)
@@ -1184,7 +1198,8 @@ export default function CampingMap() {
     if (isAdmin) return
     setOpenMenu(null)
     if (turruterRef.current) toggleTurruter()
-    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current && !kronedekningRef.current) return
+    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current && !kronedekningRef.current &&
+        !egnetTeltRef.current && !egnetHengekoyeRef.current) return
     setOverlay(null)
   }, [isAdmin])
 
@@ -1301,6 +1316,8 @@ export default function CampingMap() {
     vern: ['md-vern'],
     kronedekning: ['nibio-kronedekning', 'nibio-kronedekning-v'],
     turruter: ['kv-turruter'],
+    egnetTelt: ['egnet-telt'],
+    egnetHengekoye: ['egnet-hengekoye'],
   }
 
   const OVERLAYS = [
@@ -1308,6 +1325,8 @@ export default function CampingMap() {
     { key: 'helning', set: setHelning, ref: helningRef },
     { key: 'vern', set: setVern, ref: vernRef },
     { key: 'kronedekning', set: setKronedekning, ref: kronedekningRef },
+    { key: 'egnetTelt', set: setEgnetTelt, ref: egnetTeltRef },
+    { key: 'egnetHengekoye', set: setEgnetHengekoye, ref: egnetHengekoyeRef },
   ].map((o) => ({ ...o, layers: LAYER_IDS[o.key] }))
 
   function setOverlay(which) {
@@ -1336,6 +1355,8 @@ export default function CampingMap() {
   function toggleHelning() { setOverlay(helning ? null : 'helning') }
   function toggleVern() { setOverlay(vern ? null : 'vern') }
   function toggleKronedekning() { setOverlay(kronedekning ? null : 'kronedekning') }
+  function toggleEgnetTelt() { setOverlay(egnetTelt ? null : 'egnetTelt') }
+  function toggleEgnetHengekoye() { setOverlay(egnetHengekoye ? null : 'egnetHengekoye') }
 
   // Independent of the fill group — routes are meant to be read on top of terrain.
   function toggleTurruter() {
@@ -1680,6 +1701,16 @@ export default function CampingMap() {
       // larger areas. So it is sound for comparing areas and unreliable for a
       // single point — the wording must not imply a measurement.
       note: 'Anslag på kronedekke, modellert fra laser og flybilder (NIBIO SR16). Godt egnet til å sammenligne områder, men kan bomme på enkeltpunkter — og vet ikke om kratt eller nyere hogst. Sjekk på stedet.',
+    },
+    egnetTelt && {
+      key: 'egnetTelt', layer: 'egnet-telt', title: 'Egnet for telt',
+      bands: EGNET_TELT_BANDS, minZoom: EGNET_MIN_ZOOM,
+      note: 'Flatt underlag som ikke er tett skog, myr, vann eller dyrka mark. Kombinerer Kartverkets terrengmodell med NIBIOs skog- og arealdata. Grovt anslag — gå og se.',
+    },
+    egnetHengekoye && {
+      key: 'egnetHengekoye', layer: 'egnet-hengekoye', title: 'Egnet for hengekøye',
+      bands: EGNET_HENGEKOYE_BANDS, minZoom: EGNET_MIN_ZOOM,
+      note: 'Der det står trær. Sier ingenting om avstand mellom stammer eller hvor tykke de er — gå og se.',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
@@ -2029,6 +2060,49 @@ export default function CampingMap() {
                     layout: { visibility: kronedekningRef.current ? 'visible' : 'none' },
                   }, fillInsertId())
                 }
+                if (!map.getSource('egnet-telt')) {
+                  map.addSource('egnet-telt', {
+                    type: 'raster',
+                    tiles: ['/api/egnet-tile?mode=telt&bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    minzoom: EGNET_MIN_ZOOM,
+                    maxzoom: 16,
+                    attribution: 'Kilde: <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>, <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
+                  })
+                }
+                if (!map.getLayer('egnet-telt')) {
+                  map.addLayer({
+                    id: 'egnet-telt',
+                    type: 'raster',
+                    source: 'egnet-telt',
+                    minzoom: EGNET_MIN_ZOOM,
+                    paint: { 'raster-opacity': opacityRef.current.egnetTelt },
+                    layout: { visibility: egnetTeltRef.current ? 'visible' : 'none' },
+                  }, fillInsertId())
+                }
+
+                if (!map.getSource('egnet-hengekoye')) {
+                  map.addSource('egnet-hengekoye', {
+                    type: 'raster',
+                    tiles: ['/api/egnet-tile?mode=hengekoye&bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    minzoom: EGNET_MIN_ZOOM,
+                    maxzoom: 16,
+                    attribution: 'Kilde: <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kartverket</a>, <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
+                  })
+                }
+                if (!map.getLayer('egnet-hengekoye')) {
+                  map.addLayer({
+                    id: 'egnet-hengekoye',
+                    type: 'raster',
+                    source: 'egnet-hengekoye',
+                    minzoom: EGNET_MIN_ZOOM,
+                    paint: { 'raster-opacity': opacityRef.current.egnetHengekoye },
+                    layout: { visibility: egnetHengekoyeRef.current ? 'visible' : 'none' },
+                  }, fillInsertId())
+                }
+
+
 
 
                 // Turruter — lines, so it sits ABOVE the fills rather than under
@@ -2194,7 +2268,7 @@ export default function CampingMap() {
             </div>
             {/* Under utvikling — kun synlig for admin */}
             {isAdmin && (() => {
-              const active = [terrengtype, helning, vern, kronedekning, turruter].filter(Boolean).length
+              const active = [terrengtype, helning, vern, kronedekning, egnetTelt, egnetHengekoye, turruter].filter(Boolean).length
               const fills = [
                 { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
                 { on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
@@ -2223,6 +2297,16 @@ export default function CampingMap() {
                             <strong>{f.icon} {f.label}</strong>
                             <span>{f.hint}</span>
                           </span>
+                        </button>
+                      ))}
+                      <p className="ctrl-menu-group">Egnet for <span>· kombinerer flere lag</span></p>
+                      {[
+                        { on: egnetTelt, toggle: toggleEgnetTelt, icon: '⛺', label: 'Telt', hint: 'Flatt og åpent nok' },
+                        { on: egnetHengekoye, toggle: toggleEgnetHengekoye, icon: '🪢', label: 'Hengekøye', hint: 'Der det står trær' },
+                      ].map((f) => (
+                        <button key={f.label} className={`ctrl-menu-item${f.on ? ' ctrl-menu-item--on' : ''}`} onClick={f.toggle}>
+                          <span className="ctrl-menu-check">{f.on ? '✓' : ''}</span>
+                          <span className="ctrl-menu-item-text"><strong>{f.icon} {f.label}</strong><span>{f.hint}</span></span>
                         </button>
                       ))}
                       <p className="ctrl-menu-group">Ruter</p>
