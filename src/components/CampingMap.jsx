@@ -143,6 +143,15 @@ function stedsnavnIcon(type) {
   return '📍'
 }
 
+// NIBIO's own SR16 ramp: light = open canopy, dark = dense. We show it as a
+// gradient rather than numbered classes because we use their classification, not
+// our own — see the note in api/kronedekning-tile.js.
+const KRONEDEKNING_BANDS = [
+  { color: '#E5F5E0', label: 'Åpent', hint: 'Lite kronedekke — mest lys ned til bakken' },
+  { color: '#74C476', label: 'Middels', hint: 'Delvis lukket kronedekke' },
+  { color: '#00441B', label: 'Tett', hint: 'Nesten helt lukket kronedekke' },
+]
+
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
 const TURRUTER_MIN_ZOOM = 10
 
@@ -179,13 +188,13 @@ function styleKey(bands) {
 // Mirrors api/ar50-tile.js. Describes what the ground IS rather than rating it —
 // dense forest is poor for a tent and ideal for a hammock, so a single "krevende"
 // verdict would be wrong for half the users. Hints name the trade-off instead.
+// Forest is deliberately one band — see the note in api/ar50-tile.js. How thick
+// the trees are is the Kronedekning layer's job, measured rather than inferred.
 const TERRENGTYPE_BANDS = [
   { color: '#EBD98A', label: 'Åpen mark', hint: 'Tørr, åpen bakke. Bra for telt — ingen trær til hengekøye' },
   { color: '#7FC3B0', label: 'Fuktig mark', hint: 'Åpen, men fuktig underlag' },
   { color: '#B0AAA0', label: 'Bart fjell', hint: 'Lite jord — vanskelig å få ned plugger' },
-  { color: '#C3E09A', label: 'Glissen skog', hint: 'Spredte trær — ofte lett å finne plass til begge deler' },
-  { color: '#6FA85C', label: 'Skog', hint: 'Vanlig skog. Trær til hengekøye, plass mellom stammene til telt' },
-  { color: '#2E6B3C', label: 'Tett skog', hint: 'Tett og produktiv skog. Fint for hengekøye, trangt for telt' },
+  { color: '#6FA85C', label: 'Skog', hint: 'Skogsmark. Se Kronedekning for hvor tett trærne står' },
   { color: '#9B7FB0', label: 'Myr', hint: 'Vått underlag — sjelden egnet til telt' },
 ]
 
@@ -1001,6 +1010,7 @@ export default function CampingMap() {
   const terrengtypeRef = useRef(false)
   const helningRef = useRef(false)
   const vernRef = useRef(false)
+  const kronedekningRef = useRef(false)
   const turruterRef = useRef(false)
   const planleggRef = useRef(null)
   const kartRef = useRef(null)
@@ -1009,6 +1019,7 @@ export default function CampingMap() {
   const [terrengtype, setTerrengtype] = useState(false)
   const [helning, setHelning] = useState(false)
   const [vern, setVern] = useState(false)
+  const [kronedekning, setKronedekning] = useState(false)
   // Turruter draws lines, not fills, so it stacks with the others rather than
   // competing — kept outside the one-at-a-time group on purpose.
   const [turruter, setTurruter] = useState(false)
@@ -1016,7 +1027,7 @@ export default function CampingMap() {
   // Per-layer opacity. Defaults differ because the layers cover different amounts
   // of ground — Vern is sparse polygons, Turruter is thin lines.
   const [opacity, setOpacity] = useState({
-    terrengtype: 0.55, helning: 0.65, vern: 0.45, turruter: 0.9,
+    terrengtype: 0.55, helning: 0.65, vern: 0.45, turruter: 0.9, kronedekning: 0.6,
   })
   const opacityRef = useRef(opacity)
   const [measuring, setMeasuring] = useState(false)
@@ -1157,7 +1168,7 @@ export default function CampingMap() {
     if (isAdmin) return
     setOpenMenu(null)
     if (turruterRef.current) toggleTurruter()
-    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current) return
+    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current && !kronedekningRef.current) return
     setOverlay(null)
   }, [isAdmin])
 
@@ -1269,6 +1280,7 @@ export default function CampingMap() {
     { key: 'terrengtype', layer: 'ar50-terrengtype', set: setTerrengtype, ref: terrengtypeRef },
     { key: 'helning', layer: 'kv-helning', set: setHelning, ref: helningRef },
     { key: 'vern', layer: 'md-vern', set: setVern, ref: vernRef },
+    { key: 'kronedekning', layer: 'nibio-kronedekning', set: setKronedekning, ref: kronedekningRef },
   ]
 
   function setOverlay(which) {
@@ -1294,6 +1306,7 @@ export default function CampingMap() {
   function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
   function toggleHelning() { setOverlay(helning ? null : 'helning') }
   function toggleVern() { setOverlay(vern ? null : 'vern') }
+  function toggleKronedekning() { setOverlay(kronedekning ? null : 'kronedekning') }
 
   // Independent of the fill group — routes are meant to be read on top of terrain.
   function toggleTurruter() {
@@ -1619,6 +1632,11 @@ export default function CampingMap() {
       bands: VERN_BANDS, minZoom: 0,
       note: 'Hvert verneområde har sin egen forskrift. Kartet viser bare hvor vernet gjelder — sjekk alltid reglene før du telter.',
     },
+    kronedekning && {
+      key: 'kronedekning', layer: 'nibio-kronedekning', title: 'Kronedekning',
+      bands: KRONEDEKNING_BANDS, minZoom: 0,
+      note: 'Hvor mye av bakken som er dekket av trekroner, målt fra laser og flybilder (NIBIO SR16). Dette er den faktiske tettheten — Terrengtype sier bare at det er skog.',
+    },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
       bands: TURRUTER_BANDS, minZoom: TURRUTER_MIN_ZOOM,
@@ -1926,6 +1944,26 @@ export default function CampingMap() {
                   }, fillInsertId())
                 }
 
+                // Kronedekning (SR16 crown coverage) — measured canopy density.
+                if (!map.getSource('nibio-kronedekning')) {
+                  map.addSource('nibio-kronedekning', {
+                    type: 'raster',
+                    tiles: ['/api/kronedekning-tile?bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    maxzoom: 16,
+                    attribution: 'Kilde: <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
+                  })
+                }
+                if (!map.getLayer('nibio-kronedekning')) {
+                  map.addLayer({
+                    id: 'nibio-kronedekning',
+                    type: 'raster',
+                    source: 'nibio-kronedekning',
+                    paint: { 'raster-opacity': opacityRef.current.kronedekning },
+                    layout: { visibility: kronedekningRef.current ? 'visible' : 'none' },
+                  }, fillInsertId())
+                }
+
                 // Turruter — lines, so it sits ABOVE the fills rather than under
                 // them, otherwise a fill would wash the routes out.
                 if (!map.getSource('kv-turruter')) {
@@ -2077,11 +2115,12 @@ export default function CampingMap() {
             </div>
             {/* Under utvikling — kun synlig for admin */}
             {isAdmin && (() => {
-              const active = [terrengtype, helning, vern, turruter].filter(Boolean).length
+              const active = [terrengtype, helning, vern, kronedekning, turruter].filter(Boolean).length
               const fills = [
                 { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Skog, myr og åpen mark' },
                 { on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
                 { on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
+                { on: kronedekning, toggle: toggleKronedekning, icon: '🌳', label: 'Kronedekning', hint: 'Hvor tett trærne står' },
               ]
               return (
                 <div className="ctrl-menu-wrap" ref={planleggRef}>

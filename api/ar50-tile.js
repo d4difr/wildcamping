@@ -11,15 +11,19 @@
 
 const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
 
-// Descriptive, not judgemental. "Dense forest" is bad for a tent and ideal for a
-// hammock — rating it "krevende" would be wrong for half the users. The layer
-// says what the ground IS; the camper decides what that means for them.
+// Descriptive, not judgemental — the layer says what the ground IS, and the
+// camper decides what that means for them.
+//
+// Forest is ONE band on purpose. It used to be split three ways by arskogbon
+// (skogbonitet) into "glissen / skog / tett skog", but skogbonitet measures how
+// fast timber grows — soil depth and nutrients — NOT how densely trees stand.
+// Unproductive ground is often covered in dense stunted scrub, so "glissen skog"
+// was an inference the data never supported. Actual canopy density is a separate
+// layer now, from SR16, which measures it directly.
 const AAPEN_MARK = '#EBD98A'   // open, dry ground
 const FUKTIG_MARK = '#7FC3B0'  // open but moist
 const BART_FJELL = '#B0AAA0'   // bare rock
-const GLISSEN_SKOG = '#C3E09A' // scattered trees
-const SKOG = '#6FA85C'         // ordinary forest
-const TETT_SKOG = '#2E6B3C'    // dense, productive forest
+const SKOG = '#6FA85C'         // forest, any productivity
 const MYR = '#9B7FB0'          // bog
 
 const eq = (p, v) =>
@@ -41,9 +45,7 @@ const RULES = [
   [and(eq('artype', 50), eq('arveget', 52)), AAPEN_MARK],
   [and(eq('artype', 50), eq('arveget', 54)), AAPEN_MARK],
   [and(eq('artype', 50), eq('arveget', 55)), FUKTIG_MARK],
-  [and(eq('artype', 30), eq('arskogbon', 11)), GLISSEN_SKOG], // impediment — sparse, stunted
-  [and(eq('artype', 30), between('arskogbon', 12, 13)), SKOG],
-  [and(eq('artype', 30), between('arskogbon', 14, 18)), TETT_SKOG],
+  [eq('artype', 30), SKOG],
   [eq('artype', 60), MYR],
 ]
 
