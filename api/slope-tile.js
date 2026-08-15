@@ -53,14 +53,9 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 //
 // Water no longer matters here: the fills are drawn beneath the basemap's water
 // layer, so lakes keep their own colour regardless of what the DTM reports.
-const BANDS = [
-  { max: 2,  rgb: [240, 243, 255] }, // helt flatt — very light, isolated
-  { max: 4,  rgb: [168, 172, 216] }, // deliberate leap in darkness
-  { max: 6,  rgb: [122, 127, 187] },
-  { max: 9,  rgb: [ 82,  87, 156] },
-  { max: 13, rgb: [ 46,  51, 114] },
-  { max: 90, rgb: [ 23,  26,  66] }, // bratt — everything steeper, one band
-]
+// Defined in _terrain.js so the Egnet layer tests the same "helt flatt" this
+// legend advertises. Changing a band here changes both.
+import { SLOPE_BANDS as BANDS } from './_terrain.js'
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])
 const outputValues = BANDS.map((_, i) => i + 1)

@@ -29,9 +29,11 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 const SR16 = 'https://wms.nibio.no/cgi-bin/sr16'
 const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
 
-// --- slope: mirror of api/slope-tile.js, but only the flattest band matters ---
-const FLAT_MAX_DEG = 2
-const FLAT_RGB = [240, 243, 255]
+// --- slope: the SAME "helt flatt" band the Helning layer shows, imported rather
+// than copied so the legend and this test cannot drift apart ---
+import { FLAT_BAND } from './_terrain.js'
+const FLAT_MAX_DEG = FLAT_BAND.max
+const FLAT_RGB = FLAT_BAND.rgb
 const SLOPE_RULE = JSON.stringify({
   rasterFunction: 'Colormap',
   rasterFunctionArguments: {
