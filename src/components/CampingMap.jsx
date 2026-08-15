@@ -1651,7 +1651,11 @@ export default function CampingMap() {
     kronedekning && {
       key: 'kronedekning', layer: 'nibio-kronedekning', title: 'Kronedekning',
       bands: KRONEDEKNING_BANDS, minZoom: 0,
-      note: 'Hvor mye av bakken som er dekket av trekroner, målt fra laser og flybilder (NIBIO SR16). Dette er den faktiske tettheten — Terrengtype sier bare at det er skog.',
+      // NIBIO's own figures: the models explain ~70% of variation with ~50%
+      // relative RMSE, and they state the pixel-level error averages out over
+      // larger areas. So it is sound for comparing areas and unreliable for a
+      // single point — the wording must not imply a measurement.
+      note: 'Anslag på kronedekke, modellert fra laser og flybilder (NIBIO SR16). Godt egnet til å sammenligne områder, men kan bomme på enkeltpunkter — og vet ikke om kratt eller nyere hogst. Sjekk på stedet.',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
