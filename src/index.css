@@ -2205,6 +2205,50 @@ button.primary:hover:not(:disabled) {
   backdrop-filter: blur(4px);
 }
 
+.legend-section--divided {
+  margin-top: 0.65rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.legend-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a9d97;
+}
+
+.legend-opacity {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.legend-opacity-label {
+  font-size: 0.62rem;
+  color: #9a9d97;
+  white-space: nowrap;
+}
+
+.legend-opacity input[type="range"] {
+  flex: 1;
+  min-width: 60px;
+  height: 3px;
+  accent-color: var(--forest);
+  cursor: pointer;
+}
+
+.legend-opacity-value {
+  font-size: 0.62rem;
+  color: #9a9d97;
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
+}
+
 .terrengtype-legend-rows {
   display: flex;
   flex-direction: column;

@@ -146,6 +146,12 @@ function stedsnavnIcon(type) {
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
 const TURRUTER_MIN_ZOOM = 10
 
+// Turruter is drawn by Kartverket in their own red; we don't restyle it, so the
+// swatch just mirrors what the service returns.
+const TURRUTER_BANDS = [
+  { color: '#FF7F7F', label: 'Merket sti', hint: 'Fotrute fra Turrutebasen' },
+]
+
 // Mirrors api/vern-tile.js. A legal layer, not a terrain one — purple family so
 // it never reads as "the ground looks like this".
 const VERN_BANDS = [
@@ -1007,6 +1013,12 @@ export default function CampingMap() {
   // competing — kept outside the one-at-a-time group on purpose.
   const [turruter, setTurruter] = useState(false)
   const [openMenu, setOpenMenu] = useState(null) // null | 'kart' | 'planlegg'
+  // Per-layer opacity. Defaults differ because the layers cover different amounts
+  // of ground — Vern is sparse polygons, Turruter is thin lines.
+  const [opacity, setOpacity] = useState({
+    terrengtype: 0.55, helning: 0.65, vern: 0.45, turruter: 0.9,
+  })
+  const opacityRef = useRef(opacity)
   const [measuring, setMeasuring] = useState(false)
   const [measurePoints, setMeasurePoints] = useState([])
   const [elevation, setElevation] = useState(null) // null | 'loading' | 'error' | { gain, loss, min, max }
@@ -1269,6 +1281,14 @@ export default function CampingMap() {
         map.setLayoutProperty(o.layer, 'visibility', on ? 'visible' : 'none')
       }
     }
+  }
+
+  // Kept in a ref as well, because initTerrainLayers runs from a style.load
+  // callback that closes over the state at mount time.
+  function setLayerOpacity(key, layerId, value) {
+    setOpacity((o) => { const next = { ...o, [key]: value }; opacityRef.current = next; return next })
+    const map = nativeMap.current
+    if (map?.getLayer(layerId)) map.setPaintProperty(layerId, 'raster-opacity', value)
   }
 
   function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
@@ -1583,6 +1603,29 @@ export default function CampingMap() {
     searchMarkerTimeout.current = setTimeout(() => setSearchMarker(null), 4000)
   }
 
+  const activeLegends = [
+    terrengtype && {
+      key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
+      bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
+      note: 'Viser hva slags terreng det er, basert på NIBIOs arealdata — ikke hvor bra det er å telte. Sier ingenting om stein, røtter eller helning, så sjekk alltid selv.',
+    },
+    helning && {
+      key: 'helning', layer: 'kv-helning', title: 'Helning',
+      bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
+      note: 'Målt i Kartverkets terrengmodell — viser formen på bakken, ikke stein, røtter eller vegetasjon.',
+    },
+    vern && {
+      key: 'vern', layer: 'md-vern', title: 'Vern',
+      bands: VERN_BANDS, minZoom: 0,
+      note: 'Hvert verneområde har sin egen forskrift. Kartet viser bare hvor vernet gjelder — sjekk alltid reglene før du telter.',
+    },
+    turruter && {
+      key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
+      bands: TURRUTER_BANDS, minZoom: TURRUTER_MIN_ZOOM,
+      note: 'Merkede og vedlikeholdte ruter fra Kartverket. Umerkede stier vises ikke — de kan være like fine.',
+    },
+  ].filter(Boolean)
+
   const cursor = (dropMode || measuring) ? 'crosshair' : 'grab'
   const measureDistance = pathLength(measurePoints)
 
@@ -1834,7 +1877,7 @@ export default function CampingMap() {
                     type: 'raster',
                     source: 'ar50-terrengtype',
                     minzoom: TERRENGTYPE_MIN_ZOOM,
-                    paint: { 'raster-opacity': 0.55 },
+                    paint: { 'raster-opacity': opacityRef.current.terrengtype },
                     layout: { visibility: terrengtypeRef.current ? 'visible' : 'none' },
                   }, fillInsertId())
                 }
@@ -1857,7 +1900,7 @@ export default function CampingMap() {
                     type: 'raster',
                     source: 'kv-helning',
                     minzoom: HELNING_MIN_ZOOM,
-                    paint: { 'raster-opacity': 0.65 },
+                    paint: { 'raster-opacity': opacityRef.current.helning },
                     layout: { visibility: helningRef.current ? 'visible' : 'none' },
                   }, fillInsertId())
                 }
@@ -1878,7 +1921,7 @@ export default function CampingMap() {
                     id: 'md-vern',
                     type: 'raster',
                     source: 'md-vern',
-                    paint: { 'raster-opacity': 0.45 },
+                    paint: { 'raster-opacity': opacityRef.current.vern },
                     layout: { visibility: vernRef.current ? 'visible' : 'none' },
                   }, fillInsertId())
                 }
@@ -1902,7 +1945,7 @@ export default function CampingMap() {
                     type: 'raster',
                     source: 'kv-turruter',
                     minzoom: TURRUTER_MIN_ZOOM,
-                    paint: { 'raster-opacity': 0.9 },
+                    paint: { 'raster-opacity': opacityRef.current.turruter },
                     layout: { visibility: turruterRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
@@ -2129,67 +2172,40 @@ export default function CampingMap() {
             </div>
           )}
 
-          {isAdmin && vern && !openMenu && (
+          {/* One panel, a section per active layer. Turruter can be on alongside
+              a fill, so the panel has to hold more than one section. */}
+          {isAdmin && !openMenu && activeLegends.length > 0 && (
             <div className="terrengtype-legend">
-              <div className="terrengtype-legend-rows">
-                {VERN_BANDS.map((b) => (
-                  <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
-                    <span className="terrengtype-swatch" style={{ background: b.color }} />
-                    <span className="terrengtype-legend-label">{b.label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="terrengtype-disclaimer">
-                Hvert verneområde har sin egen forskrift. Kartet viser bare hvor
-                vernet gjelder — sjekk alltid reglene før du telter.
-              </p>
-            </div>
-          )}
-
-          {isAdmin && helning && !openMenu && (
-            <div className="terrengtype-legend">
-              {viewState.zoom < HELNING_MIN_ZOOM ? (
-                <p className="terrengtype-zoom-hint">Zoom inn for å vise helning</p>
-              ) : (
-                <>
-                  <div className="terrengtype-legend-rows">
-                    {HELNING_BANDS.map((b) => (
-                      <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
-                        <span className="terrengtype-swatch" style={{ background: b.color }} />
-                        <span className="terrengtype-legend-label">{b.label}</span>
+              {activeLegends.map((l, i) => (
+                <div key={l.key} className={i > 0 ? 'legend-section legend-section--divided' : 'legend-section'}>
+                  <p className="legend-title">{l.title}</p>
+                  {viewState.zoom < l.minZoom ? (
+                    <p className="terrengtype-zoom-hint">Zoom inn for å vise {l.title.toLowerCase()}</p>
+                  ) : (
+                    <>
+                      <div className="terrengtype-legend-rows">
+                        {l.bands.map((b) => (
+                          <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
+                            <span className="terrengtype-swatch" style={{ background: b.color }} />
+                            <span className="terrengtype-legend-label">{b.label}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <p className="terrengtype-disclaimer">
-                    Målt i Kartverkets terrengmodell — viser formen på bakken,
-                    ikke stein, røtter eller vegetasjon.
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-
-          {isAdmin && terrengtype && !openMenu && (
-            <div className="terrengtype-legend">
-              {viewState.zoom < TERRENGTYPE_MIN_ZOOM ? (
-                <p className="terrengtype-zoom-hint">Zoom inn for å vise terrengtype</p>
-              ) : (
-                <>
-                  <div className="terrengtype-legend-rows">
-                    {TERRENGTYPE_BANDS.map((b) => (
-                      <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
-                        <span className="terrengtype-swatch" style={{ background: b.color }} />
-                        <span className="terrengtype-legend-label">{b.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="terrengtype-disclaimer">
-                    Viser hva slags terreng det er, basert på NIBIOs arealdata — ikke
-                    hvor bra det er å telte. Sier ingenting om stein, røtter eller
-                    helning, så sjekk alltid selv.
-                  </p>
-                </>
-              )}
+                      <label className="legend-opacity">
+                        <span className="legend-opacity-label">Gjennomsiktighet</span>
+                        <input
+                          type="range"
+                          min="0" max="100" step="5"
+                          value={Math.round(opacity[l.key] * 100)}
+                          onChange={(e) => setLayerOpacity(l.key, l.layer, Number(e.target.value) / 100)}
+                        />
+                        <span className="legend-opacity-value">{Math.round(opacity[l.key] * 100)}%</span>
+                      </label>
+                      <p className="terrengtype-disclaimer">{l.note}</p>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
