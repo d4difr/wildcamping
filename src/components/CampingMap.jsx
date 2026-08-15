@@ -191,13 +191,12 @@ function styleKey(bands) {
 // Mirrors api/ar50-tile.js. Describes what the ground IS rather than rating it —
 // dense forest is poor for a tent and ideal for a hammock, so a single "krevende"
 // verdict would be wrong for half the users. Hints name the trade-off instead.
-// Forest is deliberately one band — see the note in api/ar50-tile.js. How thick
-// the trees are is the Kronedekning layer's job, measured rather than inferred.
+// Vanlig skog vises ikke — se notatet i api/ar50-tile.js. Kronedekning svarer på
+// hvor tett trærne står; dette laget viser bakken der det ikke bare er skog.
 const TERRENGTYPE_BANDS = [
   { color: '#EBD98A', label: 'Åpen mark', hint: 'Tørr, åpen bakke. Bra for telt — ingen trær til hengekøye' },
   { color: '#7FC3B0', label: 'Fuktig mark', hint: 'Åpen, men fuktig underlag' },
   { color: '#B0AAA0', label: 'Bart fjell', hint: 'Lite jord — vanskelig å få ned plugger' },
-  { color: '#6FA85C', label: 'Skog', hint: 'Skogsmark. Se Kronedekning for hvor tett trærne står' },
   { color: '#9B7FB0', label: 'Myr', hint: 'Vått underlag — sjelden egnet til telt' },
 ]
 
@@ -1636,7 +1635,7 @@ export default function CampingMap() {
     terrengtype && {
       key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
       bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
-      note: 'Viser hva slags terreng det er, basert på NIBIOs arealdata — ikke hvor bra det er å telte. Sier ingenting om stein, røtter eller helning, så sjekk alltid selv.',
+      note: 'Viser myr, bart fjell og åpen mark fra NIBIOs arealdata. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Grove flater (ofte km-store), så sjekk alltid selv.',
     },
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
@@ -2160,7 +2159,7 @@ export default function CampingMap() {
             {isAdmin && (() => {
               const active = [terrengtype, helning, vern, kronedekning, turruter].filter(Boolean).length
               const fills = [
-                { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Skog, myr og åpen mark' },
+                { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
                 { on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
                 { on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
                 { on: kronedekning, toggle: toggleKronedekning, icon: '🌳', label: 'Kronedekning', hint: 'Hvor tett trærne står' },

@@ -1,4 +1,5 @@
-// Proxy for NIBIO's AR50 land-resource WMS, restyled into three terrain bands.
+// Proxy for NIBIO's AR50 land-resource WMS, restyled to show the ground types a
+// canopy map cannot describe: bog, bare rock, damp and open ground.
 //
 // Why proxy instead of hitting the WMS directly from the browser:
 //   1. NIBIO sends no Cache-Control/ETag, so every pan would re-request. We add
@@ -14,38 +15,35 @@ const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
 // Descriptive, not judgemental — the layer says what the ground IS, and the
 // camper decides what that means for them.
 //
-// Forest is ONE band on purpose. It used to be split three ways by arskogbon
-// (skogbonitet) into "glissen / skog / tett skog", but skogbonitet measures how
-// fast timber grows — soil depth and nutrients — NOT how densely trees stand.
-// Unproductive ground is often covered in dense stunted scrub, so "glissen skog"
-// was an inference the data never supported. Actual canopy density is a separate
-// layer now, from SR16, which measures it directly.
+// History worth keeping: forest used to be split three ways by arskogbon
+// (skogbonitet) into "glissen / skog / tett skog". Skogbonitet measures how fast
+// timber grows — soil depth and nutrients — NOT how densely trees stand, and
+// unproductive ground is often covered in dense stunted scrub. That inference
+// was wrong. Canopy density now comes from SR16, which models it directly, and
+// forest is not drawn here at all.
 const AAPEN_MARK = '#EBD98A'   // open, dry ground
 const FUKTIG_MARK = '#7FC3B0'  // open but moist
 const BART_FJELL = '#B0AAA0'   // bare rock
-const SKOG = '#6FA85C'         // forest, any productivity
 const MYR = '#9B7FB0'          // bog
 
 const eq = (p, v) =>
   `<ogc:PropertyIsEqualTo><ogc:PropertyName>${p}</ogc:PropertyName><ogc:Literal>${v}</ogc:Literal></ogc:PropertyIsEqualTo>`
-const between = (p, lo, hi) =>
-  `<ogc:PropertyIsBetween><ogc:PropertyName>${p}</ogc:PropertyName>` +
-  `<ogc:LowerBoundary><ogc:Literal>${lo}</ogc:Literal></ogc:LowerBoundary>` +
-  `<ogc:UpperBoundary><ogc:Literal>${hi}</ogc:Literal></ogc:UpperBoundary></ogc:PropertyIsBetween>`
 const and = (...f) => `<ogc:And>${f.join('')}</ogc:And>`
 const rule = (filter, color) =>
   `<Rule><ogc:Filter>${filter}</ogc:Filter>` +
   `<PolygonSymbolizer><Fill><CssParameter name="fill">${color}</CssParameter></Fill></PolygonSymbolizer></Rule>`
 
-// artype:    30 skog, 50 snaumark, 60 myr (20/70/81/82/10/99 left transparent)
-// arskogbon: 11 impediment .. 18 høg og særs høg — productivity as a density proxy
-// arveget:   51 bar mark, 52 flekkvis, 54 samanhengande tørr, 55 frisk
+// artype:  50 snaumark, 60 myr (30 skog and 10/20/70/81/82/99 left transparent)
+// arveget: 51 bar mark, 52 flekkvis, 54 samanhengande tørr, 55 frisk
+// Ordinary forest is deliberately NOT drawn. "There are trees here" adds nothing
+// once Kronedekning says how dense they are, and forest is most of Norway — so
+// colouring it buried the bands that actually carry information. What's left is
+// the ground you can't read from a canopy map: bog, bare rock, damp and open.
 const RULES = [
   [and(eq('artype', 50), eq('arveget', 51)), BART_FJELL],
   [and(eq('artype', 50), eq('arveget', 52)), AAPEN_MARK],
   [and(eq('artype', 50), eq('arveget', 54)), AAPEN_MARK],
   [and(eq('artype', 50), eq('arveget', 55)), FUKTIG_MARK],
-  [eq('artype', 30), SKOG],
   [eq('artype', 60), MYR],
 ]
 
