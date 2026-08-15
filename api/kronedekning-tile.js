@@ -46,8 +46,21 @@ export default async function handler(req, res) {
   const [minX, minY, maxX, maxY] = nums
   if (maxX <= minX || maxY <= minY) return res.status(400).json({ error: 'Inverted bbox' })
 
+  // SR16 comes in two forms of the same data:
+  //   SRRKRONEDEK — 16 m raster. Renders from z8, but the grid is visible as
+  //                 blocks once you zoom in past ~z13.
+  //   SRVKRONEDEK — vector, segmented into forest stands. Smooth at any zoom
+  //                 (2304 distinct colours in a test tile vs the raster's 10),
+  //                 but the service returns nothing below z13.
+  // The client shows raster below z13 and vector above, so you get coverage when
+  // zoomed out and clean edges when zoomed in.
+  //
+  // Note: asking the raster for larger tiles does NOT help — a 512px request
+  // returned the same 10 colours and the same block count, just scaled up.
+  const layer = req.query.vector === '1' ? 'SRVKRONEDEK' : 'SRRKRONEDEK'
+
   const url =
-    `${SR16}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=SRRKRONEDEK` +
+    `${SR16}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${layer}` +
     `&CRS=EPSG:3857&BBOX=${nums.join(',')}&WIDTH=256&HEIGHT=256` +
     `&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=`
 

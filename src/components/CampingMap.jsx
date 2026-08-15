@@ -146,6 +146,9 @@ function stedsnavnIcon(type) {
 // NIBIO's own SR16 ramp: light = open canopy, dark = dense. We show it as a
 // gradient rather than numbered classes because we use their classification, not
 // our own — see the note in api/kronedekning-tile.js.
+// SR16 vector renders only from z13; the raster covers below that.
+const KRONEDEKNING_VECTOR_MIN_ZOOM = 13
+
 const KRONEDEKNING_BANDS = [
   { color: '#E5F5E0', label: 'Åpent', hint: 'Lite kronedekke — mest lys ned til bakken' },
   { color: '#74C476', label: 'Middels', hint: 'Delvis lukket kronedekke' },
@@ -1276,12 +1279,23 @@ export default function CampingMap() {
 
   // Only one coloured overlay at a time — stacking them is unreadable, and they
   // mean different things. Table-driven so adding a layer can't half-wire it.
+  // Some overlays are drawn by more than one map layer — Kronedekning uses a
+  // raster below z13 and a vector above it. Turruter is here too even though it
+  // sits outside the exclusion group, so the opacity slider can find it.
+  const LAYER_IDS = {
+    terrengtype: ['ar50-terrengtype'],
+    helning: ['kv-helning'],
+    vern: ['md-vern'],
+    kronedekning: ['nibio-kronedekning', 'nibio-kronedekning-v'],
+    turruter: ['kv-turruter'],
+  }
+
   const OVERLAYS = [
-    { key: 'terrengtype', layer: 'ar50-terrengtype', set: setTerrengtype, ref: terrengtypeRef },
-    { key: 'helning', layer: 'kv-helning', set: setHelning, ref: helningRef },
-    { key: 'vern', layer: 'md-vern', set: setVern, ref: vernRef },
-    { key: 'kronedekning', layer: 'nibio-kronedekning', set: setKronedekning, ref: kronedekningRef },
-  ]
+    { key: 'terrengtype', set: setTerrengtype, ref: terrengtypeRef },
+    { key: 'helning', set: setHelning, ref: helningRef },
+    { key: 'vern', set: setVern, ref: vernRef },
+    { key: 'kronedekning', set: setKronedekning, ref: kronedekningRef },
+  ].map((o) => ({ ...o, layers: LAYER_IDS[o.key] }))
 
   function setOverlay(which) {
     const map = nativeMap.current
@@ -1289,18 +1303,20 @@ export default function CampingMap() {
       const on = o.key === which
       o.set(on)
       o.ref.current = on
-      if (map?.getLayer(o.layer)) {
-        map.setLayoutProperty(o.layer, 'visibility', on ? 'visible' : 'none')
+      for (const id of o.layers) {
+        if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none')
       }
     }
   }
 
   // Kept in a ref as well, because initTerrainLayers runs from a style.load
   // callback that closes over the state at mount time.
-  function setLayerOpacity(key, layerId, value) {
+  function setLayerOpacity(key, value) {
     setOpacity((o) => { const next = { ...o, [key]: value }; opacityRef.current = next; return next })
     const map = nativeMap.current
-    if (map?.getLayer(layerId)) map.setPaintProperty(layerId, 'raster-opacity', value)
+    for (const id of LAYER_IDS[key] ?? []) {
+      if (map?.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', value)
+    }
   }
 
   function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
@@ -1959,10 +1975,33 @@ export default function CampingMap() {
                     id: 'nibio-kronedekning',
                     type: 'raster',
                     source: 'nibio-kronedekning',
+                    maxzoom: KRONEDEKNING_VECTOR_MIN_ZOOM,
                     paint: { 'raster-opacity': opacityRef.current.kronedekning },
                     layout: { visibility: kronedekningRef.current ? 'visible' : 'none' },
                   }, fillInsertId())
                 }
+
+                if (!map.getSource('nibio-kronedekning-v')) {
+                  map.addSource('nibio-kronedekning-v', {
+                    type: 'raster',
+                    tiles: ['/api/kronedekning-tile?vector=1&bbox={bbox-epsg-3857}'],
+                    tileSize: 256,
+                    minzoom: KRONEDEKNING_VECTOR_MIN_ZOOM,
+                    maxzoom: 16,
+                    attribution: 'Kilde: <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
+                  })
+                }
+                if (!map.getLayer('nibio-kronedekning-v')) {
+                  map.addLayer({
+                    id: 'nibio-kronedekning-v',
+                    type: 'raster',
+                    source: 'nibio-kronedekning-v',
+                    minzoom: KRONEDEKNING_VECTOR_MIN_ZOOM,
+                    paint: { 'raster-opacity': opacityRef.current.kronedekning },
+                    layout: { visibility: kronedekningRef.current ? 'visible' : 'none' },
+                  }, fillInsertId())
+                }
+
 
                 // Turruter — lines, so it sits ABOVE the fills rather than under
                 // them, otherwise a fill would wash the routes out.
@@ -2236,7 +2275,7 @@ export default function CampingMap() {
                           type="range"
                           min="0" max="100" step="5"
                           value={Math.round(opacity[l.key] * 100)}
-                          onChange={(e) => setLayerOpacity(l.key, l.layer, Number(e.target.value) / 100)}
+                          onChange={(e) => setLayerOpacity(l.key, Number(e.target.value) / 100)}
                         />
                         <span className="legend-opacity-value">{Math.round(opacity[l.key] * 100)}%</span>
                       </label>
