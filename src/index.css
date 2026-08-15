@@ -1286,6 +1286,22 @@ body {
   border-color: var(--fjord);
 }
 
+.locate-accuracy {
+  margin: 0;
+  align-self: flex-end;
+  background: var(--birch-card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--granite);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  white-space: nowrap;
+  cursor: default;
+}
+
 .locate-error {
   margin: 0;
   max-width: 220px;

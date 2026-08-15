@@ -98,6 +98,20 @@ function formatDistance(m) {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`.replace('.', ',')
 }
 
+// A circle in real-world metres, as a polygon. Has to be geographic rather than a
+// pixel-radius circle so it stays the right size on the ground as you zoom —
+// a fixed-pixel circle would imply better precision the further you zoom in.
+function circlePolygon(lng, lat, radiusM, steps = 64) {
+  const dLat = radiusM / 111320
+  const dLng = radiusM / (111320 * Math.cos((lat * Math.PI) / 180))
+  const ring = []
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * 2 * Math.PI
+    ring.push([lng + dLng * Math.cos(t), lat + dLat * Math.sin(t)])
+  }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } }
+}
+
 // Evenly spaced points along the path, for sampling an elevation profile.
 // Capped so a long path doesn't turn into a huge request.
 function sampleAlong(points, count = 80) {
@@ -1511,7 +1525,18 @@ export default function CampingMap() {
     setLocating(true)
     setLocateError('')
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); flyTo(pos.coords.longitude, pos.coords.latitude, 14) },
+      (pos) => {
+        // coords.accuracy is the 68% confidence radius in metres. Keeping it lets
+        // the dot show its own uncertainty — which grows a lot under dense canopy,
+        // exactly where people will be using this.
+        setUserPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null,
+        })
+        setLocating(false)
+        flyTo(pos.coords.longitude, pos.coords.latitude, 14)
+      },
       (err) => { setLocating(false); setLocateError(err.code === err.PERMISSION_DENIED ? 'Posisjonstilgang nektet.' : 'Kunne ikke hente posisjonen din.') },
       { enableHighAccuracy: true, timeout: 10000 }
     )
@@ -2065,6 +2090,18 @@ export default function CampingMap() {
               </Marker>
             )}
 
+            {/* Drawn before the dot so the dot sits on top of its own circle. */}
+            {userPosition?.accuracy > 0 && (
+              <Source
+                id="gps-accuracy"
+                type="geojson"
+                data={circlePolygon(userPosition.lng, userPosition.lat, userPosition.accuracy)}
+              >
+                <Layer id="gps-accuracy-fill" type="fill" paint={{ 'fill-color': '#2E7DB8', 'fill-opacity': 0.12 }} />
+                <Layer id="gps-accuracy-line" type="line" paint={{ 'line-color': '#2E7DB8', 'line-width': 1, 'line-opacity': 0.45 }} />
+              </Source>
+            )}
+
             {userPosition && (
               <Marker longitude={userPosition.lng} latitude={userPosition.lat} anchor="center">
                 <span className="user-location-dot"><span className="user-location-dot-pulse" /><span className="user-location-dot-core" /></span>
@@ -2300,6 +2337,14 @@ export default function CampingMap() {
           {!dropMode && !pendingPosition && (
             <div className="locate-wrap">
               {locateError && <p className="locate-error">{locateError}</p>}
+              {userPosition?.accuracy > 0 && (
+                <p
+                  className="locate-accuracy"
+                  title="Usikkerheten i posisjonen. Blir gjerne dårligere under tett skog."
+                >
+                  ±{Math.round(userPosition.accuracy)} m
+                </p>
+              )}
               <button className="locate-btn" onClick={handleLocate} disabled={locating} aria-label="Show my location">
                 {locating ? '…' : '⌖'}
               </button>
