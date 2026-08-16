@@ -1387,6 +1387,25 @@ export default function CampingMap() {
     }
   }
 
+  // Belt and braces: setOverlay only reaches layers that exist at the moment it
+  // runs, so a layer added later (style swap, slow init) can be left visible
+  // while React state says otherwise — which showed up as a stray Helning tile
+  // painting under the Egnet legend. Re-assert the invariant whenever the
+  // selection changes: exactly one overlay group visible, everything else off.
+  useEffect(() => {
+    const map = nativeMap.current
+    if (!map) return
+    for (const o of OVERLAYS) {
+      for (const id of o.layers) {
+        if (!map.getLayer(id)) continue
+        const want = o.ref.current ? 'visible' : 'none'
+        if (map.getLayoutProperty(id, 'visibility') !== want) {
+          map.setLayoutProperty(id, 'visibility', want)
+        }
+      }
+    }
+  }, [terrengtype, helning, vern, kronedekning, egnetTelt, egnetHengekoye, basemap])
+
   // Kept in a ref as well, because initTerrainLayers runs from a style.load
   // callback that closes over the state at mount time.
   function setLayerOpacity(key, value) {
