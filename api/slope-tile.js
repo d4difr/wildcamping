@@ -14,6 +14,20 @@
 // Kartverket høydedata, open data. Attribution: "Kilde: Kartverket".
 
 const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportImage'
+const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
+
+// Ground you could pitch on at all: 30 skog + 50 snaumark. Everything else —
+// water, bog, farmland, buildings, glacier — gets masked out of the render.
+const LAND_SLD =
+  '<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" ' +
+  'xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc">' +
+  '<NamedLayer><Name>Arealtyper</Name><UserStyle><FeatureTypeStyle>' +
+  ['30', '50'].map((v) =>
+    `<Rule><ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>artype</ogc:PropertyName>` +
+    `<ogc:Literal>${v}</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>` +
+    `<PolygonSymbolizer><Fill><CssParameter name="fill">#FFFFFF</CssParameter></Fill></PolygonSymbolizer></Rule>`
+  ).join('') +
+  '</FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>'
 
 // Slope bands in degrees, chosen for pitching a tent rather than avalanche risk.
 //
@@ -56,6 +70,7 @@ const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportIma
 // Defined in _terrain.js so the Egnet layer tests the same "helt flatt" this
 // legend advertises. Changing a band here changes both.
 import { SLOPE_BANDS as BANDS } from './_terrain.js'
+import { decodePng, encodePng } from './_png.js'
 
 const inputRanges = BANDS.flatMap((b, i) => [i === 0 ? 0 : BANDS[i - 1].max, b.max])
 const outputValues = BANDS.map((_, i) => i + 1)
@@ -107,8 +122,9 @@ export default async function handler(req, res) {
   const [minX, minY, maxX, maxY] = nums
   if (maxX <= minX || maxY <= minY) return res.status(400).json({ error: 'Inverted bbox' })
 
+  const bb = nums.join(',')
   const params = new URLSearchParams({
-    bbox: nums.join(','),
+    bbox: bb,
     bboxSR: '3857',
     imageSR: '3857',
     size: '256,256',
@@ -117,14 +133,43 @@ export default async function handler(req, res) {
     f: 'image',
   })
 
+  const landUrl =
+    `${AR50}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=Arealtyper&CRS=EPSG:3857` +
+    `&BBOX=${bb}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=` +
+    `&SLD_BODY=${encodeURIComponent(LAND_SLD)}`
+
   try {
     // Zoomed-out tiles cover more ground and can take a few seconds cold.
-    const upstream = await fetch(`${DTM}?${params}`, { signal: AbortSignal.timeout(15000) })
+    const [upstream, landRes] = await Promise.all([
+      fetch(`${DTM}?${params}`, { signal: AbortSignal.timeout(15000) }),
+      fetch(landUrl, { signal: AbortSignal.timeout(15000) }),
+    ])
     if (!upstream.ok) return sendBlank(res)
 
-    const buf = Buffer.from(await upstream.arrayBuffer())
+    let buf = Buffer.from(await upstream.arrayBuffer())
     // ArcGIS reports errors as JSON with a 200, so sniff the PNG magic bytes.
     if (buf.length < 8 || buf.readUInt32BE(0) !== 0x89504e47) return sendBlank(res)
+
+    // Blank out everything that isn't campable ground. Without this the layer
+    // calls lakes and bog "helt flatt" — which they are, and you cannot sleep on
+    // either. Measured: on a Baneheia tile 90% of the flattest band was water or
+    // bog; Hardangervidda 70%. If the mask can't be fetched we serve the raw
+    // slope rather than nothing, since it is still useful with that caveat.
+    if (landRes.ok) {
+      const landBuf = Buffer.from(await landRes.arrayBuffer())
+      if (landBuf.length >= 8 && landBuf.readUInt32BE(0) === 0x89504e47) {
+        try {
+          const slope = decodePng(buf)
+          const land = decodePng(landBuf)
+          for (let i = 0; i < slope.data.length; i += 4) {
+            if (land.data[i + 3] <= 20) slope.data[i + 3] = 0
+          }
+          buf = encodePng(slope.data, slope.width, slope.height)
+        } catch {
+          // Fall through with the unmasked render.
+        }
+      }
+    }
 
     res.setHeader('Content-Type', 'image/png')
     // Terrain changes on a scale of decades — cache hard at the edge.
