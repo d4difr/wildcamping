@@ -875,7 +875,7 @@ function SidebarContent({
   editingCamp, activeSpot, activePendingSpot, activeAdminPendingSpot, ownerToken,
   filters, hasFilters, allRegions, filteredSpots, loading, spots, onBack, onEdit,
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
-  flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange,
+  flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange, ownedIds,
 }) {
   if (editingCamp) {
     return (
@@ -930,7 +930,7 @@ function SidebarContent({
     return (
       <>
         <SpotDetail spot={activeSpot} onBack={onBack} onReport={onReport} alreadyReported={flaggedSpots.includes(activeSpot.id)} />
-        {activeSpot.owner_token === ownerToken && (
+        {ownedIds.has(activeSpot.id) && (
           <div className="owner-actions">
             <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activeSpot)}>✏️ Rediger</button>
             <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activeSpot)}>🗑 Slett</button>
@@ -940,7 +940,7 @@ function SidebarContent({
     )
   }
   if (sidebarView === 'mine') {
-    const mySpots = spots.filter(s => s.owner_token === ownerToken)
+    const mySpots = spots.filter((s) => ownedIds.has(s.id))
     return (
       <>
         <div className="filter-panel">
@@ -1026,7 +1026,7 @@ function SidebarContent({
               <div className="spot-card-body">
                 <h3>{spot.name}</h3>
                 <SpotBadges spot={spot} />
-                {spot.owner_token === ownerToken && (
+                {ownedIds.has(spot.id) && (
                   <div className="spot-card-footer">
                     <button className="owner-btn owner-btn--edit" onClick={(e) => { e.stopPropagation(); onEdit(spot) }}>✏️</button>
                     <button className="owner-btn owner-btn--delete" onClick={(e) => { e.stopPropagation(); onDelete(spot) }}>✕</button>
@@ -1078,6 +1078,7 @@ export default function CampingMap() {
   const elevationTimeout = useRef(null)
   const [spots, setSpots] = useState([])
   const [ownPendingSpots, setOwnPendingSpots] = useState([])
+  const [ownedIds, setOwnedIds] = useState(() => new Set())
   const [adminPendingSpots, setAdminPendingSpots] = useState([])
   const [pendingPosition, setPendingPosition] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -1169,9 +1170,29 @@ export default function CampingMap() {
 
   async function loadSpots() {
     setLoading(true)
+
+    // Ownership is decided server-side. owner_token used to be readable through
+    // the public anon key, which meant anyone could read a token and then pass
+    // it to /api/spot-delete — so the column is no longer selectable and this
+    // RPC hands back only the caller's own spot ids.
+    // supabase-js returns { data: null, error } here rather than throwing, so the
+    // null-coalesce below is what actually degrades gracefully.
+    const { data: mine, error: mineError } = await supabase.rpc('my_spot_ids', { p_token: ownerToken })
+    if (mineError) {
+      // Almost certainly means step 1 of supabase/fix-owner-token-exposure.sql
+      // has not been run. The page still works, but owners lose their edit and
+      // delete controls and "Mine bidrag" looks empty — so run the SQL BEFORE
+      // deploying this.
+      console.warn('my_spot_ids unavailable, ownership hidden:', mineError.message)
+    }
+    const ids = mine ?? []
+    setOwnedIds(new Set(ids))
+
     const [{ data, error }, { data: ownPending }] = await Promise.all([
       supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
-      supabase.from('spots').select('*').eq('status', 'pending').eq('owner_token', ownerToken).is('deleted_at', null),
+      ids.length
+        ? supabase.from('spots').select('*').eq('status', 'pending').in('id', ids).is('deleted_at', null)
+        : Promise.resolve({ data: [] }),
     ])
     if (!error && data) {
       setSpots(data)
@@ -1872,7 +1893,7 @@ export default function CampingMap() {
                       <circle cx="12" cy="8" r="4"/>
                       <path d="M4 20v-1a8 8 0 0116 0v1"/>
                     </svg>
-                    {(() => { const n = spots.filter(s => s.owner_token === ownerToken).length; return n > 0 ? <span className="sidebar-rail-badge">{n}</span> : null })()}
+                    {(() => { const n = spots.filter((s) => ownedIds.has(s.id)).length; return n > 0 ? <span className="sidebar-rail-badge">{n}</span> : null })()}
                   </div>
                   <span className="sidebar-rail-label">Mine bidrag</span>
                 </button>
@@ -1900,7 +1921,7 @@ export default function CampingMap() {
                 <SidebarContent
                   sidebarView={sidebarView} onSidebarViewChange={setSidebarView}
                   editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
-                  activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
+                  activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                   filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                   filteredSpots={filteredSpots} loading={loading} spots={spots}
                   onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
@@ -2505,7 +2526,7 @@ export default function CampingMap() {
             <div className="bottom-sheet-body">
               <SidebarContent
                 editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
-                activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken}
+                activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
