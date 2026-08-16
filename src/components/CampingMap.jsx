@@ -182,6 +182,21 @@ const KRONEDEKNING_BANDS = [
   { color: '#00441B', label: 'Tett', hint: 'Nesten helt lukket kronedekke' },
 ]
 
+// Which Planlegg layers everyone sees. The rest stay admin-only while they are
+// still being worked on.
+//
+// Released after field testing in Baneheia: Helning is a direct lidar
+// measurement and proved reliable on the ground; Egnet is built on it. Vern
+// ships WITH them on purpose — Egnet excludes water, bog, farmland and
+// buildings but NOT verneområder, and camping is banned in many of the ~2750
+// naturreservat. Vern is the only thing stopping the planner pointing someone
+// at ground they are not allowed to sleep on.
+//
+// Held back: Terrengtype and Kronedekning are more interesting to the author
+// than to someone planning a weekend, and every extra toggle costs a first-time
+// visitor something. Turruter is accurate but not essential.
+const PUBLIC_LAYERS = new Set(['helning', 'vern', 'egnetTelt', 'egnetHengekoye'])
+
 // Egnet needs slope, which only carries its meaning from z13 (see slope-tile.js).
 const EGNET_MIN_ZOOM = 13
 
@@ -1240,13 +1255,14 @@ export default function CampingMap() {
     return () => document.removeEventListener('mousedown', onDown)
   }, [openMenu])
 
+  // Losing admin must not strand an admin-only layer visible with no way to turn
+  // it off. Public layers are left alone.
   useEffect(() => {
     if (isAdmin) return
     setOpenMenu(null)
     if (turruterRef.current) toggleTurruter()
-    if (!terrengtypeRef.current && !helningRef.current && !vernRef.current && !kronedekningRef.current &&
-        !egnetTeltRef.current && !egnetHengekoyeRef.current) return
-    setOverlay(null)
+    const strandedFill = OVERLAYS.find((o) => o.ref.current && !PUBLIC_LAYERS.has(o.key))
+    if (strandedFill) setOverlay(null)
   }, [isAdmin])
 
   useEffect(() => {
@@ -2332,14 +2348,15 @@ export default function CampingMap() {
               )}
             </div>
             {/* Under utvikling — kun synlig for admin */}
-            {isAdmin && (() => {
+            {(() => {
+              const visible = (key) => isAdmin || PUBLIC_LAYERS.has(key)
               const active = [terrengtype, helning, vern, kronedekning, egnetTelt, egnetHengekoye, turruter].filter(Boolean).length
               const fills = [
-                { on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
-                { on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
-                { on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
-                { on: kronedekning, toggle: toggleKronedekning, icon: '🌳', label: 'Kronedekning', hint: 'Hvor tett trærne står' },
-              ]
+                { key: 'terrengtype', on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
+                { key: 'helning', on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Hvor flatt det er' },
+                { key: 'vern', on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
+                { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🌳', label: 'Kronedekning', hint: 'Hvor tett trærne står' },
+              ].filter((f) => visible(f.key))
               return (
                 <div className="ctrl-menu-wrap" ref={planleggRef}>
                   <button
@@ -2374,17 +2391,21 @@ export default function CampingMap() {
                           <span className="ctrl-menu-item-text"><strong>{f.icon} {f.label}</strong><span>{f.hint}</span></span>
                         </button>
                       ))}
-                      <p className="ctrl-menu-group">Ruter</p>
-                      <button
-                        className={`ctrl-menu-item${turruter ? ' ctrl-menu-item--on' : ''}`}
-                        onClick={toggleTurruter}
-                      >
-                        <span className="ctrl-menu-check">{turruter ? '✓' : ''}</span>
-                        <span className="ctrl-menu-item-text">
-                          <strong>🥾 Turruter</strong>
-                          <span>Merkede stier — kan vises sammen med terreng</span>
-                        </span>
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <p className="ctrl-menu-group">Ruter</p>
+                          <button
+                            className={`ctrl-menu-item${turruter ? ' ctrl-menu-item--on' : ''}`}
+                            onClick={toggleTurruter}
+                          >
+                            <span className="ctrl-menu-check">{turruter ? '✓' : ''}</span>
+                            <span className="ctrl-menu-item-text">
+                              <strong>🥾 Turruter</strong>
+                              <span>Merkede stier — kan vises sammen med terreng</span>
+                            </span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2441,7 +2462,7 @@ export default function CampingMap() {
 
           {/* One panel, a section per active layer. Turruter can be on alongside
               a fill, so the panel has to hold more than one section. */}
-          {isAdmin && !openMenu && activeLegends.length > 0 && (
+          {!openMenu && activeLegends.length > 0 && (
             <div className="terrengtype-legend">
               {activeLegends.map((l, i) => (
                 <div key={l.key} className={i > 0 ? 'legend-section legend-section--divided' : 'legend-section'}>
