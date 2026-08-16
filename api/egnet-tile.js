@@ -72,6 +72,17 @@ const LAND_SLD =
 
 const RESULT_RGB = { telt: [27, 94, 32], hengekoye: [92, 74, 30] }
 
+// Two things make the mask look blocky, and both are fixable:
+//   1. SR16's raster form is a 16 m grid. Its vector form follows forest stand
+//      boundaries instead — measured 771 hard edges vs 341 on the same tile.
+//   2. Deciding each output pixel yes/no gives no partial coverage. Compositing
+//      at 2x and averaging down turns edges into a gradient: 78 hard edges and
+//      1263 soft ones, i.e. genuinely anti-aliased.
+// SRVKRONEDEK only renders from z13, which is already this layer's minimum.
+const CANOPY_LAYER = 'SRVKRONEDEK'
+const SUPERSAMPLE = 2
+const TILE = 256
+
 // --- minimal PNG ------------------------------------------------------------
 function decodePng(buf) {
   let pos = 8, w, h, ct, idat = []
@@ -153,7 +164,7 @@ function sendBlank(res) {
   return res.status(200).send(BLANK)
 }
 
-const near = (d, i, rgb, tol = 6) =>
+const near = (d, i, rgb, tol = 10) =>
   Math.abs(d[i] - rgb[0]) <= tol && Math.abs(d[i + 1] - rgb[1]) <= tol && Math.abs(d[i + 2] - rgb[2]) <= tol
 
 const MERC = 20037508.35
@@ -173,9 +184,10 @@ export default async function handler(req, res) {
   if (maxX <= minX || maxY <= minY) return res.status(400).json({ error: 'Inverted bbox' })
 
   const bb = nums.join(',')
+  const S = TILE * SUPERSAMPLE
   const wms = (base, layer, sld) =>
     `${base}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${layer}&CRS=EPSG:3857` +
-    `&BBOX=${bb}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=` +
+    `&BBOX=${bb}&WIDTH=${S}&HEIGHT=${S}&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=` +
     (sld ? `&SLD_BODY=${encodeURIComponent(sld)}` : '')
 
   const grab = async (url) => {
@@ -188,30 +200,49 @@ export default async function handler(req, res) {
 
   try {
     const [slope, canopy, land] = await Promise.all([
-      grab(`${DTM}?bbox=${bb}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&renderingRule=${encodeURIComponent(SLOPE_RULE)}&f=image`),
-      grab(wms(SR16, 'SRRKRONEDEK')),
+      grab(`${DTM}?bbox=${bb}&bboxSR=3857&imageSR=3857&size=${S},${S}&format=png32&renderingRule=${encodeURIComponent(SLOPE_RULE)}&f=image`),
+      grab(wms(SR16, CANOPY_LAYER)),
       grab(wms(AR50, 'Arealtyper', LAND_SLD)),
     ])
 
-    const [r, g, b] = RESULT_RGB[mode]
-    const out = Buffer.alloc(256 * 256 * 4)
-    for (let i = 0; i < out.length; i += 4) {
-      if (land.data[i + 3] <= 20) continue          // not campable ground
+    // Test every subpixel...
+    const hit = new Uint8Array(S * S)
+    for (let p = 0; p < S * S; p++) {
+      const i = p * 4
+      if (land.data[i + 3] <= 20) continue           // not campable ground
       const hasCanopy = canopy.data[i + 3] > 20
-      let ok
       if (mode === 'hengekoye') {
-        ok = hasCanopy                               // trees are the requirement
+        if (hasCanopy) hit[p] = 1                    // trees are the requirement
       } else {
         const isFlat = slope.data[i + 3] > 20 && near(slope.data, i, FLAT_RGB)
         const isOpen = !hasCanopy || OPEN_CANOPY.some((c) => near(canopy.data, i, c))
-        ok = isFlat && isOpen
+        if (isFlat && isOpen) hit[p] = 1
       }
-      if (ok) { out[i] = r; out[i + 1] = g; out[i + 2] = b; out[i + 3] = 235 }
+    }
+
+    // ...then average down, so a partly-qualifying output pixel comes out partly
+    // transparent instead of snapping to on/off. That is what softens the edges.
+    const [r, g, b] = RESULT_RGB[mode]
+    const out = Buffer.alloc(TILE * TILE * 4)
+    const per = SUPERSAMPLE * SUPERSAMPLE
+    for (let y = 0; y < TILE; y++) {
+      for (let x = 0; x < TILE; x++) {
+        let c = 0
+        for (let dy = 0; dy < SUPERSAMPLE; dy++) {
+          for (let dx = 0; dx < SUPERSAMPLE; dx++) {
+            c += hit[(y * SUPERSAMPLE + dy) * S + (x * SUPERSAMPLE + dx)]
+          }
+        }
+        if (!c) continue
+        const o = (y * TILE + x) * 4
+        out[o] = r; out[o + 1] = g; out[o + 2] = b
+        out[o + 3] = Math.round((235 * c) / per)
+      }
     }
 
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400')
-    return res.status(200).send(encodePng(out, 256, 256))
+    return res.status(200).send(encodePng(out, TILE, TILE))
   } catch {
     return sendBlank(res)
   }
