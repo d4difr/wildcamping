@@ -72,15 +72,27 @@ const LAND_SLD =
 
 const RESULT_RGB = { telt: [27, 94, 32], hengekoye: [92, 74, 30] }
 
-// Two things make the mask look blocky, and both are fixable:
+// Three separate causes of blockiness, measured rather than guessed:
 //   1. SR16's raster form is a 16 m grid. Its vector form follows forest stand
-//      boundaries instead — measured 771 hard edges vs 341 on the same tile.
-//   2. Deciding each output pixel yes/no gives no partial coverage. Compositing
-//      at 2x and averaging down turns edges into a gradient: 78 hard edges and
-//      1263 soft ones, i.e. genuinely anti-aliased.
+//      boundaries instead — 771 hard edges vs 341 on the same tile.
+//   2. Deciding each output pixel yes/no gives no partial coverage, so every
+//      edge snaps on or off.
+//   3. The dominant cause: the classified slope image comes back with only TWO
+//      alpha levels and 498 straight edge runs, against 42 for vector canopy and
+//      33 for land. The slope mask was doing nearly all the staircasing.
+//
+// Fix for 2 and 3 is the same — composite at SUPERSAMPLE x and average down.
+// That works because ArcGIS genuinely computes slope at whatever resolution is
+// requested: normalised mask perimeter went 6652 -> 10090 -> 19163 for 256 ->
+// 512 -> 1024, i.e. real extra detail rather than interpolation.
+//
+// At 4x: 17 alpha levels and ~2400 soft edges, vs 5 levels and ~1260 at 2x.
+// Costs 16x the upstream pixels of a plain tile, which is only reasonable
+// because the result is cached at the edge for 30 days.
+//
 // SRVKRONEDEK only renders from z13, which is already this layer's minimum.
 const CANOPY_LAYER = 'SRVKRONEDEK'
-const SUPERSAMPLE = 2
+const SUPERSAMPLE = 4
 const TILE = 256
 
 // --- minimal PNG ------------------------------------------------------------
