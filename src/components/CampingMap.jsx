@@ -195,10 +195,10 @@ const EGNET_MIN_ZOOM = 13
 //
 // The other layers derive their key from their palette, which lives here. This
 // one cannot — its logic is server-side — so it has to be manual.
-const EGNET_VERSION = '4'
+const EGNET_VERSION = '5'
 
 const EGNET_TELT_BANDS = [
-  { color: '#1B5E20', label: 'Egnet for telt', hint: 'Flatt (under 2°) og ikke tett skog' },
+  { color: '#1B5E20', label: 'Egnet for telt', hint: 'Flatt (under 2°) på mark du kan telte på' },
 ]
 const EGNET_HENGEKOYE_BANDS = [
   { color: '#5C4A1E', label: 'Egnet for hengekøye', hint: 'Trær å henge i — helning spiller mindre rolle' },
@@ -1751,7 +1751,7 @@ export default function CampingMap() {
     egnetTelt && {
       key: 'egnetTelt', layer: 'egnet-telt', title: 'Egnet for telt',
       bands: EGNET_TELT_BANDS, minZoom: EGNET_MIN_ZOOM,
-      note: 'Flatt underlag som ikke er tett skog, myr, vann eller dyrka mark. Kombinerer Kartverkets terrengmodell med NIBIOs skog- og arealdata. Grovt anslag — gå og se.',
+      note: 'Flatt underlag, utenom myr, vann, dyrka mark og bebyggelse. Tar ikke hensyn til hvor tett skogen er — det går som regel an å telte mellom stammene. Ser heller ikke gress eller kratt: åpne flekker i lavlandsskog er ofte full av høyt gress. Gå og se.',
     },
     egnetHengekoye && {
       key: 'egnetHengekoye', layer: 'egnet-hengekoye', title: 'Egnet for hengekøye',
@@ -2347,7 +2347,7 @@ export default function CampingMap() {
                       ))}
                       <p className="ctrl-menu-group">Egnet for <span>· kombinerer flere lag</span></p>
                       {[
-                        { on: egnetTelt, toggle: toggleEgnetTelt, icon: '⛺', label: 'Telt', hint: 'Flatt og åpent nok' },
+                        { on: egnetTelt, toggle: toggleEgnetTelt, icon: '⛺', label: 'Telt', hint: 'Flatt nok å telte på' },
                         { on: egnetHengekoye, toggle: toggleEgnetHengekoye, icon: '🪢', label: 'Hengekøye', hint: 'Der det står trær' },
                       ].map((f) => (
                         <button key={f.label} className={`ctrl-menu-item${f.on ? ' ctrl-menu-item--on' : ''}`} onClick={f.toggle}>

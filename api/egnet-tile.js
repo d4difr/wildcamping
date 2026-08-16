@@ -10,8 +10,26 @@
 //   NIBIO SR16      -> kronedekning (are there trees, and how many)
 //   NIBIO AR50      -> arealtype    (is it land you could camp on at all)
 //
-// telt:      flat AND not dense canopy
+// telt:      flat, on campable ground
 // hengekoye: trees present — slope barely matters when you're off the ground
+//
+// TELT DELIBERATELY IGNORES CANOPY. It used to require "not dense forest", and
+// field testing in Baneheia showed that was wrong in both directions:
+//   - Dense forest is usually still pitchable. A one-person tent needs very
+//     little space and there is normally a gap between trunks, so the condition
+//     discarded a lot of good ground.
+//   - Open canopy is not reliably better. In lowland forest, openings get more
+//     sunlight and grow thick tall grass that is effectively unpitchable; the
+//     same openness high on a hill has no grass and is fine.
+// A condition that is wrong in both directions is not a weak filter, it is not
+// a filter. Canopy remains its own descriptive layer, and is still the whole
+// basis of hengekoye, where trees genuinely are the requirement.
+//
+// Not modelled, on purpose: the grass effect above. It would need an elevation
+// threshold that we would be guessing, in one forest, and there is no dataset
+// for ground vegetation under trees (AR50's arveget is "not relevant" for
+// artype 30). Guessing at exactly this kind of proxy is what produced the
+// earlier "glissen skog" mistake. It is disclosed in the legend instead.
 //
 // Two traps worth recording, both found by testing rather than reasoning:
 //   1. SR16 covers forest only. Absent data above the treeline means NO TREES,
@@ -211,9 +229,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Telt does not need canopy at all (see the note above), so don't fetch it.
+    const needCanopy = mode === 'hengekoye'
     const [slope, canopy, land] = await Promise.all([
-      grab(`${DTM}?bbox=${bb}&bboxSR=3857&imageSR=3857&size=${S},${S}&format=png32&renderingRule=${encodeURIComponent(SLOPE_RULE)}&f=image`),
-      grab(wms(SR16, CANOPY_LAYER)),
+      needCanopy
+        ? Promise.resolve(null)
+        : grab(`${DTM}?bbox=${bb}&bboxSR=3857&imageSR=3857&size=${S},${S}&format=png32&renderingRule=${encodeURIComponent(SLOPE_RULE)}&f=image`),
+      needCanopy ? grab(wms(SR16, CANOPY_LAYER)) : Promise.resolve(null),
       grab(wms(AR50, 'Arealtyper', LAND_SLD)),
     ])
 
@@ -222,13 +244,10 @@ export default async function handler(req, res) {
     for (let p = 0; p < S * S; p++) {
       const i = p * 4
       if (land.data[i + 3] <= 20) continue           // not campable ground
-      const hasCanopy = canopy.data[i + 3] > 20
       if (mode === 'hengekoye') {
-        if (hasCanopy) hit[p] = 1                    // trees are the requirement
+        if (canopy.data[i + 3] > 20) hit[p] = 1      // trees are the requirement
       } else {
-        const isFlat = slope.data[i + 3] > 20 && near(slope.data, i, FLAT_RGB)
-        const isOpen = !hasCanopy || OPEN_CANOPY.some((c) => near(canopy.data, i, c))
-        if (isFlat && isOpen) hit[p] = 1
+        if (slope.data[i + 3] > 20 && near(slope.data, i, FLAT_RGB)) hit[p] = 1
       }
     }
 
