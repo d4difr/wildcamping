@@ -172,6 +172,18 @@ const KRONEDEKNING_BANDS = [
 // Egnet needs slope, which only carries its meaning from z13 (see slope-tile.js).
 const EGNET_MIN_ZOOM = 13
 
+// BUMP THIS whenever api/egnet-tile.js changes how the mask is computed —
+// thresholds, supersampling, which layers it reads, anything.
+//
+// The tile URL is the cache key and these tiles are held for 30 days at the
+// edge, so without a bump a changed algorithm keeps serving the old picture and
+// looks like the change did nothing. That is exactly what happened when the
+// anti-aliasing work landed: three rounds of improvement, none of them visible.
+//
+// The other layers derive their key from their palette, which lives here. This
+// one cannot — its logic is server-side — so it has to be manual.
+const EGNET_VERSION = '4'
+
 const EGNET_TELT_BANDS = [
   { color: '#1B5E20', label: 'Egnet for telt', hint: 'Flatt (under 2°) og ikke tett skog' },
 ]
@@ -2023,7 +2035,7 @@ export default function CampingMap() {
                 if (!map.getSource('nibio-kronedekning')) {
                   map.addSource('nibio-kronedekning', {
                     type: 'raster',
-                    tiles: ['/api/kronedekning-tile?bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/kronedekning-tile?v=${styleKey(KRONEDEKNING_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     maxzoom: 16,
                     attribution: 'Kilde: <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
@@ -2043,7 +2055,7 @@ export default function CampingMap() {
                 if (!map.getSource('nibio-kronedekning-v')) {
                   map.addSource('nibio-kronedekning-v', {
                     type: 'raster',
-                    tiles: ['/api/kronedekning-tile?vector=1&bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/kronedekning-tile?v=${styleKey(KRONEDEKNING_BANDS)}&vector=1&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: KRONEDEKNING_VECTOR_MIN_ZOOM,
                     maxzoom: 16,
@@ -2063,7 +2075,7 @@ export default function CampingMap() {
                 if (!map.getSource('egnet-telt')) {
                   map.addSource('egnet-telt', {
                     type: 'raster',
-                    tiles: ['/api/egnet-tile?mode=telt&bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/egnet-tile?v=${EGNET_VERSION}&mode=telt&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: EGNET_MIN_ZOOM,
                     maxzoom: 16,
@@ -2084,7 +2096,7 @@ export default function CampingMap() {
                 if (!map.getSource('egnet-hengekoye')) {
                   map.addSource('egnet-hengekoye', {
                     type: 'raster',
-                    tiles: ['/api/egnet-tile?mode=hengekoye&bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/egnet-tile?v=${EGNET_VERSION}&mode=hengekoye&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: EGNET_MIN_ZOOM,
                     maxzoom: 16,
@@ -2110,7 +2122,7 @@ export default function CampingMap() {
                 if (!map.getSource('kv-turruter')) {
                   map.addSource('kv-turruter', {
                     type: 'raster',
-                    tiles: ['/api/turrute-tile?bbox={bbox-epsg-3857}'],
+                    tiles: [`/api/turrute-tile?v=${styleKey(TURRUTER_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: TURRUTER_MIN_ZOOM,
                     maxzoom: 16,
