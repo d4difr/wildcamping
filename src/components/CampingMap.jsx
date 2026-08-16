@@ -14,6 +14,19 @@ const ACCESS_LABELS = {
   'remote': '🏔 Avsidesliggende',
 }
 
+// Every column the anon role may read. owner_token is deliberately absent: it is
+// an ownership secret, and it used to be readable through the public API, which
+// let anyone pass it to /api/spot-delete. The database now revokes table-level
+// SELECT and grants these columns back, so 'select(*)' would fail — queries must
+// name columns explicitly. Keep this in sync with supabase/fix-owner-token-exposure.sql.
+const SPOT_COLUMNS = [
+  'id', 'name', 'description', 'latitude', 'longitude',
+  'photo_url', 'photo_urls', 'status', 'created_at',
+  'access', 'spot_type', 'spot_types', 'region',
+  'flags', 'flag_reports', 'deleted_at',
+  'flatness_deg', 'flatness_relief_m', 'flatness_offset_m', 'flatness_checked_at',
+].join(', ')
+
 const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
 
 // NIBIO's AR50 WMS stops rendering above 1:500 000 — verified blank at z<=9.
@@ -650,7 +663,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
   async function fetchAll() {
     setLoading(true)
     try {
-      const { data } = await supabase.from('spots').select('*').order('created_at', { ascending: false })
+      const { data } = await supabase.from('spots').select(SPOT_COLUMNS).order('created_at', { ascending: false })
       if (data) setSpots(data)
     } finally {
       setLoading(false)
@@ -1189,9 +1202,9 @@ export default function CampingMap() {
     setOwnedIds(new Set(ids))
 
     const [{ data, error }, { data: ownPending }] = await Promise.all([
-      supabase.from('spots').select('*').eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
       ids.length
-        ? supabase.from('spots').select('*').eq('status', 'pending').in('id', ids).is('deleted_at', null)
+        ? supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'pending').in('id', ids).is('deleted_at', null)
         : Promise.resolve({ data: [] }),
     ])
     if (!error && data) {
@@ -1208,7 +1221,7 @@ export default function CampingMap() {
   }
 
   async function loadAdminPending() {
-    const { data } = await supabase.from('spots').select('*').eq('status', 'pending').is('deleted_at', null)
+    const { data } = await supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'pending').is('deleted_at', null)
     if (data) setAdminPendingSpots(data)
   }
 

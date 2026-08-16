@@ -44,12 +44,34 @@ grant execute on function public.my_spot_ids(text) to anon, authenticated;
 -- which is why the client now filters by id instead.
 -- ---------------------------------------------------------------------------
 
-revoke select (owner_token) on public.spots from anon;
+-- NOTE: a plain
+--     revoke select (owner_token) on public.spots from anon;
+-- DOES NOT WORK and fails silently. In Postgres a table-level SELECT grant
+-- covers every column, and a column-level revoke cannot carve a hole in it.
+-- Verified against production: after running it, owner_token was still readable.
+--
+-- The working form is to drop the table-level grant and grant back the columns
+-- that should stay public. If you add a column to spots later, you MUST add it
+-- here too or it will be invisible to the app.
 
--- Verify — this must now fail for anon, and my_spot_ids must still work:
+revoke select on public.spots from anon;
+
+grant select (
+  id, name, description, latitude, longitude,
+  photo_url, photo_urls, status, created_at,
+  access, spot_type, spot_types, region,
+  flags, flag_reports, deleted_at,
+  flatness_deg, flatness_relief_m, flatness_offset_m, flatness_checked_at
+) on public.spots to anon;
+
+-- Verify — the first must now fail, the rest must still work:
 --   select owner_token from spots limit 1;              -> permission denied
+--   select id, name from spots limit 1;                 -> works
 --   select * from my_spot_ids('<a real token>');        -> that device's ids
 --   select * from my_spot_ids('short');                 -> no rows
+--
+-- `select *` will also now fail for anon, which is expected — the app selects
+-- explicit columns. Check the site still lists spots after running this.
 
 -- ---------------------------------------------------------------------------
 -- ROLLBACK
