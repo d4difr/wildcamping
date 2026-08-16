@@ -1770,12 +1770,12 @@ export default function CampingMap() {
     egnetTelt && {
       key: 'egnetTelt', layer: 'egnet-telt', title: 'Egnet for telt',
       bands: EGNET_TELT_BANDS, minZoom: EGNET_MIN_ZOOM,
-      note: 'Flatt underlag, utenom myr, vann, dyrka mark og bebyggelse. Tar ikke hensyn til hvor tett skogen er — det går som regel an å telte mellom stammene. Ser heller ikke gress eller kratt: åpne flekker i lavlandsskog er ofte full av høyt gress. Gå og se.',
+      note: 'Flatt underlag i skog og på snaumark. Målt i Kartverkets terrengmodell.',
     },
     egnetHengekoye && {
       key: 'egnetHengekoye', layer: 'egnet-hengekoye', title: 'Egnet for hengekøye',
       bands: EGNET_HENGEKOYE_BANDS, minZoom: EGNET_MIN_ZOOM,
-      note: 'Der det står trær. Sier ingenting om avstand mellom stammer eller hvor tykke de er — gå og se.',
+      note: 'Skogsmark med trær å henge i. Fra NIBIOs skogdata (SR16).',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
