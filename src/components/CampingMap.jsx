@@ -1769,7 +1769,7 @@ export default function CampingMap() {
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
       bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
-      note: 'Hvor bratt bakken er. Målt i Kartverkets terrengmodell — den viser formen på bakken, ikke stein, røtter, vegetasjon eller om du har lov til å telte. Vann er utelatt, fordi modellen der måler vannflaten.',
+      note: 'Hvor bratt bakken er. Målt i Kartverkets terrengmodell.',
     },
     vern && {
       key: 'vern', layer: 'md-vern', title: 'Vern',
@@ -1779,11 +1779,13 @@ export default function CampingMap() {
     kronedekning && {
       key: 'kronedekning', layer: 'nibio-kronedekning', title: 'Kronedekning',
       bands: KRONEDEKNING_BANDS, minZoom: 0,
-      // NIBIO's own figures: the models explain ~70% of variation with ~50%
-      // relative RMSE, and they state the pixel-level error averages out over
-      // larger areas. So it is sound for comparing areas and unreliable for a
-      // single point — the wording must not imply a measurement.
-      note: 'Anslag på kronedekke, modellert fra laser og flybilder (NIBIO SR16). Godt egnet til å sammenligne områder, men kan bomme på enkeltpunkter — og vet ikke om kratt eller nyere hogst. Sjekk på stedet.',
+      // "Anslag" and "modellert" are doing the work here, so keep them. By
+      // NIBIO's own figures the models explain ~70% of variation at ~50%
+      // relative RMSE, with pixel-level error averaging out over larger areas —
+      // sound for comparing areas, unreliable at a single point. The note used
+      // to spell that out along with kratt and nyere hogst; it was cut for
+      // length, so nothing but those two words now signals it is not measured.
+      note: 'Anslag på kronedekke, modellert fra laser og flybilder (NIBIO SR16).',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
