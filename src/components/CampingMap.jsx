@@ -943,6 +943,7 @@ function SidebarCreate({
   if (pendingPosition) {
     return (
       <div className="sidebar-create">
+        <h2 className="sidebar-create-title">Legg til leirplass</h2>
         <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
         <AddSpotForm
           position={pendingPosition}
@@ -955,6 +956,7 @@ function SidebarCreate({
   }
   return (
     <div className="sidebar-create">
+      <h2 className="sidebar-create-title">Legg til leirplass</h2>
       {locationChecking && <p className="drop-panel-hint">Sjekker plassering…</p>}
       {locationError && !locationChecking && (
         <>

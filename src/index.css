@@ -1468,6 +1468,13 @@ body {
   box-shadow: none;
 }
 
+.sidebar-create-title {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--forest);
+}
+
 .sidebar-create-cancel {
   display: block;
   width: 100%;
