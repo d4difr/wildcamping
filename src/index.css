@@ -2227,7 +2227,11 @@ button.primary:hover:not(:disabled) {
   border-radius: 12px;
   padding: 0.55rem 0.9rem;
   box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-  max-width: min(780px, calc(100vw - 1.5rem));
+  /* Same 360px as .floating-form, so the two bottom-centre panels line up
+     instead of one being three times the width of the other. Six bands no
+     longer fit on one row at this width, which is intended — they wrap to two. */
+  width: 360px;
+  max-width: calc(100vw - 1.5rem);
   backdrop-filter: blur(4px);
 }
 
@@ -2259,13 +2263,14 @@ button.primary:hover:not(:disabled) {
   color: #9a9d97;
 }
 
+/* Own line, but a short track — the slider is a fine adjustment, not the main
+   content, and stretching it to the panel width made it the loudest thing here. */
 .legend-opacity {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   margin-top: 0;
-  min-width: 170px;
-  flex: 1;
+  flex-basis: 100%;
 }
 
 .legend-opacity-label {
@@ -2275,8 +2280,9 @@ button.primary:hover:not(:disabled) {
 }
 
 .legend-opacity input[type="range"] {
-  flex: 1;
-  min-width: 60px;
+  flex: 0 0 96px;
+  width: 96px;
+  min-width: 0;
   height: 3px;
   accent-color: var(--forest);
   cursor: pointer;
@@ -2337,7 +2343,11 @@ button.primary:hover:not(:disabled) {
 @media (max-width: 767px) {
   .terrengtype-legend {
     bottom: 5.5rem;
-    max-width: calc(100vw - 1.2rem);
+    width: auto;
+    left: 0.6rem;
+    right: 0.6rem;
+    transform: none;
+    max-width: none;
     padding: 0.5rem 0.7rem;
   }
   /* On mobile the bottom sheet already owns the lower strip, so raise further. */
@@ -2345,7 +2355,6 @@ button.primary:hover:not(:disabled) {
   .terrengtype-legend-rows { gap: 0.25rem 0.6rem; }
   .terrengtype-legend-label { font-size: 0.72rem; }
   .terrengtype-disclaimer { font-size: 0.6rem; }
-  .legend-opacity { min-width: 140px; }
 }
 
 .hint-3d {
