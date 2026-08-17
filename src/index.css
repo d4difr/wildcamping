@@ -1449,6 +1449,27 @@ body {
 }
 
 /* Floating add-spot form */
+/* Desktop create flow, inside the left sidebar. No positioning of its own —
+   the sidebar already scrolls and constrains the width. */
+.sidebar-create {
+  padding: 0.75rem;
+}
+
+.sidebar-create-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--granite);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sidebar-create-cancel:hover { background: var(--birch); }
+
 .floating-form {
   position: absolute;
   bottom: 1.5rem;

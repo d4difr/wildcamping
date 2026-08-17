@@ -911,12 +911,83 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
   )
 }
 
+// Shared by the desktop sidebar and the mobile overlay so the two copies of the
+// create flow cannot drift apart.
+function CoordEntry({ expanded, onToggle, value, onChange, error, onSubmit }) {
+  return (
+    <>
+      <button type="button" className="coord-toggle" onClick={onToggle}>
+        <span>eller skriv inn koordinater</span>
+        <span className={`coord-toggle-chevron${expanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
+      </button>
+      {expanded && (
+        <form className="coord-form" onSubmit={onSubmit}>
+          <input type="text" placeholder="Breddegrad (f.eks. 61.234)" value={value.lat} onChange={(e) => onChange({ ...value, lat: e.target.value })} />
+          <input type="text" placeholder="Lengdegrad (f.eks. 8.567)" value={value.lng} onChange={(e) => onChange({ ...value, lng: e.target.value })} />
+          {error && <p className="coord-error">{error}</p>}
+          <button type="submit" className="primary">Plasser pin</button>
+        </form>
+      )}
+    </>
+  )
+}
+
+// Desktop only. The create flow lives in the sidebar rather than floating over
+// the map, so browsing saved pins and adding one share a single surface and the
+// form never covers the ground you are trying to look at.
+function SidebarCreate({
+  pendingPosition, locationChecking, locationError, ownerToken,
+  coordExpanded, setCoordExpanded, coordInput, setCoordInput, coordError,
+  onCoordSubmit, onCancel, onSaved,
+}) {
+  if (pendingPosition) {
+    return (
+      <div className="sidebar-create">
+        <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
+        <AddSpotForm
+          position={pendingPosition}
+          ownerToken={ownerToken}
+          onCancel={onCancel}
+          onSaved={onSaved}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="sidebar-create">
+      {locationChecking && <p className="drop-panel-hint">Sjekker plassering…</p>}
+      {locationError && !locationChecking && (
+        <>
+          <p className="drop-panel-hint" style={{ color: '#a32d2d' }}>⚠ {locationError}</p>
+          <p className="drop-panel-hint" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klikk et annet sted i Norge.</p>
+        </>
+      )}
+      {!locationChecking && !locationError && (
+        <>
+          <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
+          <CoordEntry
+            expanded={coordExpanded} onToggle={() => setCoordExpanded((e) => !e)}
+            value={coordInput} onChange={setCoordInput} error={coordError} onSubmit={onCoordSubmit}
+          />
+          <button type="button" className="sidebar-create-cancel" onClick={onCancel}>Avbryt</button>
+        </>
+      )}
+    </div>
+  )
+}
+
 function SidebarContent({
+  createFlow,
   editingCamp, activeSpot, activePendingSpot, activeAdminPendingSpot, ownerToken,
   filters, hasFilters, allRegions, filteredSpots, loading, spots, onBack, onEdit,
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
   flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange, ownedIds,
 }) {
+  // Creating takes precedence over whatever was being browsed — the user just
+  // asked for this panel, so it should not sit behind a spot detail.
+  if (createFlow && (createFlow.dropMode || createFlow.pendingPosition)) {
+    return <SidebarCreate {...createFlow} ownerToken={ownerToken} />
+  }
   if (editingCamp) {
     return (
       <div className="spot-detail" style={{ padding: '0.75rem' }}>
@@ -1624,6 +1695,21 @@ export default function CampingMap() {
 
   function handleCancel() { setPendingPosition(null); setDropMode(false); setCoordInput({ lat: '', lng: '' }); setCoordError(''); setCoordExpanded(false); setLocationError('') }
 
+  // Typing clears any previous coordinate error, which the inline handlers used
+  // to do before CoordEntry was extracted.
+  function handleCoordChange(next) { setCoordInput(next); setCoordError('') }
+
+  // One bundle so the sidebar and the mobile overlay drive the same flow. Grouped
+  // rather than spread across ten more props on SidebarContent, which already
+  // takes plenty.
+  const createFlow = {
+    dropMode, pendingPosition, locationChecking, locationError,
+    coordExpanded, setCoordExpanded, coordInput, setCoordInput: handleCoordChange, coordError,
+    onCoordSubmit: handleCoordSubmit,
+    onCancel: handleCancel,
+    onSaved: () => { setPendingPosition(null); loadSpots(); setSavedToast(true); setTimeout(() => setSavedToast(false), 5000) },
+  }
+
   function handleLocate() {
     if (!navigator.geolocation) { setLocateError('Nettleseren din støtter ikke posisjon.'); return }
     setLocating(true)
@@ -1959,8 +2045,20 @@ export default function CampingMap() {
             {/* Expanded content */}
             {sidebarOpen && (
               <div className="sidebar-inner">
-                <button className="sidebar-close-btn" onClick={() => { setSidebarOpen(false); setSidebarView('all') }} aria-label="Lukk sidepanel">✕</button>
+                {/* Closing while creating would leave dropMode armed with no
+                    visible form — the next map click would drop a pin the user
+                    can no longer see or fill in. So closing cancels. */}
+                <button
+                  className="sidebar-close-btn"
+                  onClick={() => {
+                    if (dropMode || pendingPosition) handleCancel()
+                    setSidebarOpen(false)
+                    setSidebarView('all')
+                  }}
+                  aria-label="Lukk sidepanel"
+                >✕</button>
                 <SidebarContent
+                  createFlow={createFlow}
                   sidebarView={sidebarView} onSidebarViewChange={setSidebarView}
                   editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                   activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
@@ -2368,7 +2466,7 @@ export default function CampingMap() {
             })()}
             <button
               className={`submit-btn${dropMode ? ' submit-btn--active' : ''}`}
-              onClick={() => { setDropMode((d) => !d); setPendingPosition(null); setCoordExpanded(false) }}
+              onClick={() => { const next = !dropMode; setDropMode(next); setPendingPosition(null); setCoordExpanded(false); if (next && !isMobile) setSidebarOpen(true) }}
             >
               {dropMode ? '✕ Avbryt' : '＋ Legg til leirplass'}
             </button>
@@ -2486,47 +2584,47 @@ export default function CampingMap() {
             </div>
           )}
 
-          {locationChecking && (
-            <div className="drop-panel">
-              <p className="drop-panel-hint">Sjekker plassering…</p>
-            </div>
-          )}
-
-          {locationError && !locationChecking && (
-            <div className="drop-panel">
-              <p className="drop-panel-hint" style={{ color: '#a32d2d' }}>⚠ {locationError}</p>
-              <p className="drop-panel-hint" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klikk et annet sted i Norge.</p>
-            </div>
-          )}
-
-          {dropMode && !pendingPosition && !locationChecking && !locationError && (
-            <div className="drop-panel">
-              <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
-              <button type="button" className="coord-toggle" onClick={() => setCoordExpanded((e) => !e)}>
-                <span>eller skriv inn koordinater</span>
-                <span className={`coord-toggle-chevron${coordExpanded ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
-              </button>
-              {coordExpanded && (
-                <form className="coord-form" onSubmit={handleCoordSubmit}>
-                  <input type="text" placeholder="Breddegrad (f.eks. 61.234)" value={coordInput.lat} onChange={(e) => { setCoordInput((c) => ({ ...c, lat: e.target.value })); setCoordError('') }} />
-                  <input type="text" placeholder="Lengdegrad (f.eks. 8.567)" value={coordInput.lng} onChange={(e) => { setCoordInput((c) => ({ ...c, lng: e.target.value })); setCoordError('') }} />
-                  {coordError && <p className="coord-error">{coordError}</p>}
-                  <button type="submit" className="primary">Plasser pin</button>
-                </form>
+          {/* Mobile keeps the create flow floating over the map — there is no
+              sidebar to put it in. On desktop it lives in the sidebar instead,
+              via SidebarCreate, so the form never covers the ground you are
+              trying to judge. */}
+          {isMobile && (
+            <>
+              {locationChecking && (
+                <div className="drop-panel">
+                  <p className="drop-panel-hint">Sjekker plassering…</p>
+                </div>
               )}
-            </div>
-          )}
 
-          {pendingPosition && (
-            <div className="floating-form">
-              <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
-              <AddSpotForm
-                position={pendingPosition}
-                ownerToken={ownerToken}
-                onCancel={handleCancel}
-                onSaved={() => { setPendingPosition(null); loadSpots(); setSavedToast(true); setTimeout(() => setSavedToast(false), 5000) }}
-              />
-            </div>
+              {locationError && !locationChecking && (
+                <div className="drop-panel">
+                  <p className="drop-panel-hint" style={{ color: '#a32d2d' }}>⚠ {locationError}</p>
+                  <p className="drop-panel-hint" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klikk et annet sted i Norge.</p>
+                </div>
+              )}
+
+              {dropMode && !pendingPosition && !locationChecking && !locationError && (
+                <div className="drop-panel">
+                  <p className="drop-panel-hint">Klikk på kartet for å plassere leirplassen</p>
+                  <CoordEntry
+                    expanded={coordExpanded} onToggle={() => setCoordExpanded((e) => !e)}
+                    value={coordInput} onChange={handleCoordChange} error={coordError} onSubmit={handleCoordSubmit}
+                  />
+                </div>
+              )}
+
+              {pendingPosition && (
+                <div className="floating-form">
+                  <p className="hint">Pin ved {pendingPosition.lat.toFixed(3)}, {pendingPosition.lng.toFixed(3)}</p>
+                  <AddSpotForm
+                    position={pendingPosition}
+                    ownerToken={ownerToken}
+                    onCancel={handleCancel}
+                    onSaved={createFlow.onSaved}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
 
