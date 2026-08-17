@@ -2310,7 +2310,7 @@ export default function CampingMap() {
               // a second group heading.
               const fills = [
                 { key: 'helning', on: helning, toggle: toggleHelning, icon: '⛺', label: 'Helning', hint: 'Finn flate teltplasser' },
-                { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🪢', label: 'Kronedekning', hint: 'Finn trær å henge hengekøya i' },
+                { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🪢', label: 'Kronedekning', hint: 'Finn trær til hengekøyer' },
                 { divider: true },
                 { key: 'vern', on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
                 { key: 'terrengtype', on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
