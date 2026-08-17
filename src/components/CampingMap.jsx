@@ -2374,8 +2374,6 @@ export default function CampingMap() {
             </button>
           </div>
 
-          {/* Legends sit where the Planlegg menu opens, so they yield to it.
-              The menu already shows which layers are on. */}
           {measuring && (
             <div className="measure-panel">
               {measurePoints.length < 2 ? (
@@ -2416,9 +2414,18 @@ export default function CampingMap() {
           )}
 
           {/* One panel, a section per active layer. Turruter can be on alongside
-              a fill, so the panel has to hold more than one section. */}
-          {!openMenu && activeLegends.length > 0 && (
-            <div className="terrengtype-legend">
+              a fill, so the panel has to hold more than one section.
+
+              It sits bottom-centre rather than top-right because top-right is
+              where the Planlegg menu opens. The legend used to hide itself while
+              that menu was open, which meant you had to dismiss the menu to see
+              the colours for the layer you had just switched on — the one moment
+              the legend is most useful. Down here they coexist.
+
+              Raised when the measure panel or the 3D hint is showing, since both
+              claim the same bottom-centre strip. */}
+          {activeLegends.length > 0 && (
+            <div className={`terrengtype-legend${measuring || terrain3D ? ' terrengtype-legend--raised' : ''}`}>
               {activeLegends.map((l, i) => (
                 <div key={l.key} className={i > 0 ? 'legend-section legend-section--divided' : 'legend-section'}>
                   <p className="legend-title">{l.title}</p>
