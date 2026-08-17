@@ -1455,6 +1455,16 @@ body {
   padding: 0.75rem;
 }
 
+/* The form is a card when it floats over the map, but inside the sidebar it is
+   already framed — a second border and shadow just draws a box inside a box. */
+.sidebar-create .panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
 .sidebar-create-cancel {
   display: block;
   width: 100%;
