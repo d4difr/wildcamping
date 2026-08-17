@@ -1451,8 +1451,11 @@ body {
 /* Floating add-spot form */
 /* Desktop create flow, inside the left sidebar. No positioning of its own —
    the sidebar already scrolls and constrains the width. */
+/* Extra headroom because .sidebar-close-btn is absolutely positioned over this
+   panel, occupying y=10–38px. At the normal 0.75rem the first line ran under it. */
 .sidebar-create {
   padding: 0.75rem;
+  padding-top: 2.9rem;
 }
 
 /* The form is a card when it floats over the map, but inside the sidebar it is
