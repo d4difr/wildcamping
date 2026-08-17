@@ -16,13 +16,27 @@
 const DTM = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportImage'
 const AR50 = 'https://wms.nibio.no/cgi-bin/ar50_2'
 
-// Ground you could pitch on at all: 30 skog + 50 snaumark. Everything else —
-// water, bog, farmland, buildings, glacier — gets masked out of the render.
-const LAND_SLD =
+// Water only: 81 ferskvann + 82 hav. Drawn white, and the render is dropped
+// wherever this paints.
+//
+// This layer used to mask to "campable ground" (30 skog + 50 snaumark), which
+// also removed bog, farmland and built-up areas. That was the wrong line to
+// draw. Helning answers one question — how steep is this — and withholding real
+// measurements because we decided nobody could sleep there is the same mistake
+// as the old Lett/Middels/Krevende bands: it turns a measurement into a verdict.
+// It also masked lidar-resolution data with land cover generalised to
+// 1:50 000, so a shoreline off by a few tens of metres silently erased real
+// ground, indistinguishable from no data.
+//
+// Water is excluded on different grounds, and this is the whole justification:
+// over a lake the DTM measures the WATER SURFACE, so the 0° it reports is an
+// artifact of what the sensor hit, not flat ground. The number is meaningless
+// there. Nothing about permission — reading the map is the user's job.
+const WATER_SLD =
   '<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" ' +
   'xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc">' +
   '<NamedLayer><Name>Arealtyper</Name><UserStyle><FeatureTypeStyle>' +
-  ['30', '50'].map((v) =>
+  ['81', '82'].map((v) =>
     `<Rule><ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>artype</ogc:PropertyName>` +
     `<ogc:Literal>${v}</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>` +
     `<PolygonSymbolizer><Fill><CssParameter name="fill">#FFFFFF</CssParameter></Fill></PolygonSymbolizer></Rule>`
@@ -30,45 +44,23 @@ const LAND_SLD =
   '</FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>'
 
 // Slope bands in degrees, chosen for pitching a tent rather than avalanche risk.
+// Defined in _terrain.js so the palette and the legend cannot drift apart.
 //
-// Only campable ground is coloured. Anything steeper than the last band is left
-// transparent (AllowUnmatched: false), so the map highlights where you *could*
-// pitch rather than washing every pixel in colour — which read as mush over the
-// green basemap and buried the signal.
+// The palette settled after several wrong turns, each worth not repeating:
 //
-// Warm gold is used because it stands out against Outdoors' greens; the earlier
-// blue ramp turned to teal and disappeared.
-// A sequential ramp rather than two flat bands — the extra steps read as terrain
-// shape, not just a yes/no mask.
-//
-// The first band is deliberately much darker than the second rather than one
-// even step in the ramp — that jump is what makes prime camping ground jump out
-// instead of blending into its neighbours.
-//
-// Blue works here where it failed before because the ramp now runs dark-to-pale
-// with FLAT at the dark end. The original version had flat as the palest colour
-// and painted every pixel including steep ground, so it washed to teal over the
-// green basemap. Here everything above 13° is left undrawn.
-// Indigo rather than plain blue: the basemap already draws lakes in cyan-blue,
-// and a blue "helt flatt" patch beside a shoreline was ambiguous. Indigo shares
-// no hue with water (cyan), land (green) or routes (orange).
-// Light-to-dark: flat ground is pale, steep ground is deep indigo. That is the
-// conventional reading for terrain and matches how a shaded relief map behaves.
-//
-// Band 1 is still isolated from the rest, but now by a large gap at the LIGHT
-// end rather than the dark end — the step from band 1 to band 2 is several times
-// any later step, so prime ground reads as a distinct pale patch instead of the
-// top of a smooth ramp.
-//
-// Every slope is now coloured, including steep ground. That was previously left
-// transparent to stop the map washing out, but the old pale bands had almost no
-// contrast between them; a proper light-to-dark ramp carries full coverage fine
-// and reads as terrain shape. Only NoData stays clear.
-//
-// Water no longer matters here: the fills are drawn beneath the basemap's water
-// layer, so lakes keep their own colour regardless of what the DTM reports.
-// Defined in _terrain.js so the Egnet layer tests the same "helt flatt" this
-// legend advertises. Changing a band here changes both.
+//   - Every slope is coloured, including steep ground. An earlier version left
+//     anything above the last band transparent to stop the map washing out. The
+//     real cause was that the bands had almost no contrast between them; a
+//     proper light-to-dark ramp carries full coverage fine. Only NoData is clear.
+//   - Light-to-dark, flat being palest, is the conventional terrain reading and
+//     matches shaded relief. The first attempt ran dark-to-pale and inverted it.
+//   - Indigo, not plain blue: the basemap draws lakes in cyan-blue, so a blue
+//     "helt flatt" patch beside a shoreline was ambiguous. Indigo shares no hue
+//     with water, land or routes. A warm gold ramp was tried first and read as
+//     mush over Outdoors' greens.
+//   - Band 1 sits a long way from band 2 in lightness, several times any later
+//     step, so prime ground reads as a distinct pale patch rather than the top
+//     of a smooth ramp.
 import { SLOPE_BANDS as BANDS } from './_terrain.js'
 import { decodePng, encodePng } from './_png.js'
 
@@ -133,16 +125,16 @@ export default async function handler(req, res) {
     f: 'image',
   })
 
-  const landUrl =
+  const waterUrl =
     `${AR50}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=Arealtyper&CRS=EPSG:3857` +
     `&BBOX=${bb}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=TRUE&STYLES=` +
-    `&SLD_BODY=${encodeURIComponent(LAND_SLD)}`
+    `&SLD_BODY=${encodeURIComponent(WATER_SLD)}`
 
   try {
     // Zoomed-out tiles cover more ground and can take a few seconds cold.
-    const [upstream, landRes] = await Promise.all([
+    const [upstream, waterRes] = await Promise.all([
       fetch(`${DTM}?${params}`, { signal: AbortSignal.timeout(15000) }),
-      fetch(landUrl, { signal: AbortSignal.timeout(15000) }),
+      fetch(waterUrl, { signal: AbortSignal.timeout(15000) }),
     ])
     if (!upstream.ok) return sendBlank(res)
 
@@ -150,19 +142,34 @@ export default async function handler(req, res) {
     // ArcGIS reports errors as JSON with a 200, so sniff the PNG magic bytes.
     if (buf.length < 8 || buf.readUInt32BE(0) !== 0x89504e47) return sendBlank(res)
 
-    // Blank out everything that isn't campable ground. Without this the layer
-    // calls lakes and bog "helt flatt" — which they are, and you cannot sleep on
-    // either. Measured: on a Baneheia tile 90% of the flattest band was water or
-    // bog; Hardangervidda 70%. If the mask can't be fetched we serve the raw
-    // slope rather than nothing, since it is still useful with that caveat.
-    if (landRes.ok) {
-      const landBuf = Buffer.from(await landRes.arrayBuffer())
-      if (landBuf.length >= 8 && landBuf.readUInt32BE(0) === 0x89504e47) {
+    // Drop the render wherever AR50 says water. Everything else — bog, farmland,
+    // built-up, forest, snaumark — keeps its measured slope, because it IS
+    // measured ground and judging it is the user's job.
+    //
+    // Note this is the opposite test to the one it replaced: mask where water is
+    // painted, rather than keep only where land is painted. Getting that
+    // backwards would blank the whole map.
+    //
+    // The threshold is 128, not the 20 used elsewhere, and the asymmetry is the
+    // point. AR50's polygon edges come back antialiased, so a low threshold on
+    // an *exclusion* mask eats a pixel of real shoreline — about 9.5 m at z14 —
+    // where the old inclusion mask would have kept the same pixel. Measured on
+    // lake-heavy Hardangervidda: 68.0% coloured at >20 against 68.5% at >128,
+    // with open water still fully removed either way. Only solidly-water pixels
+    // are dropped.
+    //
+    // If AR50 can't be fetched we serve the raw slope rather than nothing. The
+    // basemap draws its own water fill above this layer on Outdoors and
+    // Topografisk, so a missed lake is usually invisible anyway; Satellitt is
+    // the case where it would show.
+    if (waterRes.ok) {
+      const waterBuf = Buffer.from(await waterRes.arrayBuffer())
+      if (waterBuf.length >= 8 && waterBuf.readUInt32BE(0) === 0x89504e47) {
         try {
           const slope = decodePng(buf)
-          const land = decodePng(landBuf)
+          const water = decodePng(waterBuf)
           for (let i = 0; i < slope.data.length; i += 4) {
-            if (land.data[i + 3] <= 20) slope.data[i + 3] = 0
+            if (water.data[i + 3] > 128) slope.data[i + 3] = 0
           }
           buf = encodePng(slope.data, slope.width, slope.height)
         } catch {

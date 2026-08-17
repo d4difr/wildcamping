@@ -49,7 +49,7 @@ const HELNING_MIN_ZOOM = 13
 
 // Bump when api/slope-tile.js changes what it renders. The palette-derived key
 // cannot see a change like adding the land mask, and tiles cache for 30 days.
-const HELNING_VERSION = '2'
+const HELNING_VERSION = '3'
 
 // Mirrors api/slope-tile.js. Only campable ground is coloured; steeper ground is
 // left unmarked so the eye goes straight to where a tent could actually go.
@@ -1769,7 +1769,7 @@ export default function CampingMap() {
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
       bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
-      note: 'Hvor bratt bakken er, i skog og på snaumark. Målt i Kartverkets terrengmodell — viser formen på bakken, ikke stein, røtter eller vegetasjon.',
+      note: 'Hvor bratt bakken er. Målt i Kartverkets terrengmodell — den viser formen på bakken, ikke stein, røtter, vegetasjon eller om du har lov til å telte. Vann er utelatt, fordi modellen der måler vannflaten.',
     },
     vern && {
       key: 'vern', layer: 'md-vern', title: 'Vern',
