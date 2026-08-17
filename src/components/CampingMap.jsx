@@ -84,6 +84,31 @@ const TOPO_STYLE = {
   layers: [{ id: 'kv-topo-layer', type: 'raster', source: 'kv-topo' }],
 }
 
+// Legend swatches are composited the way the map composites the layer.
+//
+// The overlays are raster layers drawn at `raster-opacity`, so the band colour is
+// blended with the basemap and the raw colour is never what you actually see. A
+// full-opacity swatch therefore promises something the map cannot produce: at 65%
+// the "Helt flatt" band reads near-white in the legend and sage green on the map,
+// which is exactly what it was reported as.
+//
+// The ground below is one representative mid-tone per basemap, not the real pixel
+// under any given patch — Helning alone draws over both forest green and pale
+// snaumark, so there is no single true backdrop. The point is that the swatch now
+// lands close and, more importantly, tracks the transparency slider.
+const SWATCH_GROUND = {
+  outdoors: [222, 232, 210],
+  satellite: [96, 104, 82],
+  topo: [235, 240, 226],
+}
+
+function swatchColor(hex, alpha, basemap) {
+  const g = SWATCH_GROUND[basemap] ?? SWATCH_GROUND.outdoors
+  const n = parseInt(hex.slice(1), 16)
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  return `rgb(${c.map((v, i) => Math.round(v * alpha + g[i] * (1 - alpha))).join(', ')})`
+}
+
 const BASEMAPS = [
   { key: 'outdoors', label: '🗺 Outdoors', hint: 'Mapbox friluftskart', style: 'mapbox://styles/mapbox/outdoors-v12' },
   { key: 'satellite', label: '🛰 Satellitt', hint: 'Flyfoto', style: 'mapbox://styles/mapbox/satellite-streets-v12' },
@@ -2391,7 +2416,10 @@ export default function CampingMap() {
                       <div className="terrengtype-legend-rows">
                         {l.bands.map((b) => (
                           <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
-                            <span className="terrengtype-swatch" style={{ background: b.color }} />
+                            <span
+                              className="terrengtype-swatch"
+                              style={{ background: swatchColor(b.color, opacity[l.key], basemap) }}
+                            />
                             <span className="terrengtype-legend-label">{b.label}</span>
                           </div>
                         ))}
