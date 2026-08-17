@@ -2299,16 +2299,25 @@ export default function CampingMap() {
             {(() => {
               const visible = (key) => isAdmin || PUBLIC_LAYERS.has(key)
               const active = [terrengtype, helning, vern, kronedekning, turruter].filter(Boolean).length
+              // Ordered as the shelter question, then everything else: pick where
+              // you'd sleep (telt or hengekøye), then check whether you're allowed
+              // to. The two shelter layers carry tent/hammock icons because that is
+              // what a camper is choosing between — the labels stay the measurement
+              // names, since the layers show slope and canopy, not a verdict.
+              //
+              // Still one exclusive set despite the divider: 'velg én' applies
+              // across the whole list, which is why the divider is a rule and not
+              // a second group heading.
               const fills = [
-                { key: 'terrengtype', on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
-                // Named for what it measures, described by what you'd use it for.
-                // The measurement name is the honest one — the layer shows slope,
-                // not a verdict — but "helning" alone doesn't tell a camper why
-                // they'd open it.
-                { key: 'helning', on: helning, toggle: toggleHelning, icon: '📐', label: 'Helning', hint: 'Finn flate teltplasser' },
+                { key: 'helning', on: helning, toggle: toggleHelning, icon: '⛺', label: 'Helning', hint: 'Finn flate teltplasser' },
+                { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🪢', label: 'Kronedekning', hint: 'Finn trær å henge hengekøya i' },
+                { divider: true },
                 { key: 'vern', on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
-                { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🌳', label: 'Kronedekning', hint: 'Finn trær å henge køya i' },
-              ].filter((f) => visible(f.key))
+                { key: 'terrengtype', on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
+              ].filter((f) => f.divider || visible(f.key))
+                // Drop a divider that ended up leading, trailing or doubled once
+                // the admin-only entries were filtered out.
+                .filter((f, i, a) => !f.divider || (a[i - 1] && a[i + 1] && !a[i - 1].divider))
               return (
                 <div className="ctrl-menu-wrap" ref={planleggRef}>
                   <button
@@ -2320,7 +2329,9 @@ export default function CampingMap() {
                   {openMenu === 'planlegg' && (
                     <div className="ctrl-menu">
                       {fills.length > 0 && <p className="ctrl-menu-group">Terreng <span>· velg én</span></p>}
-                      {fills.map((f) => (
+                      {fills.map((f, i) => f.divider ? (
+                        <hr key={`div-${i}`} className="ctrl-menu-divider" />
+                      ) : (
                         <button
                           key={f.label}
                           className={`ctrl-menu-item${f.on ? ' ctrl-menu-item--on' : ''}`}

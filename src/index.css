@@ -2163,6 +2163,12 @@ button.primary:hover:not(:disabled) {
   letter-spacing: 0;
 }
 
+.ctrl-menu-divider {
+  margin: 0.35rem 0.4rem;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
 .ctrl-menu-item {
   display: flex;
   align-items: flex-start;
