@@ -42,18 +42,20 @@ export async function verifiedUserId(req) {
   }
 }
 
-const MIN_TOKEN_LENGTH = 20
-
 // True if this caller may edit or delete this spot.
-export function ownsSpot(spot, { userId, ownerToken }) {
-  if (!spot) return false
-  if (userId && spot.user_id && spot.user_id === userId) return true
-  if (
-    typeof ownerToken === 'string' &&
-    ownerToken.length >= MIN_TOKEN_LENGTH &&
-    spot.owner_token === ownerToken
-  ) return true
-  return false
+//
+// ACCOUNT ONLY. owner_token used to grant this as well, which meant anyone
+// holding a token could act on those spots — it is browser-generated and
+// unverifiable, so it was never proof. It now does exactly one job: identifying
+// which spots to offer when someone signs in and is asked to claim them
+// (my_unclaimed_spot_count / claim_my_spots). It grants nothing.
+//
+// Must stay in agreement with my_spot_ids() in
+// supabase/phase5-account-only-ownership.sql, or the UI will show controls the
+// API refuses.
+export function ownsSpot(spot, { userId }) {
+  if (!spot || !userId) return false
+  return spot.user_id === userId
 }
 
 export { supabaseAdmin }

@@ -1309,7 +1309,7 @@ function SidebarContent({
     )
   }
   if (sidebarView === 'mine') {
-    const mySpots = spots.filter((s) => ownedIds.has(s.id))
+    const mySpots = signedIn ? spots.filter((s) => ownedIds.has(s.id)) : []
     return (
       <>
         <div className="filter-panel">
@@ -1318,7 +1318,17 @@ function SidebarContent({
           </div>
         </div>
         <div className="sidebar-body">
-          {mySpots.length === 0 && (
+          {/* Ownership requires an account now. The device token identifies
+              which spots to offer at sign-in, but grants nothing on its own —
+              so a signed-out visitor has no contributions to manage, even if
+              this browser made some. */}
+          {!signedIn && (
+            <p className="empty-state">
+              Logg inn for å se og redigere leirplassene dine.
+              Har du lagt til noen fra denne enheten, spør vi om å knytte dem til kontoen din.
+            </p>
+          )}
+          {signedIn && mySpots.length === 0 && (
             <p className="empty-state">Du har ikke lagt til noen leirplasser enda.</p>
           )}
           {mySpots.map((spot) => {
@@ -3092,7 +3102,15 @@ export default function CampingMap() {
           )}
         </div>
 
-        {savedToast && <div className="saved-toast">✓ Leirplassen er sendt til godkjenning.</div>}
+        {/* Signed out, the contributor cannot edit or delete what they just
+            added — so say so here, while they are still thinking about it,
+            rather than letting them discover it when they want to fix a typo. */}
+        {savedToast && (
+          <div className="saved-toast">
+            ✓ Leirplassen er sendt til godkjenning.
+            {!user && ' Lag en konto for å kunne redigere den senere.'}
+          </div>
+        )}
 
         {isMobile && (
           <div className="bottom-sheet" ref={sheetRef}>
