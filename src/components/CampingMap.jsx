@@ -47,11 +47,11 @@ function flatnessLabel(deg) {
 // 82% "flat" at z11, 51% at z13, 12% at z15, for the same cliffs.
 const HELNING_MIN_ZOOM = 13
 
-// Bump when api/slope-tile.js changes what it renders. The palette-derived key
+// Bump when api/_slope-tile.js changes what it renders. The palette-derived key
 // cannot see a change like adding the land mask, and tiles cache for 30 days.
 const HELNING_VERSION = '3'
 
-// Mirrors api/slope-tile.js. Only campable ground is coloured; steeper ground is
+// Mirrors api/_slope-tile.js. Only campable ground is coloured; steeper ground is
 // left unmarked so the eye goes straight to where a tent could actually go.
 const HELNING_BANDS = [
   { color: '#F0F3FF', label: 'Helt flatt', hint: 'Under 2°' },
@@ -201,7 +201,7 @@ function stedsnavnIcon(type) {
 
 // NIBIO's own SR16 ramp: light = open canopy, dark = dense. We show it as a
 // gradient rather than numbered classes because we use their classification, not
-// our own — see the note in api/kronedekning-tile.js.
+// our own — see the note in api/_kronedekning-tile.js.
 // SR16 vector renders only from z13; the raster covers below that.
 const KRONEDEKNING_VECTOR_MIN_ZOOM = 13
 
@@ -242,7 +242,7 @@ const TURRUTER_BANDS = [
   { color: '#FF7F7F', label: 'Merket sti', hint: 'Fotrute fra Turrutebasen' },
 ]
 
-// Mirrors api/vern-tile.js. A legal layer, not a terrain one — purple family so
+// Mirrors api/_vern-tile.js. A legal layer, not a terrain one — purple family so
 // it never reads as "the ground looks like this".
 const VERN_BANDS = [
   { color: '#B03060', label: 'Naturreservat', hint: 'Ofte forbud mot telting' },
@@ -266,10 +266,10 @@ function styleKey(bands) {
   return Math.abs(h).toString(36)
 }
 
-// Mirrors api/ar50-tile.js. Describes what the ground IS rather than rating it —
+// Mirrors api/_ar50-tile.js. Describes what the ground IS rather than rating it —
 // dense forest is poor for a tent and ideal for a hammock, so a single "krevende"
 // verdict would be wrong for half the users. Hints name the trade-off instead.
-// Vanlig skog vises ikke — se notatet i api/ar50-tile.js. Kronedekning svarer på
+// Vanlig skog vises ikke — se notatet i api/_ar50-tile.js. Kronedekning svarer på
 // hvor tett trærne står; dette laget viser bakken der det ikke bare er skog.
 const TERRENGTYPE_BANDS = [
   { color: '#EBD98A', label: 'Åpen mark', hint: 'Tørr, åpen bakke. Bra for telt — ingen trær til hengekøye' },
@@ -2158,7 +2158,7 @@ export default function CampingMap() {
                 if (!map.getSource('ar50-terrengtype')) {
                   map.addSource('ar50-terrengtype', {
                     type: 'raster',
-                    tiles: [`/api/ar50-tile?v=${styleKey(TERRENGTYPE_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=ar50&v=${styleKey(TERRENGTYPE_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: TERRENGTYPE_MIN_ZOOM,
                     maxzoom: 16,
@@ -2181,7 +2181,7 @@ export default function CampingMap() {
                 if (!map.getSource('kv-helning')) {
                   map.addSource('kv-helning', {
                     type: 'raster',
-                    tiles: [`/api/slope-tile?v=${styleKey(HELNING_BANDS)}-${HELNING_VERSION}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=slope&v=${styleKey(HELNING_BANDS)}-${HELNING_VERSION}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: HELNING_MIN_ZOOM,
                     maxzoom: 16,
@@ -2204,7 +2204,7 @@ export default function CampingMap() {
                 if (!map.getSource('md-vern')) {
                   map.addSource('md-vern', {
                     type: 'raster',
-                    tiles: [`/api/vern-tile?v=${styleKey(VERN_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=vern&v=${styleKey(VERN_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     maxzoom: 16,
                     attribution: 'Kilde: <a href="https://www.miljodirektoratet.no/" target="_blank" rel="noopener">Miljødirektoratet</a>',
@@ -2224,7 +2224,7 @@ export default function CampingMap() {
                 if (!map.getSource('nibio-kronedekning')) {
                   map.addSource('nibio-kronedekning', {
                     type: 'raster',
-                    tiles: [`/api/kronedekning-tile?v=${styleKey(KRONEDEKNING_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=kronedekning&v=${styleKey(KRONEDEKNING_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     maxzoom: 16,
                     attribution: 'Kilde: <a href="https://www.nibio.no/" target="_blank" rel="noopener">NIBIO</a>',
@@ -2244,7 +2244,7 @@ export default function CampingMap() {
                 if (!map.getSource('nibio-kronedekning-v')) {
                   map.addSource('nibio-kronedekning-v', {
                     type: 'raster',
-                    tiles: [`/api/kronedekning-tile?v=${styleKey(KRONEDEKNING_BANDS)}&vector=1&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=kronedekning&v=${styleKey(KRONEDEKNING_BANDS)}&vector=1&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: KRONEDEKNING_VECTOR_MIN_ZOOM,
                     maxzoom: 16,
@@ -2267,7 +2267,7 @@ export default function CampingMap() {
                 if (!map.getSource('kv-turruter')) {
                   map.addSource('kv-turruter', {
                     type: 'raster',
-                    tiles: [`/api/turrute-tile?v=${styleKey(TURRUTER_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=turrute&v=${styleKey(TURRUTER_BANDS)}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: TURRUTER_MIN_ZOOM,
                     maxzoom: 16,
