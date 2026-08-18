@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-map-gl'
+// Imported as MapGL, never as Map.
+//
+// Importing react-map-gl's component as "Map" shadows the built-in Map for this
+// entire 3000-line module. A later `new Map(...)` then constructs a React
+// component instead of a hash map and throws "is not a constructor" — which
+// shipped, and blanked the app for anyone with the admin panel open. It looked
+// like corrupt browser storage, because the admin token is what opens that
+// panel, so clearing storage appeared to fix it.
+//
+// Do not rename this back.
+import MapGL, { Marker, Source, Layer, useMap, AttributionControl } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
@@ -2462,7 +2472,7 @@ export default function CampingMap() {
         )}
 
         <div className="map-root">
-          <Map
+          <MapGL
             ref={mapRef}
             {...viewState}
             onMove={e => setViewState(e.viewState)}
@@ -2768,7 +2778,7 @@ export default function CampingMap() {
                 />
               </Source>
             )}
-          </Map>
+          </MapGL>
 
           <div className="controls">
             <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
