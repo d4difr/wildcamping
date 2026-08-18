@@ -4,6 +4,8 @@ import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-ma
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
+import { SignInModal, UsernameModal } from './AuthModal'
+import { useAuth, signOut } from '../useAuth'
 import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -1244,6 +1246,12 @@ export default function CampingMap() {
   // server issues only after checking the password itself.
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('vilda_admin_token') || '')
   const [respektOpen, setRespektOpen] = useState(false)
+  const [signInOpen, setSignInOpen] = useState(false)
+  // Skipping the username prompt must not re-open it on every render, but it
+  // should still be offered again next session — so it lives in state, not
+  // storage.
+  const [usernameSkipped, setUsernameSkipped] = useState(false)
+  const { user, profile, needsUsername, refreshProfile } = useAuth()
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -1987,6 +1995,16 @@ export default function CampingMap() {
             <span className="respekt-btn__full">Respekt for naturen</span>
             <span className="respekt-btn__short">Respekt</span>
           </button>
+          {user ? (
+            <div className="account-nav">
+              <span className="account-name" title={user.email}>
+                {profile?.username ?? 'Anonym'}
+              </span>
+              <button className="account-logout" onClick={signOut}>Logg ut</button>
+            </div>
+          ) : (
+            <button className="about-btn" onClick={() => setSignInOpen(true)}>Logg inn</button>
+          )}
           {isAdmin && (
             <div className="admin-nav-indicator">
               <button className="admin-nav-btn" onClick={() => setAdminPanelOpen(true)}>⚙ Admin</button>
@@ -2002,12 +2020,23 @@ export default function CampingMap() {
           <div className="hamburger-menu" onClick={() => setMenuOpen(false)}>
             <button onClick={() => setAboutOpen(true)}>Om</button>
             <button onClick={() => setRespektOpen(true)}>Respekt for naturen</button>
+            {user
+              ? <button onClick={signOut}>Logg ut ({profile?.username ?? 'Anonym'})</button>
+              : <button onClick={() => setSignInOpen(true)}>Logg inn</button>}
           </div>
         )}
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {respektOpen && <RespektModal onClose={() => setRespektOpen(false)} />}
+      {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+      {needsUsername && !usernameSkipped && (
+        <UsernameModal
+          userId={user.id}
+          onDone={() => { refreshProfile(); setSignInOpen(false) }}
+          onSkip={() => { setUsernameSkipped(true); setSignInOpen(false) }}
+        />
+      )}
       {adminPanelOpen && (
         <AdminPanel
           isAdmin={isAdmin}

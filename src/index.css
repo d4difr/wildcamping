@@ -293,6 +293,80 @@ body {
 
 .respekt-btn__short { display: none; }
 
+/* Account, in the nav where people look for identity */
+.account-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.account-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f4f1ea;
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-logout {
+  background: none;
+  border: 1px solid rgba(244, 241, 234, 0.4);
+  color: #f4f1ea;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.account-logout:hover { background: rgba(244, 241, 234, 0.12); }
+
+.auth-modal { max-width: 420px; }
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 1rem 0 0.75rem;
+}
+.auth-form label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--forest);
+}
+.auth-form input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+.auth-form button.primary { margin-top: 0.35rem; }
+
+.auth-hint {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #8a8d87;
+  margin: 0.75rem 0 0;
+}
+
+.auth-skip {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--fjord);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 767px) {
   .topnav-right { display: none; }
   .hamburger-btn { display: flex; }
