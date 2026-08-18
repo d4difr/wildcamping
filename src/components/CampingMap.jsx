@@ -2363,20 +2363,23 @@ export default function CampingMap() {
 
           <div className="controls">
             <button className={`layer-toggle${terrain3D ? ' layer-toggle--active' : ''}`} onClick={toggle3D}>
-              {terrain3D ? '🏔 3D på' : '🏔 3D'}
+              {terrain3D ? '3D på' : '3D'}
             </button>
             <button
               className={`layer-toggle${measuring ? ' layer-toggle--active' : ''}`}
               onClick={() => (measuring ? stopMeasuring() : (setMeasuring(true), setOpenMenu(null)))}
             >
-              📏 Mål
+              Mål
             </button>
             <div className="ctrl-menu-wrap" ref={kartRef}>
               <button
                 className="layer-toggle"
                 onClick={() => setOpenMenu((m) => (m === 'kart' ? null : 'kart'))}
               >
-                {BASEMAPS[basemapIndex].label}
+                {/* Static label rather than the active basemap's name. The map
+                    itself shows which one is on far better than a word does,
+                    and the emoji labels are still in the menu below. */}
+                Kart
               </button>
               {openMenu === 'kart' && (
                 <div className="ctrl-menu">
@@ -2426,7 +2429,7 @@ export default function CampingMap() {
                     className={`layer-toggle${active ? ' layer-toggle--active' : ''}`}
                     onClick={() => setOpenMenu((m) => (m === 'planlegg' ? null : 'planlegg'))}
                   >
-                    🧭 Planlegg{active > 0 && <span className="ctrl-menu-count">{active}</span>}
+                    Planlegg{active > 0 && <span className="ctrl-menu-count">{active}</span>}
                   </button>
                   {openMenu === 'planlegg' && (
                     <div className="ctrl-menu">

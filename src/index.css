@@ -2385,6 +2385,17 @@ button.primary:hover:not(:disabled) {
 }
 
 @media (max-width: 767px) {
+  /* Dropping the emoji got the row from ~440px to 362px, which still overhangs
+     a 375px screen once the 1.1rem inset is counted. Anchoring both edges and
+     right-aligning lets it wrap instead of clipping on narrower phones. */
+  .controls {
+    left: 0.6rem;
+    right: 0.6rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
   .terrengtype-legend {
     bottom: 5.5rem;
     width: auto;
