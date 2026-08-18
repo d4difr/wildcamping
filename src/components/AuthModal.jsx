@@ -206,6 +206,18 @@ export function UsernameModal({ userId, currentName, onDone, onClose }) {
     else setError('Kunne ikke lagre navnet. Prøv igjen.')
   }
 
+  // Anonymity is the absence of a profile row, so going back to it is a delete
+  // rather than a flag. Confirmed first because it frees the name for others.
+  async function handleGoAnonymous() {
+    if (!window.confirm('Fjerne visningsnavnet? Navnet blir ledig for andre, så du får det kanskje ikke tilbake.')) return
+    setSaving(true)
+    setError('')
+    const { error: err } = await supabase.from('profiles').delete().eq('user_id', userId)
+    setSaving(false)
+    if (err) { setError('Kunne ikke fjerne navnet. Prøv igjen.'); return }
+    onDone()
+  }
+
   return (
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal auth-modal" onClick={(e) => e.stopPropagation()}>
@@ -232,9 +244,15 @@ export function UsernameModal({ userId, currentName, onDone, onClose }) {
           </button>
           {error && <p className="coord-error">{error}</p>}
         </form>
-        <p className="auth-hint">
-          Uten navn er du anonym. Det er helt greit — du kan legge til et navn når som helst.
-        </p>
+        {currentName ? (
+          <button className="auth-skip" onClick={handleGoAnonymous} disabled={saving}>
+            Bli anonym igjen — fjern navnet
+          </button>
+        ) : (
+          <p className="auth-hint">
+            Uten navn er du anonym. Det er helt greit — du kan legge til et navn når som helst.
+          </p>
+        )}
       </div>
     </div>
   )
