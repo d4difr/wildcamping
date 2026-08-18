@@ -79,9 +79,24 @@ export default async function handler(req, res) {
     await supabaseAdmin.from('spots').delete().eq('id', id)
   } else if (action === 'approve') {
     await supabaseAdmin.from('spots').update({ status: 'approved' }).eq('id', id)
-    // Deliberately not awaited: a mail failure must never make an approval
-    // look like it failed. The spot is already approved by this point.
-    notifyApproved(id).catch((e) => console.warn('approval email failed:', e.message))
+
+    // MUST be awaited. This was fire-and-forget so a slow mail server could not
+    // make an approval look failed — correct reasoning for a long-lived server,
+    // wrong for serverless: once res.json() returns, Vercel freezes the
+    // instance and a pending promise may never run at all. The email silently
+    // never sent.
+    //
+    // Awaited with a timeout instead, so a hanging mail server delays the
+    // response by at most 8s rather than forever, and any failure is caught —
+    // the spot is already approved and must be reported as such regardless.
+    try {
+      await Promise.race([
+        notifyApproved(id),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+      ])
+    } catch (e) {
+      console.warn('approval email failed:', e?.message)
+    }
   } else if (action === 'clear-flags') {
     await supabaseAdmin.from('spots').update({ flags: 0, flag_reports: [] }).eq('id', id)
   } else {
