@@ -323,6 +323,34 @@ body {
 }
 .account-logout:hover { background: rgba(244, 241, 234, 0.12); }
 
+/* Favourite toggle on a spot */
+.fav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0.75rem 0 0;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--birch-card);
+  color: var(--granite);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fav-btn:hover { background: var(--birch); }
+
+.fav-btn--on {
+  background: #fff6e0;
+  border-color: var(--amber);
+  color: #7a5a00;
+}
+
+.fav-btn-icon { font-size: 1.05rem; line-height: 1; }
+
 .auth-modal { max-width: 420px; }
 
 .auth-form {

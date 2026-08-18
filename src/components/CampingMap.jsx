@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 import { SignInModal, UsernameModal, ClaimModal } from './AuthModal'
 import { useAuth, signOut, authHeaders } from '../useAuth'
+import { useFavourites } from '../useFavourites'
 import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -500,7 +501,25 @@ function ReportModal({ spot, onSubmit, onClose }) {
   )
 }
 
-function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
+// Heart. Signed out it still renders — clicking prompts sign-in rather than
+// hiding, because a control you can see is how someone learns the account is
+// worth having.
+function FavouriteButton({ isFavourite, signedIn, onToggle, onNeedsSignIn }) {
+  return (
+    <button
+      type="button"
+      className={`fav-btn${isFavourite ? ' fav-btn--on' : ''}`}
+      onClick={() => (signedIn ? onToggle() : onNeedsSignIn())}
+      aria-pressed={isFavourite}
+      title={signedIn ? (isFavourite ? 'Fjern fra favoritter' : 'Lagre som favoritt') : 'Logg inn for å lagre favoritter'}
+    >
+      <span className="fav-btn-icon" aria-hidden="true">{isFavourite ? '★' : '☆'}</span>
+      {isFavourite ? 'Lagret' : 'Lagre'}
+    </button>
+  )
+}
+
+function SpotDetail({ spot, onBack, onReport, alreadyReported, favourite }) {
   const photos = spot.photo_urls?.length ? spot.photo_urls : spot.photo_url ? [spot.photo_url] : []
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [showReportModal, setShowReportModal] = useState(false)
@@ -550,6 +569,14 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported }) {
         {' · '}
         <a href={`https://www.google.com/maps?q=${spot.latitude},${spot.longitude}`} target="_blank" rel="noopener noreferrer">Åpne i Google Maps</a>
       </p>
+      {favourite && (
+        <FavouriteButton
+          isFavourite={favourite.isFavourite}
+          signedIn={favourite.signedIn}
+          onToggle={favourite.onToggle}
+          onNeedsSignIn={favourite.onNeedsSignIn}
+        />
+      )}
       <div className="spot-export">
         <button className="spot-export-btn" onClick={handleCopyCoords}>
           {copyState === 'ok' ? '✓ Kopiert' : copyState === 'fail' ? 'Merk teksten over' : '⧉ Kopier koordinater'}
@@ -1003,6 +1030,7 @@ function SidebarContent({
   filters, hasFilters, allRegions, filteredSpots, loading, spots, onBack, onEdit,
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
   flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange, ownedIds,
+  favouriteIds, onToggleFavourite, signedIn, onNeedsSignIn,
 }) {
   // Creating takes precedence over whatever was being browsed — the user just
   // asked for this panel, so it should not sit behind a spot detail.
@@ -1061,13 +1089,68 @@ function SidebarContent({
   if (activeSpot) {
     return (
       <>
-        <SpotDetail spot={activeSpot} onBack={onBack} onReport={onReport} alreadyReported={flaggedSpots.includes(activeSpot.id)} />
+        <SpotDetail
+          spot={activeSpot}
+          onBack={onBack}
+          onReport={onReport}
+          alreadyReported={flaggedSpots.includes(activeSpot.id)}
+          favourite={{
+            isFavourite: favouriteIds.has(activeSpot.id),
+            signedIn,
+            onToggle: () => onToggleFavourite(activeSpot.id),
+            onNeedsSignIn,
+          }}
+        />
         {ownedIds.has(activeSpot.id) && (
           <div className="owner-actions">
             <button className="owner-btn owner-btn--edit" onClick={() => onEdit(activeSpot)}>✏️ Rediger</button>
             <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activeSpot)}>🗑 Slett</button>
           </div>
         )}
+      </>
+    )
+  }
+  if (sidebarView === 'favoritter') {
+    const favs = spots.filter((s) => favouriteIds.has(s.id))
+    return (
+      <>
+        <div className="filter-panel">
+          <div className="filter-panel-header">
+            <span className="filter-panel-title">Favoritter</span>
+          </div>
+        </div>
+        <div className="sidebar-body">
+          {!signedIn && (
+            <p className="empty-state">
+              Logg inn for å lagre favoritter, så finner du dem igjen på alle enhetene dine.
+            </p>
+          )}
+          {signedIn && favs.length === 0 && (
+            <p className="empty-state">
+              Ingen favoritter enda. Åpne en leirplass og trykk «Lagre».
+            </p>
+          )}
+          {favs.map((spot) => {
+            const thumb = spot.photo_urls?.[0] || spot.photo_url ||
+              `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/pin-s+d98e04(${spot.longitude},${spot.latitude})/${spot.longitude},${spot.latitude},12,0/400x200@2x?access_token=${TOKEN}`
+            return (
+              <div key={spot.id} className="spot-card" onClick={() => onSeeMore(spot)} style={{ cursor: 'pointer' }}>
+                <img className="spot-card-thumb" src={thumb} alt="" loading="lazy" />
+                <div className="spot-card-body">
+                  <h3>{spot.name}</h3>
+                  <SpotBadges spot={spot} />
+                  <div className="spot-card-footer">
+                    <button
+                      className="owner-btn owner-btn--delete"
+                      title="Fjern fra favoritter"
+                      onClick={(e) => { e.stopPropagation(); onToggleFavourite(spot.id) }}
+                    >★</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </>
     )
   }
@@ -1254,6 +1337,7 @@ export default function CampingMap() {
   const [unclaimedCount, setUnclaimedCount] = useState(0)
   const [claimSkipped, setClaimSkipped] = useState(false)
   const { user, profile, needsUsername, refreshProfile, loading: authLoading } = useAuth()
+  const { favouriteIds, toggleFavourite } = useFavourites(user?.id ?? null)
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -2145,6 +2229,18 @@ export default function CampingMap() {
                   <span className="sidebar-rail-label">Mine bidrag</span>
                 </button>
 
+                {/* Favoritter. Shown even signed out — the empty state explains
+                    what an account is for, which a hidden control cannot. */}
+                <button className="sidebar-rail-item" onClick={() => { setSidebarView('favoritter'); setSidebarOpen(true) }} title="Favoritter">
+                  <div className="sidebar-rail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/>
+                    </svg>
+                    {favouriteIds.size > 0 && <span className="sidebar-rail-badge">{favouriteIds.size}</span>}
+                  </div>
+                  <span className="sidebar-rail-label">Favoritter</span>
+                </button>
+
                 {/* Alle steder — stacked thumbnails with total count */}
                 {spots.length > 0 && (
                   <button className="sidebar-rail-item" onClick={() => { setSidebarView('all'); setSidebarOpen(true) }} title="Alle steder">
@@ -2181,6 +2277,7 @@ export default function CampingMap() {
                   sidebarView={sidebarView} onSidebarViewChange={setSidebarView}
                   editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                   activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
+                  favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
                   filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                   filteredSpots={filteredSpots} loading={loading} spots={spots}
                   onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
@@ -2765,6 +2862,7 @@ export default function CampingMap() {
               <SidebarContent
                 editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                 activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
+                  favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
