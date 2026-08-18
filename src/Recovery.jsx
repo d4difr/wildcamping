@@ -79,7 +79,7 @@ function RecoveryPanel({ detail }) {
         {detail && (
           <p style={{
             margin: '1rem 0 0', fontSize: '0.7rem', color: '#8a938c',
-            fontFamily: 'ui-monospace, monospace', wordBreak: 'break-word',
+            fontFamily: 'ui-monospace, monospace', wordBreak: 'break-word', whiteSpace: 'pre-wrap',
           }}>
             {detail}
           </p>
@@ -104,7 +104,10 @@ export class ErrorBoundary extends React.Component {
   }
 
   render() {
-    if (this.state.error) return <RecoveryPanel detail={this.state.error.message} />
+    if (this.state.error) {
+      const frame = String(this.state.error.stack ?? '').split('\n')[1]?.trim()
+      return <RecoveryPanel detail={frame ? `${this.state.error.message}\n${frame}` : this.state.error.message} />
+    }
     return this.props.children
   }
 }
@@ -115,7 +118,17 @@ export class ErrorBoundary extends React.Component {
 // in a working app never shows this.
 export function installBlankPageWatchdog(rootEl, delayMs = 6000) {
   let sawError = null
-  const note = (e) => { sawError = sawError ?? (e?.message || e?.reason?.message || 'ukjent feil') }
+  // Keep the first stack frame, not just the message. Minified names change
+  // between builds, so "Bg is not a constructor" alone identifies nothing —
+  // the frame is what maps back to real code, and asking a user to expand a
+  // DevTools stack is not a reasonable bug report.
+  const note = (e) => {
+    if (sawError) return
+    const err = e?.error ?? e?.reason
+    const msg = e?.message || err?.message || 'ukjent feil'
+    const frame = String(err?.stack ?? '').split('\n')[1]?.trim()
+    sawError = frame ? `${msg}\n${frame}` : msg
+  }
   window.addEventListener('error', note)
   window.addEventListener('unhandledrejection', note)
 
