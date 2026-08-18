@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   const { name, lat, lng, spotType, access, region } = req.body || {}
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -60,8 +60,17 @@ export default async function handler(req, res) {
         `,
       }),
     })
+    // fetch() resolves for 4xx too, so a rejected send used to be reported as
+    // ok:true and vanish. A refused sender domain fails exactly this way, which
+    // is why switching from onboarding@resend.dev looked like nothing happening.
+    if (!resendRes.ok) {
+      const detail = await resendRes.text().catch(() => '')
+      console.error('resend rejected notify:', resendRes.status, detail.slice(0, 300))
+      return res.status(200).json({ ok: false, provider: resendRes.status })
+    }
     res.status(200).json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('notify threw:', err?.message)
     res.status(200).json({ ok: false })
   }
 }
