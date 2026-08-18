@@ -1,0 +1,53 @@
+-- Phase 0, final step: stop pending and soft-deleted spots being readable with
+-- the public anon key.
+--
+-- The policy dump on 2026-08-18 showed:
+--
+--   Public can read approved spots  SELECT  (status = 'approved')
+--   Allow public reads              SELECT  true      <-- this one
+--
+-- RLS policies are OR'ed, so the permissive one won and every row was readable
+-- by anyone. The anon key ships in the JS bundle by design, so "anyone" means
+-- anyone.
+--
+-- RUN THIS ONLY AFTER the Phase 0 deploy (447ab32) is live, because three reads
+-- depended on the permissive policy and had to move server-side first:
+--
+--   admin panel        -> /api/spots-private  scope admin-all
+--   admin pending      -> /api/spots-private  scope admin-pending
+--   own pending spot   -> /api/spots-private  scope mine-pending
+--
+-- A fourth thing depended on it and was nearly missed: AddSpotForm inserted with
+-- the anon key and read the row back with .select('id'), which needs SELECT on a
+-- pending row. That moved to /api/spot-create.
+
+drop policy if exists "Allow public reads" on public.spots;
+
+-- Verify with the anon key. The first two must still work, the rest must be empty:
+--
+--   GET /rest/v1/spots?select=id&status=eq.approved      -> rows
+--   POST a flag update on an approved spot               -> 204
+--   GET /rest/v1/spots?select=id&status=eq.pending       -> []
+--   GET /rest/v1/spots?select=id&deleted_at=not.is.null  -> []
+--
+-- And in the app: the map lists spots, submitting works, your own pending spot
+-- still appears, the admin panel still shows everything.
+
+-- ---------------------------------------------------------------------------
+-- STILL LOOSE AFTER THIS
+-- ---------------------------------------------------------------------------
+-- "Public can read approved spots" tests status but NOT deleted_at, so an
+-- approved spot that an admin soft-deleted stays readable through the API. The
+-- client filters it out, so it is invisible in the app, but it is not private.
+--
+-- Tightening it is a separate step, deliberately not bundled here — getting it
+-- wrong empties the map:
+--
+--   drop policy if exists "Public can read approved spots" on public.spots;
+--   create policy "Public can read approved spots" on public.spots
+--     for select using (status = 'approved' and deleted_at is null);
+
+-- ---------------------------------------------------------------------------
+-- ROLLBACK
+-- ---------------------------------------------------------------------------
+-- create policy "Allow public reads" on public.spots for select using (true);
