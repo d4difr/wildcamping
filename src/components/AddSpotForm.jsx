@@ -191,20 +191,26 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         })
         if (!res.ok) throw new Error('Update failed')
       } else {
-        const { data: inserted, error: insertError } = await supabase.from('spots').insert({
-          name: name.trim(),
-          description: description.trim(),
-          latitude: position.lat,
-          longitude: position.lng,
-          photo_url: photo_urls[0] || null,
-          photo_urls,
-          spot_type: spotType,
-          access: access || null,
-          region: region || null,
-          status: 'pending',
-          owner_token: ownerToken,
-        }).select('id').single()
-        if (insertError) throw insertError
+        // Server-side because reading the row back needs SELECT on a pending
+        // row, which RLS no longer allows. The endpoint sets status itself.
+        const createRes = await fetch('/api/spot-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            description: description.trim(),
+            latitude: position.lat,
+            longitude: position.lng,
+            photo_url: photo_urls[0] || null,
+            photo_urls,
+            spot_type: spotType,
+            access: access || null,
+            region: region || null,
+            owner_token: ownerToken,
+          }),
+        })
+        if (!createRes.ok) throw new Error('Insert failed')
+        const inserted = await createRes.json()
 
         // Measure terrain flatness now so the first person to open this spot
         // doesn't wait for Kartverket. Fire-and-forget — if it fails, the spot
