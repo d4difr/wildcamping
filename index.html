@@ -13,5 +13,48 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!--
+      Last-resort recovery, deliberately inline and dependency-free.
+
+      src/Recovery.jsx handles render errors and async ones, but both live
+      inside the bundle — so neither exists if the bundle itself fails to
+      evaluate or 404s after a deploy. That is the case that leaves a visitor
+      staring at a black page with nothing to click, which happened in
+      production and could only be fixed through DevTools.
+
+      Preserves vilda_owner_token: it proves ownership of spots submitted
+      before signing in, and clearing it would silently cost someone the
+      ability to edit or delete their own contributions. "Clear site data" in
+      DevTools does not make that distinction.
+    -->
+    <script>
+      (function () {
+        setTimeout(function () {
+          var root = document.getElementById('root')
+          if (root && root.childElementCount > 0) return
+
+          root.innerHTML =
+            '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:1.5rem;background:#1b4332;font-family:system-ui,-apple-system,Segoe UI,sans-serif">' +
+              '<div style="max-width:460px;background:#fffdf9;border-radius:14px;padding:1.75rem;box-shadow:0 10px 40px rgba(0,0,0,.3)">' +
+                '<h1 style="margin:0 0 .75rem;font-size:1.35rem;color:#1b4332">Vilda klarte ikke å starte</h1>' +
+                '<p style="margin:0 0 .75rem;line-height:1.5;color:#3d4a42">Som regel skyldes dette gamle data lagret i nettleseren din.</p>' +
+                '<p style="margin:0 0 1.25rem;font-size:.85rem;color:#6b7770;line-height:1.5">Du blir logget ut, men leirplassene dine beholdes.</p>' +
+                '<button id="vilda-recover" style="width:100%;padding:.7rem;border:0;border-radius:10px;background:#d98e04;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer">Tøm lokale data og prøv igjen</button>' +
+              '</div>' +
+            '</div>'
+
+          document.getElementById('vilda-recover').onclick = function () {
+            try {
+              var keep = localStorage.getItem('vilda_owner_token')
+              localStorage.clear()
+              sessionStorage.clear()
+              if (keep) localStorage.setItem('vilda_owner_token', keep)
+            } catch (e) {}
+            location.reload()
+          }
+        }, 8000)
+      })()
+    </script>
   </body>
 </html>
