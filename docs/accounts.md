@@ -195,13 +195,40 @@ name, keep the pin. Removing contributions punishes the map for someone leaving.
 
 ---
 
-## Phase 2 — Attribution
+## Phase 2 — Attribution. DEFERRED (decided 2026-08-18)
 
-Display-only, no privacy surface.
+Not next, and not on a date. **Revisit when there is a community to be known
+by** — a working signal would be several people contributing repeatedly rather
+than once, and returning to the site unprompted.
+
+The reasoning: a name beside a pin is only recognition if someone is there to
+recognise it. With a handful of contributors it is exposure without the benefit
+that justifies it. Right now people are still deciding whether Vildakart is
+solid enough to contribute to at all, and anonymous contribution is the lower
+bar to clear. The founding concept — anonymous pins, anonymous browsing —
+stays until the community makes attribution worth something.
+
+Deferring costs nothing structurally. `user_id` is already recorded on claimed
+spots and already hidden from the client, so this can switch on later for spots
+going forward with no schema unwind.
+
+When it does happen, the design is settled:
 
 - "Lagt til av *username*" on the spot card
-- **Anonymity is per-pin, not per-account** — a column on `spots`. Someone may
-  want their name on a good find and not on the one near their cabin.
+- **Anonymity is per-pin, not per-account.** Someone may want their name on a
+  good find and not on the one near their cabin.
+- **`user_id` must NOT be exposed to the client.** The obvious implementation —
+  grant `user_id` to anon and join it to public `profiles` — silently breaks
+  anonymity: anyone could group every spot by author, so one attributed spot
+  deanonymises all of that author's anonymous ones. The client must receive only
+  a derived `author_name` that is null when the spot is anonymous, resolved
+  server-side by a view or RPC.
+- Existing spots default to **not** attributed. They were published when the
+  site had no accounts, and content posted anonymously must not gain a name
+  retroactively without the author choosing it.
+- New spots: attributed by default **if the author has a username**, since
+  choosing a display name already expresses wanting credit. No username means
+  always anonymous, with no toggle to forget.
 
 ---
 
