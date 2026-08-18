@@ -302,6 +302,14 @@ body {
 }
 
 .account-name {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(244,241,234,0.35);
+  text-underline-offset: 3px;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
   color: #f4f1ea;

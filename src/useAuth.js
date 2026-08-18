@@ -5,8 +5,8 @@ import { supabase } from './supabaseClient'
 //
 // A profile row exists only once someone chooses a username. No row means no
 // display name, which is exactly what posting anonymously needs — so anonymity
-// is the default rather than a setting to remember. `needsUsername` is therefore
-// "signed in but hasn't chosen", not an error state.
+// is the default rather than a setting to remember, and never having a profile
+// is a perfectly normal end state rather than something to be nagged about.
 
 export function useAuth() {
   const [session, setSession] = useState(null)
@@ -60,8 +60,6 @@ export function useAuth() {
     user: session?.user ?? null,
     profile,
     loading,
-    // Signed in, profile definitely fetched, and there isn't one.
-    needsUsername: !!userId && profileLoaded && profile === null,
     refreshProfile: async () => {
       if (!userId) return
       const { data } = await supabase

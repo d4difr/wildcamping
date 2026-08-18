@@ -168,10 +168,19 @@ export function PlanningPinModal({ position, onSave, onCancel }) {
   )
 }
 
-// Choosing a display name. Skippable on purpose: no username means posts show as
-// anonymous, which is a first-class option rather than a fallback.
-export function UsernameModal({ userId, onDone, onSkip }) {
-  const [username, setUsername] = useState('')
+// Choosing a display name.
+//
+// NOT shown automatically. It used to appear after sign-in and again on every
+// reload, because skipping was only remembered in component state — and it was
+// asking for something with no current use, since attribution is deferred and no
+// name is displayed anywhere yet. Now it opens only when someone clicks their
+// name in the nav.
+//
+// The copy matters here. Saying "your name will be shown on the spots you add"
+// is both untrue today and alarming: it reads as all-or-nothing, when the plan
+// is a per-pin choice.
+export function UsernameModal({ userId, currentName, onDone, onClose }) {
+  const [username, setUsername] = useState(currentName ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -180,9 +189,11 @@ export function UsernameModal({ userId, onDone, onSkip }) {
     setSaving(true)
     setError('')
 
+    // upsert so this doubles as "change my name" — the modal is reachable at
+    // any time now, not just once after signing up.
     const { error: err } = await supabase
       .from('profiles')
-      .insert({ user_id: userId, username: username.trim() })
+      .upsert({ user_id: userId, username: username.trim() }, { onConflict: 'user_id' })
 
     setSaving(false)
     if (!err) return onDone()
@@ -196,10 +207,14 @@ export function UsernameModal({ userId, onDone, onSkip }) {
   }
 
   return (
-    <div className="about-overlay">
-      <div className="about-modal auth-modal">
-        <h1 className="about-title">Velg et visningsnavn</h1>
-        <p>Navnet vises ved leirplassene du legger til. Du kan hoppe over dette.</p>
+    <div className="about-overlay" onClick={onClose}>
+      <div className="about-modal auth-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="about-close" onClick={onClose}>✕</button>
+        <h1 className="about-title">{currentName ? 'Endre visningsnavn' : 'Velg et visningsnavn'}</h1>
+        <p>
+          Foreløpig vises ingen navn på kartet. Når det blir mulig, velger du selv
+          for hver enkelt leirplass om navnet skal vises — det er aldri alt eller ingenting.
+        </p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label htmlFor="auth-username">Visningsnavn</label>
           <input
@@ -217,7 +232,9 @@ export function UsernameModal({ userId, onDone, onSkip }) {
           </button>
           {error && <p className="coord-error">{error}</p>}
         </form>
-        <button className="auth-skip" onClick={onSkip}>Hopp over — vis meg som anonym</button>
+        <p className="auth-hint">
+          Uten navn er du anonym. Det er helt greit — du kan legge til et navn når som helst.
+        </p>
       </div>
     </div>
   )

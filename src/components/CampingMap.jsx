@@ -1382,10 +1382,14 @@ export default function CampingMap() {
   // Skipping the username prompt must not re-open it on every render, but it
   // should still be offered again next session — so it lives in state, not
   // storage.
-  const [usernameSkipped, setUsernameSkipped] = useState(false)
+  // Opened from the nav, never automatically. It used to appear after sign-in
+  // and again on every reload — skipping was only remembered in component state
+  // — while asking for something with no current use, since attribution is
+  // deferred and no name is shown anywhere yet.
+  const [nameModalOpen, setNameModalOpen] = useState(false)
   const [unclaimedCount, setUnclaimedCount] = useState(0)
   const [claimSkipped, setClaimSkipped] = useState(false)
-  const { user, profile, needsUsername, refreshProfile, loading: authLoading } = useAuth()
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth()
   const { favouriteIds, toggleFavourite } = useFavourites(user?.id ?? null)
   const { planningPins, addPin, removePin } = usePlanningPins(user?.id ?? null)
   // Placing a private pin is a separate mode from submitting a spot — the two
@@ -2173,9 +2177,15 @@ export default function CampingMap() {
               from "Logg inn" to a username on every reload. */}
           {authLoading ? null : user ? (
             <div className="account-nav">
-              <span className="account-name" title={user.email}>
+              {/* The name is the way in to setting or changing it — there is no
+                  settings page, and prompting was the thing that annoyed. */}
+              <button
+                className="account-name"
+                onClick={() => setNameModalOpen(true)}
+                title={profile?.username ? `${user.email} — endre visningsnavn` : `${user.email} — velg visningsnavn`}
+              >
                 {profile?.username ?? 'Anonym'}
-              </span>
+              </button>
               <button className="account-logout" onClick={signOut}>Logg ut</button>
             </div>
           ) : (
@@ -2197,7 +2207,7 @@ export default function CampingMap() {
             <button onClick={() => setAboutOpen(true)}>Om</button>
             <button onClick={() => setRespektOpen(true)}>Respekt for naturen</button>
             {user
-              ? <button onClick={signOut}>Logg ut ({profile?.username ?? 'Anonym'})</button>
+              ? <><button onClick={() => setNameModalOpen(true)}>Visningsnavn: {profile?.username ?? 'Anonym'}</button><button onClick={signOut}>Logg ut</button></>
               : <button onClick={() => setSignInOpen(true)}>Logg inn</button>}
           </div>
         )}
@@ -2226,15 +2236,15 @@ export default function CampingMap() {
           }}
         />
       )}
-      {needsUsername && !usernameSkipped && (
+      {nameModalOpen && user && (
         <UsernameModal
           userId={user.id}
-          onDone={() => { refreshProfile(); setSignInOpen(false) }}
-          onSkip={() => { setUsernameSkipped(true); setSignInOpen(false) }}
+          currentName={profile?.username ?? null}
+          onDone={() => { refreshProfile(); setNameModalOpen(false) }}
+          onClose={() => setNameModalOpen(false)}
         />
       )}
-      {/* After the name prompt, so a new user is not shown two modals at once. */}
-      {user && !needsUsername && !claimSkipped && unclaimedCount > 0 && (
+      {user && !claimSkipped && unclaimedCount > 0 && (
         <ClaimModal
           count={unclaimedCount}
           onClaim={handleClaim}
