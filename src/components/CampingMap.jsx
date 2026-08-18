@@ -4,6 +4,7 @@ import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-ma
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
+import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -18,14 +19,12 @@ const ACCESS_LABELS = {
 // an ownership secret, and it used to be readable through the public API, which
 // let anyone pass it to /api/spot-delete. The database now revokes table-level
 // SELECT and grants these columns back, so 'select(*)' would fail — queries must
-// name columns explicitly. Keep this in sync with supabase/fix-owner-token-exposure.sql.
-const SPOT_COLUMNS = [
-  'id', 'name', 'description', 'latitude', 'longitude',
-  'photo_url', 'photo_urls', 'status', 'created_at',
-  'access', 'spot_type', 'spot_types', 'region',
-  'flags', 'flag_reports', 'deleted_at',
-  'flatness_deg', 'flatness_relief_m', 'flatness_offset_m', 'flatness_checked_at',
-].join(', ')
+// name columns explicitly.
+//
+// Defined in api/_spot-columns.js rather than here so the client and the
+// server-side reads cannot drift; the server needs the same list because it
+// queries with the service role, where '*' would return owner_token.
+// Still keep it in sync with supabase/fix-owner-token-exposure.sql.
 
 const SPOT_COLORS = { tent: '#1b4332', hammock: '#5c4a1e' }
 
@@ -694,11 +693,21 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
     if (!ok) setLoginError('Feil passord')
   }
 
+  // Server-side: the admin panel needs pending, flagged and soft-deleted rows,
+  // which anon must not be able to read once "Allow public reads" is dropped.
   async function fetchAll() {
     setLoading(true)
     try {
-      const { data } = await supabase.from('spots').select(SPOT_COLUMNS).order('created_at', { ascending: false })
-      if (data) setSpots(data)
+      const res = await fetch('/api/spots-private', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'admin-all', admin_token: adminToken }),
+      })
+      if (!res.ok) return
+      const { spots } = await res.json()
+      if (spots) setSpots(spots)
+    } catch {
+      // Leave the previous list rather than blanking the panel on a blip.
     } finally {
       setLoading(false)
     }
@@ -1309,11 +1318,20 @@ export default function CampingMap() {
     const ids = mine ?? []
     setOwnedIds(new Set(ids))
 
-    const [{ data, error }, { data: ownPending }] = await Promise.all([
+    // The approved list stays on the anon key — that is the public read RLS is
+    // meant to allow. Own-pending moves server-side: it is the only other thing
+    // keeping "Allow public reads" alive, and while that policy exists anyone
+    // can enumerate every pending submission on the site.
+    const [{ data, error }, ownPending] = await Promise.all([
       supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
-      ids.length
-        ? supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'pending').in('id', ids).is('deleted_at', null)
-        : Promise.resolve({ data: [] }),
+      fetch('/api/spots-private', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'mine-pending', owner_token: ownerToken }),
+      })
+        .then((r) => (r.ok ? r.json() : { spots: [] }))
+        .then((j) => j.spots ?? [])
+        .catch(() => []),
     ])
     if (!error && data) {
       setSpots(data)
@@ -1329,7 +1347,13 @@ export default function CampingMap() {
   }
 
   async function loadAdminPending() {
-    const { data } = await supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'pending').is('deleted_at', null)
+    const res = await fetch('/api/spots-private', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'admin-pending', admin_token: adminToken }),
+    }).catch(() => null)
+    if (!res?.ok) return
+    const { spots: data } = await res.json()
     if (data) setAdminPendingSpots(data)
   }
 
