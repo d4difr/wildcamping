@@ -720,6 +720,7 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
   const [stats, setStats] = useState(null)
   const [backfill, setBackfill] = useState(null) // null | { done, total }
   const [users, setUsers] = useState([])
+  const [expandedUser, setExpandedUser] = useState(null)
 
   useEffect(() => {
     if (isAdmin) { fetchAll(); fetchStats(); fetchUsers() }
@@ -943,25 +944,64 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
         {filter === 'users' ? (
           <div className="admin-list">
             {users.length === 0 && <p style={{ padding: '1rem' }}>Ingen registrerte brukere enda.</p>}
-            {users.map((u) => (
-              <div key={u.id} className="admin-spot">
-                <div className="admin-spot-info">
-                  <strong>{u.email}</strong>
-                  <span className="admin-spot-meta">
-                    {/* No profile row means no chosen name — the same state the
-                        user sees as "Anonym" in the nav. */}
-                    {u.username
-                      ? <>Visningsnavn: <strong>{u.username}</strong></>
-                      : <em>Anonym — har ikke valgt navn</em>}
-                    {u.last_sign_in_at && ` · sist pålogget ${new Date(u.last_sign_in_at).toLocaleDateString('no')}`}
-                  </span>
-                  <span className="admin-spot-meta">
-                    {u.spots.total} leirplass{u.spots.total === 1 ? '' : 'er'}
-                    {u.spots.total > 0 && ` — ${u.spots.approved} godkjent, ${u.spots.pending} venter${u.spots.deleted ? `, ${u.spots.deleted} slettet` : ''}`}
-                  </span>
+            {users.map((u) => {
+              // No extra request: the admin spot list already carries user_id,
+              // so which spots are whose is a grouping rather than a fetch.
+              const theirs = spots.filter((s) => s.user_id === u.id)
+              const open = expandedUser === u.id
+              return (
+                <div key={u.id} className="admin-spot">
+                  <div className="admin-spot-info">
+                    <strong>{u.email}</strong>
+                    <span className="admin-spot-meta">
+                      {/* No profile row means no chosen name — the same state the
+                          user sees as "Anonym" in the nav. */}
+                      {u.username
+                        ? <>Visningsnavn: <strong>{u.username}</strong></>
+                        : <em>Anonym — har ikke valgt navn</em>}
+                      {u.last_sign_in_at && ` · sist pålogget ${new Date(u.last_sign_in_at).toLocaleDateString('no')}`}
+                    </span>
+                    {u.spots.total === 0 ? (
+                      <span className="admin-spot-meta">Ingen leirplasser</span>
+                    ) : (
+                      <button
+                        className="admin-user-toggle"
+                        onClick={() => setExpandedUser(open ? null : u.id)}
+                      >
+                        {u.spots.total} leirplass{u.spots.total === 1 ? '' : 'er'}
+                        {` — ${u.spots.approved} godkjent, ${u.spots.pending} venter${u.spots.deleted ? `, ${u.spots.deleted} slettet` : ''}`}
+                        <span className={`coord-toggle-chevron${open ? ' coord-toggle-chevron--open' : ''}`}>⌄</span>
+                      </button>
+                    )}
+                    {open && (
+                      <div className="admin-user-spots">
+                        {theirs.length === 0 && (
+                          // The count comes from the server and includes every
+                          // status; this list only has what the current tab
+                          // loaded, so a mismatch is possible rather than a bug.
+                          <p className="admin-spot-meta">Fant ikke leirplassene i listen som er lastet.</p>
+                        )}
+                        {theirs.map((s) => (
+                          <button
+                            key={s.id}
+                            className="admin-user-spot"
+                            onClick={() => onViewSpot(s)}
+                            title="Vis på kartet"
+                          >
+                            <span className="admin-user-spot-name">{s.name}</span>
+                            <span className="admin-user-spot-meta">
+                              {s.deleted_at ? 'slettet' : s.status === 'pending' ? 'venter' : 'godkjent'}
+                              {s.region && ` · ${s.region}`}
+                              {s.created_at && ` · ${new Date(s.created_at).toLocaleDateString('no')}`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
           <div className="admin-list">
