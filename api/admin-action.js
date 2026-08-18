@@ -6,6 +6,52 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+const escapeHtml = (s) =>
+  String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+// Tells the contributor their spot is live.
+//
+// Only possible for signed-in submitters: a device-token contributor leaves no
+// email address anywhere, so there is nobody to write to. That asymmetry is one
+// of the few concrete things an account buys, alongside favourites and pins.
+//
+// Best-effort throughout. Every failure path returns quietly rather than
+// throwing, because an approval that worked must not be reported as broken
+// because a mail server was slow.
+async function notifyApproved(spotId) {
+  if (!process.env.RESEND_API_KEY) return
+
+  const { data: spot } = await supabaseAdmin
+    .from('spots').select('name, user_id').eq('id', spotId).single()
+  if (!spot?.user_id) return // device-owned, no address to reach
+
+  const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(spot.user_id)
+  const email = userRes?.user?.email
+  if (!email) return
+
+  const url = `https://www.vildakart.no/?spot=${encodeURIComponent(spotId)}`
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Vildakart <no-reply@vildakart.no>',
+      to: email,
+      subject: `Leirplassen din er godkjent: ${spot.name}`,
+      html: `
+        <p>Hei!</p>
+        <p><strong>${escapeHtml(spot.name)}</strong> er nå godkjent og synlig for alle på Vildakart.</p>
+        <p><a href="${url}">Se leirplassen</a></p>
+        <p style="color:#666;font-size:0.9em">Takk for at du deler. Du får denne e-posten fordi du la til en leirplass mens du var innlogget.</p>
+      `,
+    }),
+  })
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const { action, id } = req.body || {}
@@ -26,6 +72,9 @@ export default async function handler(req, res) {
     await supabaseAdmin.from('spots').delete().eq('id', id)
   } else if (action === 'approve') {
     await supabaseAdmin.from('spots').update({ status: 'approved' }).eq('id', id)
+    // Deliberately not awaited: a mail failure must never make an approval
+    // look like it failed. The spot is already approved by this point.
+    notifyApproved(id).catch((e) => console.warn('approval email failed:', e.message))
   } else if (action === 'clear-flags') {
     await supabaseAdmin.from('spots').update({ flags: 0, flag_reports: [] }).eq('id', id)
   } else {

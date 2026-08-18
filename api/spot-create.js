@@ -17,6 +17,7 @@
 // to submit a spot as already approved.
 
 import { createClient } from '@supabase/supabase-js'
+import { verifiedUserId } from './_owner.js'
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -51,7 +52,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Coordinates outside Norway' })
   }
 
+  // Attach the account when there is one, so a signed-in contributor never has
+  // to claim their own new spot — claiming exists for spots made before
+  // accounts, not for ones made today. It is also what makes the approval
+  // email possible, since a device token leaves no address to write to.
+  const userId = await verifiedUserId(req)
+
   const row = { owner_token, status: 'pending' }
+  if (userId) row.user_id = userId
   for (const key of ALLOWED_FIELDS) {
     if (key in fields) row[key] = fields[key]
   }

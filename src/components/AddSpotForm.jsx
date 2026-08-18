@@ -196,7 +196,9 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
         // row, which RLS no longer allows. The endpoint sets status itself.
         const createRes = await fetch('/api/spot-create', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          // Carries the session when signed in, so the spot is attached to the
+          // account immediately rather than needing to be claimed later.
+          headers: await authHeaders(),
           body: JSON.stringify({
             name: name.trim(),
             description: description.trim(),
