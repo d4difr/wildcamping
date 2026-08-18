@@ -670,8 +670,9 @@ function RespektModal({ onClose }) {
   )
 }
 
-function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot, onRefreshPending }) {
+function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpot, onRefreshPending }) {
   const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('all')
@@ -682,9 +683,13 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
     if (isAdmin) { fetchAll(); fetchStats() }
   }, [isAdmin])
 
-  function handleLogin(e) {
+  // The password is checked by /api/admin-login, never here — the client must
+  // not know it, or it ends up in the bundle. onLogin resolves true/false.
+  async function handleLogin(e) {
     e.preventDefault()
-    onLogin(password)
+    setLoginError('')
+    const ok = await onLogin(password)
+    if (!ok) setLoginError('Feil passord')
   }
 
   async function fetchAll() {
@@ -719,7 +724,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
     await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, id, admin_key: adminKey }),
+      body: JSON.stringify({ action, id, admin_token: adminToken }),
     })
   }
 
@@ -799,6 +804,7 @@ function AdminPanel({ isAdmin, adminKey, onLogin, onLogout, onClose, onViewSpot,
               <form onSubmit={handleLogin}>
                 <input type="password" placeholder="Passord" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
                 <button type="submit" className="primary">Logg inn</button>
+                {loginError && <p className="coord-error">{loginError}</p>}
               </form>
             </div>
           </>
@@ -1221,10 +1227,14 @@ export default function CampingMap() {
   const searchMarkerTimeout = useRef(null)
   const searchRef = useRef(null)
   const searchTimeout = useRef(null)
-  const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || 'vilda-admin'
+  // The admin password is NEVER held here. It used to be VITE_ADMIN_KEY, which
+  // Vite compiles into the bundle, so the real password shipped in plain text.
+  // What the client keeps now is a server-signed token with an expiry, which the
+  // server issues only after checking the password itself.
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('vilda_admin_token') || '')
   const [respektOpen, setRespektOpen] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('vilda_admin') === 'true')
-  const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin') === 'true')
+  const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
+  const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
@@ -1593,7 +1603,7 @@ export default function CampingMap() {
     await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'approve', id: spot.id, admin_key: ADMIN_KEY }),
+      body: JSON.stringify({ action: 'approve', id: spot.id, admin_token: adminToken }),
     })
     setActiveId(null)
     loadAdminPending()
@@ -1605,7 +1615,7 @@ export default function CampingMap() {
     await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', id: spot.id, admin_key: ADMIN_KEY }),
+      body: JSON.stringify({ action: 'delete', id: spot.id, admin_token: adminToken }),
     })
     setActiveId(null)
     loadAdminPending()
@@ -1954,7 +1964,7 @@ export default function CampingMap() {
           {isAdmin && (
             <div className="admin-nav-indicator">
               <button className="admin-nav-btn" onClick={() => setAdminPanelOpen(true)}>⚙ Admin</button>
-              <button className="admin-nav-logout" onClick={() => { setIsAdmin(false); localStorage.removeItem('vilda_admin'); setAdminPendingSpots([]) }}>Logg ut</button>
+              <button className="admin-nav-logout" onClick={() => { setIsAdmin(false); setAdminToken(''); localStorage.removeItem('vilda_admin_token'); setAdminPendingSpots([]) }}>Logg ut</button>
             </div>
           )}
         </div>
@@ -1975,16 +1985,30 @@ export default function CampingMap() {
       {adminPanelOpen && (
         <AdminPanel
           isAdmin={isAdmin}
-          adminKey={ADMIN_KEY}
-          onLogin={(pw) => {
-            if (pw === ADMIN_KEY) {
+          adminToken={adminToken}
+          onLogin={async (pw) => {
+            // Wrapped because a non-JSON response would otherwise reject inside
+            // the form's submit handler and leave it stuck with no message — the
+            // dev server returns index.html for /api paths, which does exactly
+            // that.
+            try {
+              const res = await fetch('/api/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw }),
+              })
+              if (!res.ok) return false
+              const { token } = await res.json()
+              if (!token) return false
+              localStorage.setItem('vilda_admin_token', token)
+              setAdminToken(token)
               setIsAdmin(true)
-              localStorage.setItem('vilda_admin', 'true')
-            } else {
-              alert('Feil passord')
+              return true
+            } catch {
+              return false
             }
           }}
-          onLogout={() => { setIsAdmin(false); localStorage.removeItem('vilda_admin'); setAdminPendingSpots([]) }}
+          onLogout={() => { setIsAdmin(false); setAdminToken(''); localStorage.removeItem('vilda_admin_token'); setAdminPendingSpots([]) }}
           onClose={() => setAdminPanelOpen(false)}
           onViewSpot={(spot) => {
             setActiveId(spot.status === 'pending' ? `adminPending:${spot.id}` : spot.id)

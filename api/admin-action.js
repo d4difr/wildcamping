@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { rejectIfNotAdmin } from './_admin-auth.js'
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -7,9 +8,12 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { action, id, admin_key } = req.body || {}
+  const { action, id } = req.body || {}
 
-  if (!admin_key || admin_key !== process.env.ADMIN_KEY) return res.status(403).json({ error: 'Forbidden' })
+  // Was `admin_key !== process.env.ADMIN_KEY`, with the key supplied by the
+  // client — which meant the client had to know the password, so it shipped in
+  // the bundle. Now a signed token proves the caller logged in server-side.
+  if (rejectIfNotAdmin(req, res)) return
   if (!id) return res.status(400).json({ error: 'Missing id' })
 
   if (action === 'delete') {
