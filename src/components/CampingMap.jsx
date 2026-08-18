@@ -228,7 +228,9 @@ const KRONEDEKNING_BANDS = [
 // The two "Egnet for" layers are gone. Each was a yes/no mask over data we
 // already showed as a gradient — telt was Helning's flattest band, hengekøye
 // was "Kronedekning > 0" — so they answered the same question with strictly
-// less information. See api/egnet-tile.js.
+// less information. The endpoint that served them, api/egnet-tile.js, was
+// deleted with them — Vercel Hobby caps a deployment at 12 serverless
+// functions and it was occupying one for nothing.
 const PUBLIC_LAYERS = new Set(['helning', 'vern', 'kronedekning'])
 
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.

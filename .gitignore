@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .DS_Store
+
+# Vercel CLI — contains VERCEL_OIDC_TOKEN and project linkage
+.env.local
+.vercel
