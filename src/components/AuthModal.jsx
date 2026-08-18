@@ -223,10 +223,11 @@ export function UsernameModal({ userId, currentName, onDone, onClose }) {
       <div className="about-modal auth-modal" onClick={(e) => e.stopPropagation()}>
         <button className="about-close" onClick={onClose}>✕</button>
         <h1 className="about-title">{currentName ? 'Endre visningsnavn' : 'Velg et visningsnavn'}</h1>
-        <p>
-          Foreløpig vises ingen navn på kartet. Når det blir mulig, velger du selv
-          for hver enkelt leirplass om navnet skal vises — det er aldri alt eller ingenting.
-        </p>
+        {/* This is a privacy claim, so it has to be true in the database, not
+            just in the paragraph. profiles used to be publicly readable —
+            anyone with the anon key could list every username — which is why
+            phase1d-profiles-private.sql restricts select to the owner. */}
+        <p>Navnet ditt er kun synlig for deg.</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label htmlFor="auth-username">Visningsnavn</label>
           <input
