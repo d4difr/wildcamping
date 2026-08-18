@@ -68,6 +68,46 @@ export function SignInModal({ onClose }) {
   )
 }
 
+// Offered once after signing in on a device that already has spots against its
+// token. "Ikke nå" must stay safe forever — the token keeps working whether or
+// not the spots are ever claimed, so declining costs nothing.
+export function ClaimModal({ count, onClaim, onSkip }) {
+  const [claiming, setClaiming] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleClaim() {
+    setClaiming(true)
+    setError('')
+    const err = await onClaim()
+    setClaiming(false)
+    if (err) setError('Kunne ikke knytte leirplassene. Prøv igjen senere.')
+  }
+
+  return (
+    <div className="about-overlay">
+      <div className="about-modal auth-modal">
+        <h1 className="about-title">
+          {count === 1 ? 'Vi fant én leirplass på denne enheten' : `Vi fant ${count} leirplasser på denne enheten`}
+        </h1>
+        <p>
+          Vil du knytte {count === 1 ? 'den' : 'dem'} til kontoen din? Da finner du{' '}
+          {count === 1 ? 'den' : 'dem'} igjen på alle enhetene dine.
+        </p>
+        <div className="auth-form">
+          <button className="primary" onClick={handleClaim} disabled={claiming}>
+            {claiming ? 'Knytter…' : 'Ja, knytt til kontoen'}
+          </button>
+          {error && <p className="coord-error">{error}</p>}
+        </div>
+        <button className="auth-skip" onClick={onSkip}>Ikke nå</button>
+        <p className="auth-hint">
+          Leirplassene dine fungerer som før uansett hva du velger.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // Choosing a display name. Skippable on purpose: no username means posts show as
 // anonymous, which is a first-class option rather than a fallback.
 export function UsernameModal({ userId, onDone, onSkip }) {

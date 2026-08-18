@@ -4,7 +4,7 @@ import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-ma
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
-import { SignInModal, UsernameModal } from './AuthModal'
+import { SignInModal, UsernameModal, ClaimModal } from './AuthModal'
 import { useAuth, signOut } from '../useAuth'
 import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
@@ -1251,6 +1251,8 @@ export default function CampingMap() {
   // should still be offered again next session — so it lives in state, not
   // storage.
   const [usernameSkipped, setUsernameSkipped] = useState(false)
+  const [unclaimedCount, setUnclaimedCount] = useState(0)
+  const [claimSkipped, setClaimSkipped] = useState(false)
   const { user, profile, needsUsername, refreshProfile } = useAuth()
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
@@ -1366,6 +1368,32 @@ export default function CampingMap() {
   }
 
   useEffect(() => { loadSpots() }, [])
+
+  // Does this device hold spots that belong to no account yet? Asked only when
+  // signed in, because claiming needs auth.uid(). The count comes from a
+  // security definer function since owner_token is not readable by anon.
+  useEffect(() => {
+    if (!user) { setUnclaimedCount(0); return }
+    let cancelled = false
+    supabase
+      .rpc('my_unclaimed_spot_count', { p_token: ownerToken })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        // Absent function or a refusal means "nothing to offer" — never a
+        // blocking error. Claiming is a convenience; the token still works.
+        if (error) { console.warn('unclaimed count unavailable:', error.message); return }
+        setUnclaimedCount(data ?? 0)
+      })
+    return () => { cancelled = true }
+  }, [user, ownerToken])
+
+  async function handleClaim() {
+    const { error } = await supabase.rpc('claim_my_spots', { p_token: ownerToken })
+    if (error) return error
+    setUnclaimedCount(0)
+    loadSpots()
+    return null
+  }
   useEffect(() => { if (isAdmin) loadAdminPending(); else setAdminPendingSpots([]) }, [isAdmin])
 
   // Terrengtype is admin-only while in development. If admin logs out with the
@@ -2035,6 +2063,14 @@ export default function CampingMap() {
           userId={user.id}
           onDone={() => { refreshProfile(); setSignInOpen(false) }}
           onSkip={() => { setUsernameSkipped(true); setSignInOpen(false) }}
+        />
+      )}
+      {/* After the name prompt, so a new user is not shown two modals at once. */}
+      {user && !needsUsername && !claimSkipped && unclaimedCount > 0 && (
+        <ClaimModal
+          count={unclaimedCount}
+          onClaim={handleClaim}
+          onSkip={() => setClaimSkipped(true)}
         />
       )}
       {adminPanelOpen && (
