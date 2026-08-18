@@ -39,7 +39,12 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Vildakart <onboarding@resend.dev>',
+        // vildakart.no is verified in Resend (DKIM + SPF on the send subdomain),
+        // so this no longer depends on onboarding@resend.dev — Resend's shared
+        // test sender, which can only deliver to the account owner's own
+        // address. That was fine while this only emailed the admin, and would
+        // have failed the moment it emailed anyone else.
+        from: 'Vildakart <no-reply@vildakart.no>',
         to: 'dadifr@outlook.com',
         subject: `Ny leirplass til godkjenning: ${escapeHtml(name)}`,
         html: `
