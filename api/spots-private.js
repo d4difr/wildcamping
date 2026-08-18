@@ -53,13 +53,62 @@ export default async function handler(req, res) {
   if (scope === 'admin-all' || scope === 'admin-pending') {
     if (!verifyToken(admin_token)) return res.status(403).json({ error: 'Forbidden' })
 
+    // user_id is added only for admin scopes, never for mine-pending — the
+    // admin needs to know who contributed what, and no other caller does.
+    const adminBase = () => supabaseAdmin.from('spots').select(`${SPOT_COLUMNS_SQL}, user_id`)
     const query = scope === 'admin-all'
-      ? base().order('created_at', { ascending: false })
-      : base().eq('status', 'pending').is('deleted_at', null)
+      ? adminBase().order('created_at', { ascending: false })
+      : adminBase().eq('status', 'pending').is('deleted_at', null)
 
     const { data, error } = await query
     if (error) return res.status(500).json({ error: 'Query failed' })
     return res.status(200).json({ spots: data ?? [] })
+  }
+
+  // Contributors, for the admin panel: who they are, what they chose to be
+  // called, and how much they have added.
+  //
+  // Reads auth.users and profiles with the SERVICE ROLE rather than by relaxing
+  // RLS. That distinction is the whole reason the app can honestly tell users
+  // their name is not visible to other users: no policy exposes it, and the only
+  // way in is a server-side endpoint behind an admin token.
+  //
+  // Email is the identity here because it is the one thing every account has —
+  // a display name is optional and may be absent, which is what "Anonym" means
+  // in this list.
+  if (scope === 'admin-users') {
+    if (!verifyToken(admin_token)) return res.status(403).json({ error: 'Forbidden' })
+
+    const [{ data: userList, error: userErr }, { data: profiles }, { data: owned }] =
+      await Promise.all([
+        supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+        supabaseAdmin.from('profiles').select('user_id, username'),
+        supabaseAdmin.from('spots').select('user_id, status, deleted_at').not('user_id', 'is', null),
+      ])
+    if (userErr) return res.status(500).json({ error: 'Query failed' })
+
+    const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.username]))
+    const counts = new Map()
+    for (const s of owned ?? []) {
+      const c = counts.get(s.user_id) ?? { total: 0, approved: 0, pending: 0, deleted: 0 }
+      c.total++
+      if (s.deleted_at) c.deleted++
+      else if (s.status === 'approved') c.approved++
+      else if (s.status === 'pending') c.pending++
+      counts.set(s.user_id, c)
+    }
+
+    const users = (userList?.users ?? []).map((u) => ({
+      id: u.id,
+      email: u.email,
+      username: nameById.get(u.id) ?? null, // null renders as "Anonym"
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
+      spots: counts.get(u.id) ?? { total: 0, approved: 0, pending: 0, deleted: 0 },
+    }))
+    users.sort((a, b) => b.spots.total - a.spots.total)
+
+    return res.status(200).json({ users })
   }
 
   if (scope === 'mine-pending') {

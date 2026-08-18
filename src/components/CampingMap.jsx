@@ -709,9 +709,10 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
   const [filter, setFilter] = useState('all')
   const [stats, setStats] = useState(null)
   const [backfill, setBackfill] = useState(null) // null | { done, total }
+  const [users, setUsers] = useState([])
 
   useEffect(() => {
-    if (isAdmin) { fetchAll(); fetchStats() }
+    if (isAdmin) { fetchAll(); fetchStats(); fetchUsers() }
   }, [isAdmin])
 
   // The password is checked by /api/admin-login, never here — the client must
@@ -740,6 +741,24 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
       // Leave the previous list rather than blanking the panel on a blip.
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Contributors. Server-side with the service role, because profiles and
+  // auth.users are not readable by any client — which is what lets the app tell
+  // users their name is not visible to other users.
+  async function fetchUsers() {
+    try {
+      const res = await fetch('/api/spots-private', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'admin-users', admin_token: adminToken }),
+      })
+      if (!res.ok) return
+      const { users: list } = await res.json()
+      if (list) setUsers(list)
+    } catch {
+      // Leave the previous list rather than blanking the tab.
     }
   }
 
@@ -832,6 +851,8 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
   const deleted = spots.filter((s) => s.deleted_at)
   const flagged = live.filter((s) => s.flags > 0)
   const pending = live.filter((s) => s.status === 'pending')
+  // user_id -> email, so each spot row can name its contributor.
+  const userEmail = new Map(users.map((u) => [u.id, u.email]))
   const displayed = filter === 'flagged' ? flagged : filter === 'pending' ? pending : filter === 'deleted' ? deleted : live
 
   return createPortal(
@@ -868,6 +889,9 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
               </button>
               <button className={`admin-tab${filter === 'deleted' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('deleted')}>
                 Slettet {deleted.length > 0 && <span className="admin-flag-badge admin-flag-badge--deleted">{deleted.length}</span>}
+              </button>
+              <button className={`admin-tab${filter === 'users' ? ' admin-tab--active' : ''}`} onClick={() => setFilter('users')}>
+                Brukere {users.length > 0 && <span className="admin-flag-badge">{users.length}</span>}
               </button>
             </div>
           </div>
@@ -906,7 +930,30 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
             })()}
           </div>
         )}
-        {loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
+        {filter === 'users' ? (
+          <div className="admin-list">
+            {users.length === 0 && <p style={{ padding: '1rem' }}>Ingen registrerte brukere enda.</p>}
+            {users.map((u) => (
+              <div key={u.id} className="admin-spot">
+                <div className="admin-spot-info">
+                  <strong>{u.email}</strong>
+                  <span className="admin-spot-meta">
+                    {/* No profile row means no chosen name — the same state the
+                        user sees as "Anonym" in the nav. */}
+                    {u.username
+                      ? <>Visningsnavn: <strong>{u.username}</strong></>
+                      : <em>Anonym — har ikke valgt navn</em>}
+                    {u.last_sign_in_at && ` · sist pålogget ${new Date(u.last_sign_in_at).toLocaleDateString('no')}`}
+                  </span>
+                  <span className="admin-spot-meta">
+                    {u.spots.total} leirplass{u.spots.total === 1 ? '' : 'er'}
+                    {u.spots.total > 0 && ` — ${u.spots.approved} godkjent, ${u.spots.pending} venter${u.spots.deleted ? `, ${u.spots.deleted} slettet` : ''}`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : loading ? <p style={{ padding: '1rem' }}>Laster...</p> : (
           <div className="admin-list">
             {displayed.map((spot) => (
               <div key={spot.id} className={`admin-spot${spot.flags >= 3 ? ' admin-spot--flagged' : ''}`}>
@@ -917,6 +964,14 @@ function AdminPanel({ isAdmin, adminToken, onLogin, onLogout, onClose, onViewSpo
                     {spot.created_at ? new Date(spot.created_at).toLocaleDateString('no') : ''}
                     {spot.flags > 0 && <span className="admin-flag-count"> · {spot.flags} flagg</span>}
                     {spot.deleted_at && <span className="admin-deleted-note"> · slettet {new Date(spot.deleted_at).toLocaleDateString('no')}</span>}
+                  </span>
+                  {/* Who contributed it. Spots made before accounts, or by
+                      someone signed out, have no user_id — shown as such rather
+                      than blank, so the distinction is visible. */}
+                  <span className="admin-spot-meta">
+                    {spot.user_id
+                      ? (userEmail.get(spot.user_id) ?? 'ukjent konto')
+                      : <em>ingen konto (enhetsbasert)</em>}
                   </span>
                   {filter === 'flagged' && spot.flag_reports?.length > 0 && (
                     <div className="admin-flag-reports">

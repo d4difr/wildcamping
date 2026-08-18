@@ -223,11 +223,13 @@ export function UsernameModal({ userId, currentName, onDone, onClose }) {
       <div className="about-modal auth-modal" onClick={(e) => e.stopPropagation()}>
         <button className="about-close" onClick={onClose}>✕</button>
         <h1 className="about-title">{currentName ? 'Endre visningsnavn' : 'Velg et visningsnavn'}</h1>
-        {/* This is a privacy claim, so it has to be true in the database, not
-            just in the paragraph. profiles used to be publicly readable —
-            anyone with the anon key could list every username — which is why
-            phase1d-profiles-private.sql restricts select to the owner. */}
-        <p>Navnet ditt er kun synlig for deg.</p>
+        {/* A privacy claim, so it has to hold in the database rather than just
+            on the page. "ikke synlig for andre brukere" is the accurate form:
+            RLS restricts profiles to the owner, so no other user can read it —
+            but the site administrator can, through the service role. Claiming
+            "kun synlig for deg" would have been false on both counts before
+            phase1d, and still false as to admin afterwards. */}
+        <p>Navnet er ikke synlig for andre brukere.</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label htmlFor="auth-username">Visningsnavn</label>
           <input
