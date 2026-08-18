@@ -88,3 +88,15 @@ export async function sendMagicLink(email) {
 export async function signOut() {
   await supabase.auth.signOut()
 }
+
+// Headers for our own /api endpoints, carrying the session when there is one.
+// Read from the client rather than passed down, so a caller can never send a
+// stale token from an earlier render — supabase-js refreshes it in the
+// background and the fresh one is what must go out.
+export async function authHeaders() {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return token
+    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    : { 'Content-Type': 'application/json' }
+}

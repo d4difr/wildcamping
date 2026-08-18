@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
 import { SignInModal, UsernameModal, ClaimModal } from './AuthModal'
-import { useAuth, signOut } from '../useAuth'
+import { useAuth, signOut, authHeaders } from '../useAuth'
 import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -1334,11 +1334,11 @@ export default function CampingMap() {
     // can enumerate every pending submission on the site.
     const [{ data, error }, ownPending] = await Promise.all([
       supabase.from('spots').select(SPOT_COLUMNS).eq('status', 'approved').lt('flags', 3).is('deleted_at', null).order('created_at', { ascending: false }),
-      fetch('/api/spots-private', {
+      authHeaders().then((headers) => fetch('/api/spots-private', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ scope: 'mine-pending', owner_token: ownerToken }),
-      })
+      }))
         .then((r) => (r.ok ? r.json() : { spots: [] }))
         .then((j) => j.spots ?? [])
         .catch(() => []),
@@ -1654,7 +1654,7 @@ export default function CampingMap() {
     if (!window.confirm(`Slette "${camp.name}"? Dette kan ikke angres.`)) return
     await fetch('/api/spot-delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({ id: camp.id, owner_token: ownerToken }),
     })
     setActiveId(null)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { authHeaders } from '../useAuth'
 
 const REGIONS = [
   'Agder',
@@ -176,7 +177,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
       if (isEditing) {
         const res = await fetch('/api/spot-update', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify({
             id: camp.id,
             owner_token: ownerToken,

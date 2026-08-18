@@ -30,6 +30,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { verifyToken } from './_admin-auth.js'
+import { verifiedUserId } from './_owner.js'
 import { SPOT_COLUMNS_SQL } from './_spot-columns.js'
 
 const supabaseAdmin = createClient(
@@ -62,15 +63,26 @@ export default async function handler(req, res) {
   }
 
   if (scope === 'mine-pending') {
-    if (typeof owner_token !== 'string' || owner_token.length < MIN_TOKEN_LENGTH) {
-      return res.status(200).json({ spots: [] })
-    }
-    const { data, error } = await base()
-      .eq('owner_token', owner_token)
-      .eq('status', 'pending')
-      .is('deleted_at', null)
-    if (error) return res.status(500).json({ error: 'Query failed' })
-    return res.status(200).json({ spots: data ?? [] })
+    // Account OR device token, so a signed-in user sees a pending spot from any
+    // device, and someone who never signed in still sees theirs. See _owner.js.
+    const userId = await verifiedUserId(req)
+    const hasToken = typeof owner_token === 'string' && owner_token.length >= MIN_TOKEN_LENGTH
+    if (!userId && !hasToken) return res.status(200).json({ spots: [] })
+
+    // Two queries rather than PostgREST's .or(), which takes a filter STRING —
+    // interpolating a client-supplied token into it would let a value like
+    // "x,user_id.not.is.null" rewrite the filter and return every pending spot
+    // on the site. .eq() passes the value as a parameter, so it cannot.
+    const pending = () => base().eq('status', 'pending').is('deleted_at', null)
+    const [byUser, byToken] = await Promise.all([
+      userId ? pending().eq('user_id', userId) : Promise.resolve({ data: [] }),
+      hasToken ? pending().eq('owner_token', owner_token) : Promise.resolve({ data: [] }),
+    ])
+    if (byUser.error || byToken.error) return res.status(500).json({ error: 'Query failed' })
+
+    const merged = new Map()
+    for (const s of [...(byUser.data ?? []), ...(byToken.data ?? [])]) merged.set(s.id, s)
+    return res.status(200).json({ spots: [...merged.values()] })
   }
 
   return res.status(400).json({ error: 'Unknown scope' })
