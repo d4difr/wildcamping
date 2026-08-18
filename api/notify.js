@@ -47,6 +47,15 @@ export default async function handler(req, res) {
         from: 'Vildakart <no-reply@vildakart.no>',
         to: 'dadifr@outlook.com',
         subject: `Ny leirplass til godkjenning: ${escapeHtml(name)}`,
+        // A plain-text part alongside the HTML. Mail carrying only HTML,
+        // especially short HTML built around a link, scores worse with spam
+        // filters — and a cold sending domain has no reputation to spend. This
+        // one landed in Outlook's junk folder on its first send.
+        text:
+          `Ny leirplass til godkjenning.\n\n` +
+          `Navn: ${name}\nType: ${spotType}\nTilgang: ${access}\n` +
+          `Fylke: ${region}\nKoordinater: ${lat}, ${lng}\n\n` +
+          `Admin: https://vildakart.no/?v=hvk0209X`,
         html: `
           <p>En ny leirplass er sendt inn og venter på godkjenning.</p>
           <ul>

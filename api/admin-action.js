@@ -42,6 +42,13 @@ async function notifyApproved(spotId) {
       from: 'Vildakart <no-reply@vildakart.no>',
       to: email,
       subject: `Leirplassen din er godkjent: ${spot.name}`,
+      // Plain-text part as well as HTML — see the note in notify.js. It matters
+      // more here: this one goes to a user, and someone whose first email from
+      // Vildakart lands in spam will never see it.
+      text:
+        `Hei!\n\n${spot.name} er nå godkjent og synlig for alle på Vildakart.\n\n` +
+        `Se leirplassen: ${url}\n\n` +
+        `Du får denne e-posten fordi du la til en leirplass mens du var innlogget.`,
       html: `
         <p>Hei!</p>
         <p><strong>${escapeHtml(spot.name)}</strong> er nå godkjent og synlig for alle på Vildakart.</p>
