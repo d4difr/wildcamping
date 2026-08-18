@@ -1453,7 +1453,18 @@ export default function CampingMap() {
   const [planDraft, setPlanDraft] = useState(null)
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
-  const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
+  // Guarded: an unparseable value here used to throw during render and take the
+  // whole app down to a blank page. localStorage can be corrupted by anything —
+  // a half-written value, another script, an extension — and no stored
+  // preference is worth a white screen.
+  const [flaggedSpots] = useState(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('vilda_flagged') || '[]')
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const sheetRef = useRef(null)
   const dragStartY = useRef(null)
