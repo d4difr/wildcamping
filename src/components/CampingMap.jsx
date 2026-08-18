@@ -4,9 +4,10 @@ import Map, { Marker, Source, Layer, useMap, AttributionControl } from 'react-ma
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { supabase } from '../supabaseClient'
 import AddSpotForm from './AddSpotForm'
-import { SignInModal, UsernameModal, ClaimModal } from './AuthModal'
+import { SignInModal, UsernameModal, ClaimModal, PlanningPinModal } from './AuthModal'
 import { useAuth, signOut, authHeaders } from '../useAuth'
 import { useFavourites } from '../useFavourites'
+import { usePlanningPins } from '../usePlanningPins'
 import { SPOT_COLUMNS_SQL as SPOT_COLUMNS } from '../../api/_spot-columns.js'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -1031,6 +1032,7 @@ function SidebarContent({
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
   flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange, ownedIds,
   favouriteIds, onToggleFavourite, signedIn, onNeedsSignIn,
+  planningPins, onRemovePin, onStartPlanMode,
 }) {
   // Creating takes precedence over whatever was being browsed — the user just
   // asked for this panel, so it should not sit behind a spot detail.
@@ -1107,6 +1109,53 @@ function SidebarContent({
             <button className="owner-btn owner-btn--delete" onClick={() => onDelete(activeSpot)}>🗑 Slett</button>
           </div>
         )}
+      </>
+    )
+  }
+  if (sidebarView === 'plan') {
+    return (
+      <>
+        <div className="filter-panel">
+          <div className="filter-panel-header">
+            <span className="filter-panel-title">Planlegging</span>
+          </div>
+        </div>
+        <div className="sidebar-body">
+          {!signedIn && (
+            <p className="empty-state">
+              Logg inn for å lage private planleggingspinner. Bare du kan se dem.
+            </p>
+          )}
+          {signedIn && (
+            <>
+              <button className="plan-add-btn" onClick={onStartPlanMode}>
+                ＋ Ny pin — klikk i kartet
+              </button>
+              {planningPins.length === 0 && (
+                <p className="empty-state">
+                  Ingen pinner enda. Bruk dem til å markere steder du vurderer,
+                  uten å dele dem med andre.
+                </p>
+              )}
+              {planningPins.map((pin) => (
+                <div key={pin.id} className="plan-card">
+                  <div className="plan-card-body">
+                    <h3>{pin.name}</h3>
+                    {pin.note && <p className="plan-card-note">{pin.note}</p>}
+                    <p className="plan-card-coords">
+                      {pin.latitude.toFixed(4)}, {pin.longitude.toFixed(4)}
+                    </p>
+                  </div>
+                  <button
+                    className="owner-btn owner-btn--delete"
+                    title="Slett pin"
+                    onClick={() => { if (window.confirm(`Slette «${pin.name}»?`)) onRemovePin(pin.id) }}
+                  >✕</button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       </>
     )
   }
@@ -1338,6 +1387,11 @@ export default function CampingMap() {
   const [claimSkipped, setClaimSkipped] = useState(false)
   const { user, profile, needsUsername, refreshProfile, loading: authLoading } = useAuth()
   const { favouriteIds, toggleFavourite } = useFavourites(user?.id ?? null)
+  const { planningPins, addPin, removePin } = usePlanningPins(user?.id ?? null)
+  // Placing a private pin is a separate mode from submitting a spot — the two
+  // must never be confused, since one is published and the other is not.
+  const [planMode, setPlanMode] = useState(false)
+  const [planDraft, setPlanDraft] = useState(null)
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -1796,6 +1850,14 @@ export default function CampingMap() {
       setMeasurePoints((p) => [...p, { lng: e.lngLat.lng, lat: e.lngLat.lat }])
       return
     }
+    // Private pins skip every check a public spot gets — no innmark lookup, no
+    // Norway bounds, no moderation. Nothing is published, so there is nothing
+    // to validate on anyone else's behalf.
+    if (planMode) {
+      setPlanDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng })
+      setPlanMode(false)
+      return
+    }
     if (!dropMode) return
     placePin(e.lngLat.lat, e.lngLat.lng).finally(() => setLocationChecking(false))
   }
@@ -2038,7 +2100,7 @@ export default function CampingMap() {
     },
   ].filter(Boolean)
 
-  const cursor = (dropMode || measuring) ? 'crosshair' : 'grab'
+  const cursor = (dropMode || measuring || planMode) ? 'crosshair' : 'grab'
   const measureDistance = pathLength(measurePoints)
 
   return (
@@ -2143,7 +2205,27 @@ export default function CampingMap() {
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
       {respektOpen && <RespektModal onClose={() => setRespektOpen(false)} />}
+      {planMode && (
+        <div className="plan-mode-hint">
+          Klikk i kartet for å plassere en privat pin
+          <button
+            style={{ marginLeft: '0.6rem', background: 'none', border: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+            onClick={() => setPlanMode(false)}
+          >Avbryt</button>
+        </div>
+      )}
       {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+      {planDraft && (
+        <PlanningPinModal
+          position={planDraft}
+          onCancel={() => setPlanDraft(null)}
+          onSave={async ({ name, note }) => {
+            const res = await addPin({ name, note, latitude: planDraft.lat, longitude: planDraft.lng })
+            if (!res.error) setPlanDraft(null)
+            return res
+          }}
+        />
+      )}
       {needsUsername && !usernameSkipped && (
         <UsernameModal
           userId={user.id}
@@ -2241,6 +2323,18 @@ export default function CampingMap() {
                   <span className="sidebar-rail-label">Favoritter</span>
                 </button>
 
+                {/* Planlegging — private pins */}
+                <button className="sidebar-rail-item" onClick={() => { setSidebarView('plan'); setSidebarOpen(true) }} title="Planlegging">
+                  <div className="sidebar-rail-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 3v18" />
+                      <path d="M6 4h11l-2.6 3.6L17 11H6z" />
+                    </svg>
+                    {planningPins.length > 0 && <span className="sidebar-rail-badge">{planningPins.length}</span>}
+                  </div>
+                  <span className="sidebar-rail-label">Planlegging</span>
+                </button>
+
                 {/* Alle steder — stacked thumbnails with total count */}
                 {spots.length > 0 && (
                   <button className="sidebar-rail-item" onClick={() => { setSidebarView('all'); setSidebarOpen(true) }} title="Alle steder">
@@ -2278,6 +2372,7 @@ export default function CampingMap() {
                   editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                   activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                   favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
+                  planningPins={planningPins} onRemovePin={removePin} onStartPlanMode={() => { setPlanMode(true); setSidebarOpen(false) }}
                   filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                   filteredSpots={filteredSpots} loading={loading} spots={spots}
                   onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
@@ -2494,6 +2589,30 @@ export default function CampingMap() {
             {ownPendingSpots.map((spot) => (
               <Marker key={`own-pending-${spot.id}`} longitude={spot.longitude} latitude={spot.latitude} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`pending:${spot.id}`); if (!isMobile) { setSidebarView('all'); setSidebarOpen(true) } }}>
                 <span className={`spot-badge spot-badge--pending${activeId === `pending:${spot.id}` ? ' spot-badge--active' : ''}`} style={{ width: activeId === `pending:${spot.id}` ? 36 : 28, height: activeId === `pending:${spot.id}` ? 36 : 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#9a9a9a', border: '2px dashed #777', cursor: 'pointer', opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: TENT_SVG }} />
+              </Marker>
+            ))}
+
+            {/* Private planning pins. Deliberately unlike a spot marker — a
+                violet flag, not a tent in a circle. Someone glancing at the map
+                must never mistake a private note for a shared find, in either
+                direction. */}
+            {planningPins.map((pin) => (
+              <Marker
+                key={`plan-${pin.id}`}
+                longitude={pin.longitude}
+                latitude={pin.latitude}
+                anchor="bottom"
+                onClick={e => { e.originalEvent.stopPropagation(); setActiveId(`plan:${pin.id}`); if (!isMobile) { setSidebarView('plan'); setSidebarOpen(true) } }}
+              >
+                <span
+                  className={`plan-pin${activeId === `plan:${pin.id}` ? ' plan-pin--active' : ''}`}
+                  title={pin.name}
+                >
+                  <svg width="20" height="24" viewBox="0 0 20 24" aria-hidden="true">
+                    <path d="M3 1v22" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                    <path d="M4 2h13l-3.2 4.5L17 11H4z" fill="currentColor" />
+                  </svg>
+                </span>
               </Marker>
             ))}
 
@@ -2863,6 +2982,7 @@ export default function CampingMap() {
                 editingCamp={editingCamp} activeSpot={activeSpot} activePendingSpot={activePendingSpot}
                 activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                   favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
+                  planningPins={planningPins} onRemovePin={removePin} onStartPlanMode={() => { setPlanMode(true); setSidebarOpen(false) }}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}

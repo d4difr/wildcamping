@@ -2984,3 +2984,78 @@ button.primary:hover:not(:disabled) {
   line-height: 30px;
   text-align: center;
 }
+
+/* --- Private planning pins (Phase 4) ------------------------------------- */
+
+/* A violet flag, not a tent in a circle. A private note must never be mistaken
+   for a shared find, in either direction. */
+.plan-pin {
+  display: block;
+  color: #6d4aa8;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+  cursor: pointer;
+}
+.plan-pin--active { color: #4a2f7a; transform: scale(1.15); }
+
+.plan-add-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem;
+  border: 1px dashed #6d4aa8;
+  border-radius: 10px;
+  background: #f6f2fb;
+  color: #4a2f7a;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.plan-add-btn:hover { background: #ece4f7; }
+
+.plan-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid #6d4aa8;
+  border-radius: 10px;
+  background: var(--birch-card);
+}
+.plan-card-body { flex: 1; min-width: 0; }
+.plan-card h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.92rem;
+  color: var(--forest);
+}
+.plan-card-note {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--granite);
+}
+.plan-card-coords {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #8a8d87;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Placing a private pin: the cursor and a hint make the mode obvious, since it
+   looks identical to adding a public spot otherwise. */
+.plan-mode-hint {
+  position: absolute;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1002;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: #4a2f7a;
+  color: #f4f1ea;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}

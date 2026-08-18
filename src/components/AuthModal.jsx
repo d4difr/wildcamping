@@ -108,6 +108,66 @@ export function ClaimModal({ count, onClaim, onSkip }) {
   )
 }
 
+// Naming a private planning pin. Deliberately plain — no photos, no access type,
+// no region. This is a note to yourself, not a submission, and the form should
+// not imply otherwise.
+export function PlanningPinModal({ position, onSave, onCancel }) {
+  const [name, setName] = useState('')
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const { error: err } = await onSave({ name, note })
+    setSaving(false)
+    if (err) setError('Kunne ikke lagre. Prøv igjen.')
+  }
+
+  return (
+    <div className="about-overlay" onClick={onCancel}>
+      <div className="about-modal auth-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="about-close" onClick={onCancel}>✕</button>
+        <h1 className="about-title">Ny planleggingspin</h1>
+        <p className="auth-hint" style={{ margin: '0 0 0.25rem' }}>
+          {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
+        </p>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <label htmlFor="plan-name">Navn</label>
+          <input
+            id="plan-name"
+            type="text"
+            autoFocus
+            required
+            maxLength={80}
+            placeholder="f.eks. Mulig teltplass ved vannet"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <label htmlFor="plan-note">Notat (valgfritt)</label>
+          <textarea
+            id="plan-note"
+            rows={3}
+            maxLength={500}
+            placeholder="Sjekk om det er flatt nok…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <button type="submit" className="primary" disabled={saving || !name.trim()}>
+            {saving ? 'Lagrer…' : 'Lagre pin'}
+          </button>
+          {error && <p className="coord-error">{error}</p>}
+        </form>
+        <p className="auth-hint">
+          Kun du kan se denne. Den vises ikke på kartet for andre og sendes ikke til godkjenning.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // Choosing a display name. Skippable on purpose: no username means posts show as
 // anonymous, which is a first-class option rather than a fallback.
 export function UsernameModal({ userId, onDone, onSkip }) {
