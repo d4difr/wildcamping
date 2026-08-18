@@ -1253,7 +1253,7 @@ export default function CampingMap() {
   const [usernameSkipped, setUsernameSkipped] = useState(false)
   const [unclaimedCount, setUnclaimedCount] = useState(0)
   const [claimSkipped, setClaimSkipped] = useState(false)
-  const { user, profile, needsUsername, refreshProfile } = useAuth()
+  const { user, profile, needsUsername, refreshProfile, loading: authLoading } = useAuth()
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   const [flaggedSpots] = useState(() => JSON.parse(localStorage.getItem('vilda_flagged') || '[]'))
@@ -2023,7 +2023,9 @@ export default function CampingMap() {
             <span className="respekt-btn__full">Respekt for naturen</span>
             <span className="respekt-btn__short">Respekt</span>
           </button>
-          {user ? (
+          {/* Nothing until the session is known, so the control does not flip
+              from "Logg inn" to a username on every reload. */}
+          {authLoading ? null : user ? (
             <div className="account-nav">
               <span className="account-name" title={user.email}>
                 {profile?.username ?? 'Anonym'}

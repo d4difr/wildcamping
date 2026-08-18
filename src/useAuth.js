@@ -11,6 +11,11 @@ import { supabase } from './supabaseClient'
 export function useAuth() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
+  // Distinct from `profile === null`, which cannot tell "no profile exists" from
+  // "not fetched yet". Without this the username prompt flashes on every reload:
+  // the session restores immediately, the profile arrives a moment later, and in
+  // between the app believes the user has no name.
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -34,14 +39,19 @@ export function useAuth() {
   const userId = session?.user?.id ?? null
 
   useEffect(() => {
-    if (!userId) { setProfile(null); return }
+    if (!userId) { setProfile(null); setProfileLoaded(true); return }
     let cancelled = false
+    setProfileLoaded(false)
     supabase
       .from('profiles')
       .select('user_id, username')
       .eq('user_id', userId)
       .maybeSingle()
-      .then(({ data }) => { if (!cancelled) setProfile(data ?? null) })
+      .then(({ data }) => {
+        if (cancelled) return
+        setProfile(data ?? null)
+        setProfileLoaded(true)
+      })
     return () => { cancelled = true }
   }, [userId])
 
@@ -50,8 +60,8 @@ export function useAuth() {
     user: session?.user ?? null,
     profile,
     loading,
-    // Signed in, but has not picked a display name yet.
-    needsUsername: !!userId && profile === null,
+    // Signed in, profile definitely fetched, and there isn't one.
+    needsUsername: !!userId && profileLoaded && profile === null,
     refreshProfile: async () => {
       if (!userId) return
       const { data } = await supabase
