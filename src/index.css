@@ -3118,3 +3118,13 @@ button.primary:hover:not(:disabled) {
   font-size: 0.72rem;
   color: #8a8d87;
 }
+
+/* Coordinate entry inside the Planlegging panel. The shared CoordEntry markup
+   is styled for the drop panel, so it needs a little breathing room here. */
+.plan-coord {
+  margin: -0.25rem 0 0.75rem;
+}
+.plan-coord .coord-toggle {
+  width: 100%;
+  justify-content: space-between;
+}

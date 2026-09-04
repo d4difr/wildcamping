@@ -1137,7 +1137,7 @@ function SidebarContent({
   onDelete, onSeeMore, onFilterChange, onToggleFilter, loadSpots, onReport,
   flaggedSpots, onAdminApprove, onAdminDelete, sidebarView, onSidebarViewChange, ownedIds,
   favouriteIds, onToggleFavourite, signedIn, onNeedsSignIn,
-  planningPins, onRemovePin, onStartPlanMode,
+  planningPins, onRemovePin, onStartPlanMode, planCoord,
 }) {
   // Creating takes precedence over whatever was being browsed — the user just
   // asked for this panel, so it should not sit behind a spot detail.
@@ -1236,6 +1236,22 @@ function SidebarContent({
               <button className="plan-add-btn" onClick={onStartPlanMode}>
                 ＋ Ny pin — klikk i kartet
               </button>
+              {/* The same CoordEntry the public spot flow uses, so the two ways
+                  of placing something behave identically. Useful when the
+                  coordinates come from somewhere else — a map service, a friend,
+                  a GPX file — and hunting for the spot by eye is guesswork. */}
+              {planCoord && (
+                <div className="plan-coord">
+                  <CoordEntry
+                    expanded={planCoord.expanded}
+                    onToggle={planCoord.onToggle}
+                    value={planCoord.value}
+                    onChange={planCoord.onChange}
+                    error={planCoord.error}
+                    onSubmit={planCoord.onSubmit}
+                  />
+                </div>
+              )}
               {planningPins.length === 0 && (
                 <p className="empty-state">
                   Ingen pinner enda. Bruk dem til å markere steder du vurderer,
@@ -1511,6 +1527,9 @@ export default function CampingMap() {
   // must never be confused, since one is published and the other is not.
   const [planMode, setPlanMode] = useState(false)
   const [planDraft, setPlanDraft] = useState(null)
+  const [planCoordExpanded, setPlanCoordExpanded] = useState(false)
+  const [planCoordInput, setPlanCoordInput] = useState({ lat: '', lng: '' })
+  const [planCoordError, setPlanCoordError] = useState('')
   const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem('vilda_admin_token'))
   const [adminPanelOpen, setAdminPanelOpen] = useState(() => new URLSearchParams(window.location.search).get('v') === 'hvk0209X' || localStorage.getItem('vilda_admin_token'))
   // Guarded: an unparseable value here used to throw during render and take the
@@ -2092,6 +2111,30 @@ export default function CampingMap() {
     placePin(lat, lng).finally(() => setLocationChecking(false))
   }
 
+  // Coordinates for a private pin. Same shape as handleCoordSubmit above, but
+  // deliberately without the Norway bounds check that placePin applies: a
+  // planning pin is published to nobody, so there is no one else's expectations
+  // to protect. Someone planning a trip to Sweden should not be blocked.
+  function handlePlanCoordSubmit(e) {
+    e.preventDefault()
+    const lat = parseFloat(planCoordInput.lat)
+    const lng = parseFloat(planCoordInput.lng)
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setPlanCoordError('Skriv inn gyldige koordinater (bredde −90→90, lengde −180→180)')
+      return
+    }
+    setPlanCoordInput({ lat: '', lng: '' })
+    setPlanCoordExpanded(false)
+    setPlanCoordError('')
+    setPlanMode(false)
+    // Move the map there, or the pin is saved somewhere the user cannot see —
+    // clicking the map never has that problem, typing coordinates always does.
+    flyTo(lng, lat, 13)
+    setPlanDraft({ lat, lng })
+  }
+
+  function handlePlanCoordChange(next) { setPlanCoordInput(next); setPlanCoordError('') }
+
   function placeIcon(types = []) {
     if (types.includes('poi')) return '📍'
     if (types.includes('address')) return '🏠'
@@ -2509,6 +2552,7 @@ export default function CampingMap() {
                   activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                   favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
                   planningPins={planningPins} onRemovePin={removePin} onStartPlanMode={() => { setPlanMode(true); setSidebarOpen(false) }}
+                  planCoord={{ expanded: planCoordExpanded, onToggle: () => setPlanCoordExpanded((e) => !e), value: planCoordInput, onChange: handlePlanCoordChange, error: planCoordError, onSubmit: handlePlanCoordSubmit }}
                   filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                   filteredSpots={filteredSpots} loading={loading} spots={spots}
                   onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
@@ -3127,6 +3171,7 @@ export default function CampingMap() {
                 activeAdminPendingSpot={activeAdminPendingSpot} ownerToken={ownerToken} ownedIds={ownedIds}
                   favouriteIds={favouriteIds} onToggleFavourite={toggleFavourite} signedIn={!!user} onNeedsSignIn={() => setSignInOpen(true)}
                   planningPins={planningPins} onRemovePin={removePin} onStartPlanMode={() => { setPlanMode(true); setSidebarOpen(false) }}
+                  planCoord={{ expanded: planCoordExpanded, onToggle: () => setPlanCoordExpanded((e) => !e), value: planCoordInput, onChange: handlePlanCoordChange, error: planCoordError, onSubmit: handlePlanCoordSubmit }}
                 filters={filters} hasFilters={hasFilters} allRegions={allRegions}
                 filteredSpots={filteredSpots} loading={loading} spots={spots}
                 onBack={handleBack} onEdit={setEditingCamp} onDelete={handleDelete}
