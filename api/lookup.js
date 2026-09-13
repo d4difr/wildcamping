@@ -23,7 +23,7 @@ async function land(req, res) {
     `&CRS=EPSG:4326&BBOX=${lat - d},${lng - d},${lat + d},${lng + d}` +
     `&WIDTH=100&HEIGHT=100&I=50&J=50&INFO_FORMAT=text/html`
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    const r = await fetch(url, { signal: AbortSignal.timeout(9000) })
     if (!r.ok) return res.status(200).json({ label: null })
     const m = (await r.text()).match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
     return res.status(200).json({ label: m ? m[1].trim() : null })

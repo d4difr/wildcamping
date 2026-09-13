@@ -43,7 +43,7 @@ const BLOCKED_LABELS = [
 
 async function checkNibioLandType(lat, lng) {
   try {
-    const res = await fetch(`/api/lookup?kind=land&lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(`/api/lookup?kind=land&lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return null
     const { label } = await res.json()
     if (!label) return null // no land-type data — fail open
