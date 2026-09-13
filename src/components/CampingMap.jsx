@@ -2242,6 +2242,9 @@ export default function CampingMap() {
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
       bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
+      // Only "flat or not" matters for a tent, so everything past the first
+      // band is shown as one continuous scale rather than five named steps.
+      scale: { from: 1, label: 'Hellingsgrad', ends: ['Slakt', 'Bratt'] },
       note: 'Hvor bratt bakken er.',
     },
     vern && {
@@ -3044,7 +3047,7 @@ export default function CampingMap() {
                   ) : (
                     <>
                       <div className="terrengtype-legend-rows">
-                        {l.bands.map((b) => (
+                        {(l.scale ? l.bands.slice(0, l.scale.from) : l.bands).map((b) => (
                           <div key={b.label} className="terrengtype-legend-row" title={b.hint}>
                             <span
                               className="terrengtype-swatch"
@@ -3053,6 +3056,22 @@ export default function CampingMap() {
                             <span className="terrengtype-legend-label">{b.label}</span>
                           </div>
                         ))}
+                        {l.scale && (
+                          <div className="terrengtype-legend-row legend-scale">
+                            <span className="terrengtype-legend-label">{l.scale.label}</span>
+                            <span className="legend-scale-end">{l.scale.ends[0]}</span>
+                            <span
+                              className="legend-scale-bar"
+                              style={{
+                                background: `linear-gradient(to right, ${l.bands
+                                  .slice(l.scale.from)
+                                  .map((b) => swatchColor(b.color, opacity[l.key], basemap))
+                                  .join(', ')})`,
+                              }}
+                            />
+                            <span className="legend-scale-end">{l.scale.ends[1]}</span>
+                          </div>
+                        )}
                       </div>
                       <label className="legend-opacity">
                         <span className="legend-opacity-label">Gjennomsiktighet</span>

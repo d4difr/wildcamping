@@ -2477,6 +2477,20 @@ button.primary:hover:not(:disabled) {
   border: 1px solid rgba(0,0,0,0.15);
 }
 
+.legend-scale-bar {
+  width: 96px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+.legend-scale-end {
+  font-size: 0.68rem;
+  color: var(--granite);
+  opacity: 0.75;
+}
+
 .terrengtype-legend-label {
   font-size: 0.78rem;
   font-weight: 600;
