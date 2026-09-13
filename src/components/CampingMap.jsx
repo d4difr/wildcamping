@@ -573,7 +573,7 @@ function SpotDetail({ spot, onBack, onReport, alreadyReported, favourite }) {
             <span className="spot-flatness-detail">
               {Math.round(spot.flatness_deg)}° på det flateste innenfor 10 m
             </span>
-            <span className="spot-flatness-source">Målt i Kartverkets terrengmodell</span>
+            <span className="spot-flatness-source">Målt automatisk fra terrengdata</span>
           </p>
         )
       })()}
@@ -633,7 +633,7 @@ function AboutModal({ onClose }) {
         <section className="about-section">
           <h2>Slik fungerer kartet</h2>
           <p>Alle kan legge til en leirplass uten å opprette konto. Klikk på «Legg til leirplass», plasser en pin på kartet og fyll inn det du vet. Leirplassen knyttes til enheten du brukte, så du kan redigere eller slette den igjen fra samme telefon eller datamaskin.</p>
-          <p>Når du plasserer en pin sjekker kartet automatisk om området er klassifisert som innmark i NIBIOs arealkart, som dyrket mark, bebyggelse eller åpen fastmark i tettbygd strøk. Steder i slike områder kan ikke legges til. Alle nye leirplasser gjennomgås av en administrator før de vises på kartet.</p>
+          <p>Når du plasserer en pin sjekker kartet automatisk om området er klassifisert som innmark, som dyrket mark, bebyggelse eller åpen fastmark i tettbygd strøk. Steder i slike områder kan ikke legges til. Alle nye leirplasser gjennomgås av en administrator før de vises på kartet.</p>
         </section>
         <section className="about-section about-section--contact">
           <h2>Kontakt</h2>
@@ -2245,12 +2245,12 @@ export default function CampingMap() {
     terrengtype && {
       key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
       bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
-      note: 'Viser myr, bart fjell og åpen mark fra NIBIOs arealdata. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Grove flater (ofte km-store), så sjekk alltid selv.',
+      note: 'Viser myr, bart fjell og åpen mark. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Sjekk alltid selv.',
     },
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
       bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
-      note: 'Hvor bratt bakken er. Målt i Kartverkets terrengmodell.',
+      note: 'Hvor bratt bakken er.',
     },
     vern && {
       key: 'vern', layer: 'md-vern', title: 'Vern',
@@ -2266,7 +2266,7 @@ export default function CampingMap() {
       // sound for comparing areas, unreliable at a single point. The note used
       // to spell that out along with kratt and nyere hogst; it was cut for
       // length, so nothing but those two words now signals it is not measured.
-      note: 'Anslag på kronedekke, modellert fra laser og flybilder (NIBIO SR16).',
+      note: 'Anslag på hvor tett trærne står.',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',

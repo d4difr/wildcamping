@@ -248,7 +248,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
           <span className="innmark-warning__icon">⚠️</span>
           <div>
             <strong>Ikke tillatt område</strong>
-            <p>NIBIO sitt kart viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
+            <p>Kartdata viser at dette området er klassifisert som <em>{nibioWarning}</em>. Allemannsretten gjelder kun i utmark (skog, fjell, myr). Flytt pinnen til et naturområde for å fortsette.</p>
             <a href={`https://gardskart.nibio.no/?lat=${position.lat}&lon=${position.lng}&zoom=15`} target="_blank" rel="noopener noreferrer">
               Sjekk på gardskart.nibio.no →
             </a>
@@ -326,7 +326,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
 
 
 {!isEditing && nibioCleared && (
-        <p className="nibio-cleared">✓ Området er automatisk sjekket mot NIBIOs arealkart og er ikke klassifisert som innmark.</p>
+        <p className="nibio-cleared">✓ Området er automatisk sjekket og er ikke klassifisert som innmark.</p>
       )}
 
       {error && <p style={{ color: '#a32d2d', fontSize: '0.85rem' }}>{error}</p>}
