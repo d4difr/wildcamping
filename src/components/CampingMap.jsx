@@ -286,6 +286,9 @@ function styleKey(bands) {
 // verdict would be wrong for half the users. Hints name the trade-off instead.
 // Vanlig skog vises ikke — se notatet i api/_ar50-tile.js. Kronedekning svarer på
 // hvor tett trærne står; dette laget viser bakken der det ikke bare er skog.
+// Lighter than Myr so the two read as the same thing at different certainty.
+const MULIG_MYR = '#C4B2D4'
+
 const TERRENGTYPE_BANDS = [
   { color: '#EBD98A', label: 'Åpen mark', hint: 'Tørr, åpen bakke. Bra for telt — ingen trær til hengekøye' },
   { color: '#7FC3B0', label: 'Fuktig mark', hint: 'Åpen, men fuktig underlag' },
@@ -1815,7 +1818,7 @@ export default function CampingMap() {
   // raster below z13 and a vector above it. Turruter is here too even though it
   // sits outside the exclusion group, so the opacity slider can find it.
   const LAYER_IDS = {
-    terrengtype: ['ar50-terrengtype'],
+    terrengtype: ['ar50-terrengtype', 'osm-mulig-myr'],
     helning: ['kv-helning'],
     vern: ['md-vern'],
     kronedekning: ['nibio-kronedekning', 'nibio-kronedekning-v'],
@@ -1872,7 +1875,9 @@ export default function CampingMap() {
     setOpacity((o) => { const next = { ...o, [key]: value }; opacityRef.current = next; return next })
     const map = nativeMap.current
     for (const id of LAYER_IDS[key] ?? []) {
-      if (map?.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', value)
+      const layer = map?.getLayer(id)
+      if (!layer) continue
+      map.setPaintProperty(id, layer.type === 'fill' ? 'fill-opacity' : 'raster-opacity', value)
     }
   }
 
@@ -2276,7 +2281,10 @@ export default function CampingMap() {
     },
     terrengtype && {
       key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
-      bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
+      // Mulig myr is appended here rather than added to TERRENGTYPE_BANDS:
+      // those feed the tile cache key, and it isn't drawn by the tile server.
+      bands: [...TERRENGTYPE_BANDS, { color: MULIG_MYR, label: 'Mulig myr', hint: 'Kan være myr — kildene er uenige' }],
+      minZoom: TERRENGTYPE_MIN_ZOOM,
       note: 'Viser myr, bart fjell og åpen mark. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Sjekk alltid selv.',
     },
     turruter && {
@@ -2767,6 +2775,39 @@ export default function CampingMap() {
                 // under it. Still below water, for the same reason as the rest.
                 if (map.getLayer('ar50-terrengtype')) {
                   map.moveLayer('ar50-terrengtype', fillInsertId())
+                }
+
+                // "Mulig myr": bog that OpenStreetMap has and NIBIO does not.
+                // Drawn directly beneath Terrengtype, so wherever NIBIO has its
+                // own answer — bog, rock, open ground — that colour sits on top
+                // and dominates; the lighter shade reads on its own only where
+                // NIBIO has nothing to say. (Both are semi-transparent, so on
+                // overlap the colours blend rather than one hiding the other.)
+                // NIBIO's survey is old in places (58.430, 8.122: forest in 1975,
+                // mapped as bog in OSM since ~2023); OSM is traced by
+                // volunteers. Neither is trusted over the other, hence "mulig".
+                //
+                // Reuses the style's own Mapbox Streets data when it has it
+                // (Outdoors, Satellitt) so no extra tiles are fetched; the
+                // Topografisk style is Kartverket raster only, so it gets its own.
+                const streetsSource = map.getSource('composite') ? 'composite' : 'osm-streets'
+                if (streetsSource === 'osm-streets' && !map.getSource('osm-streets')) {
+                  map.addSource('osm-streets', { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' })
+                }
+                if (!map.getLayer('osm-mulig-myr')) {
+                  map.addLayer({
+                    id: 'osm-mulig-myr',
+                    type: 'fill',
+                    source: streetsSource,
+                    'source-layer': 'landuse_overlay',
+                    filter: ['in', ['get', 'class'], ['literal', ['wetland', 'wetland_noveg']]],
+                    minzoom: TERRENGTYPE_MIN_ZOOM,
+                    paint: {
+                      'fill-color': MULIG_MYR,
+                      'fill-opacity': opacityRef.current.terrengtype,
+                    },
+                    layout: { visibility: terrengtypeRef.current ? 'visible' : 'none' },
+                  }, 'ar50-terrengtype')
                 }
               }
 
