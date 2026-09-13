@@ -2020,9 +2020,9 @@ export default function CampingMap() {
     clearTimeout(elevationTimeout.current)
   }
 
-  // Sample the terrain model along the drawn path. Kartverket allows this
-  // straight from the browser (CORS *), so no proxy — but it can be slow on a
-  // cold call, hence the debounce and the explicit loading state.
+  // Sample the terrain along the drawn path, via /api/lookup so the source
+  // stays server-side. It can be slow on a cold call, hence the debounce and
+  // the explicit loading state.
   useEffect(() => {
     clearTimeout(elevationTimeout.current)
     if (measurePoints.length < 2) { setElevation(null); return }
@@ -2030,24 +2030,16 @@ export default function CampingMap() {
     let cancelled = false
     elevationTimeout.current = setTimeout(async () => {
       const pts = sampleAlong(measurePoints, 80)
-      const body = new URLSearchParams({
-        geometry: JSON.stringify({ points: pts.map((p) => [p.lng, p.lat]), spatialReference: { wkid: 4326 } }),
-        geometryType: 'esriGeometryMultipoint',
-        returnFirstValueOnly: 'true',
-        interpolation: 'RSP_BilinearInterpolation',
-        f: 'json',
-      })
       try {
-        const res = await fetch('https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/getSamples', {
-          method: 'POST', body, signal: AbortSignal.timeout(20000),
+        const res = await fetch('/api/lookup?kind=elevation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points: pts.map((p) => [p.lng, p.lat]) }),
+          signal: AbortSignal.timeout(22000),
         })
         const json = await res.json()
         if (cancelled) return
-        const z = new Array(pts.length).fill(NaN)
-        for (const s of json.samples ?? []) {
-          const v = parseFloat(s.value)
-          if (Number.isFinite(v) && Number.isInteger(s.locationId)) z[s.locationId] = v
-        }
+        const z = (json.z ?? []).map((v) => (v == null ? NaN : v))
         const known = z.filter(Number.isFinite)
         if (known.length < 2) { setElevation('error'); return }
         let gain = 0, loss = 0, prev = null
@@ -2162,7 +2154,7 @@ export default function CampingMap() {
       // that Mapbox simply doesn't have. Neither is a superset of the other, so
       // ask both and merge rather than replacing one with the other.
       const [kv, mb] = await Promise.allSettled([
-        fetch(`https://ws.geonorge.no/stedsnavn/v1/navn?sok=${encodeURIComponent(q)}&treffPerSide=10&utkoordsys=4258`,
+        fetch(`/api/lookup?kind=places&q=${encodeURIComponent(q)}`,
           { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
         fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=no&language=no&limit=5&proximity=${center.lng},${center.lat}&access_token=${TOKEN}`,
           { signal: AbortSignal.timeout(5000) }).then(r => r.json()),

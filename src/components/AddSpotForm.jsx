@@ -42,24 +42,11 @@ const BLOCKED_LABELS = [
 ]
 
 async function checkNibioLandType(lat, lng) {
-  const delta = 0.0005
-  const minLat = lat - delta, maxLat = lat + delta
-  const minLng = lng - delta, maxLng = lng + delta
-
-  const url =
-    `https://wms.nibio.no/cgi-bin/ar5?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo` +
-    `&LAYERS=Arealtype&QUERY_LAYERS=Arealtype` +
-    `&CRS=EPSG:4326&BBOX=${minLat},${minLng},${maxLat},${maxLng}` +
-    `&WIDTH=100&HEIGHT=100&I=50&J=50` +
-    `&INFO_FORMAT=text/html`
-
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`/api/lookup?kind=land&lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(6000) })
     if (!res.ok) return null
-    const html = await res.text()
-    const match = html.match(/Arealtype<\/td>\s*<TD[^>]*>([^<]+)<\/td>/i)
-    if (!match) return null // no NIBIO data — fail open
-    const label = match[1].trim()
+    const { label } = await res.json()
+    if (!label) return null // no land-type data — fail open
     const lower = label.toLowerCase()
     const isBlocked = BLOCKED_LABELS.some(l => lower.includes(l))
     return isBlocked ? label : { cleared: true, label } // blocked = string, cleared = object with label
@@ -102,7 +89,7 @@ export default function AddSpotForm({ position, camp, ownerToken, onCancel, onSa
     setNibioChecking(true)
     Promise.all([
       checkNibioLandType(lat, lng),
-      fetch(`/api/tettsted?lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(5000) })
+      fetch(`/api/lookup?kind=tettsted&lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(5000) })
         .then(r => r.json()).then(d => d.inTettsted).catch(() => false)
     ]).then(([nibioResult, inTettsted]) => {
       if (typeof nibioResult === 'string') {
