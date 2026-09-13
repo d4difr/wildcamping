@@ -1055,6 +1055,14 @@ body {
   border-color: var(--forest);
 }
 
+/* The plain hover above lightens the background but not the text, which left
+   an active button's label light-on-light and unreadable. */
+.layer-toggle--active:hover {
+  background: var(--fjord);
+  border-color: var(--fjord);
+  color: #f4f1ea;
+}
+
 .submit-btn {
   background: var(--forest);
   border-color: var(--forest);
