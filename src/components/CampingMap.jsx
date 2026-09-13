@@ -246,7 +246,7 @@ const KRONEDEKNING_BANDS = [
 // less information. The endpoint that served them, api/egnet-tile.js, was
 // deleted with them — Vercel Hobby caps a deployment at 12 serverless
 // functions and it was occupying one for nothing.
-const PUBLIC_LAYERS = new Set(['helning', 'vern', 'kronedekning'])
+const PUBLIC_LAYERS = new Set(['helning', 'vern', 'kronedekning', 'terrengtype'])
 
 // Turrutebasen stops rendering above 1:1 000 000 — verified blank at z<=9.
 const TURRUTER_MIN_ZOOM = 10
@@ -1829,9 +1829,15 @@ export default function CampingMap() {
     { key: 'kronedekning', set: setKronedekning, ref: kronedekningRef },
   ].map((o) => ({ ...o, layers: LAYER_IDS[o.key] }))
 
+  // Terrengtype is not part of the exclusive set. It paints only bog, rock and
+  // open ground, leaving the rest transparent, so it reads cleanly on top of
+  // any one of the others — and "flat, but it's a bog" is the combination
+  // people actually need. It is drawn above the other fills; see
+  // initTerrainLayers.
   function setOverlay(which) {
     const map = nativeMap.current
     for (const o of OVERLAYS) {
+      if (o.key === 'terrengtype') continue
       const on = o.key === which
       o.set(on)
       o.ref.current = on
@@ -1870,7 +1876,15 @@ export default function CampingMap() {
     }
   }
 
-  function toggleTerrengtype() { setOverlay(terrengtype ? null : 'terrengtype') }
+  function toggleTerrengtype() {
+    const on = !terrengtypeRef.current
+    terrengtypeRef.current = on
+    setTerrengtype(on)
+    const map = nativeMap.current
+    for (const id of LAYER_IDS.terrengtype) {
+      if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none')
+    }
+  }
   function toggleHelning() { setOverlay(helning ? null : 'helning') }
   function toggleVern() { setOverlay(vern ? null : 'vern') }
   function toggleKronedekning() { setOverlay(kronedekning ? null : 'kronedekning') }
@@ -2233,12 +2247,9 @@ export default function CampingMap() {
     searchMarkerTimeout.current = setTimeout(() => setSearchMarker(null), 4000)
   }
 
+  // Terrengtype last: it is the layer added on top of another, so its legend
+  // reads as an addition below the main one.
   const activeLegends = [
-    terrengtype && {
-      key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
-      bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
-      note: 'Viser myr, bart fjell og åpen mark. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Sjekk alltid selv.',
-    },
     helning && {
       key: 'helning', layer: 'kv-helning', title: 'Helning',
       bands: HELNING_BANDS, minZoom: HELNING_MIN_ZOOM,
@@ -2262,6 +2273,11 @@ export default function CampingMap() {
       // to spell that out along with kratt and nyere hogst; it was cut for
       // length, so nothing but those two words now signals it is not measured.
       note: 'Anslag på hvor tett trærne står.',
+    },
+    terrengtype && {
+      key: 'terrengtype', layer: 'ar50-terrengtype', title: 'Terrengtype',
+      bands: TERRENGTYPE_BANDS, minZoom: TERRENGTYPE_MIN_ZOOM,
+      note: 'Viser myr, bart fjell og åpen mark. Vanlig skog er ikke fargelagt — bruk Kronedekning for det. Sjekk alltid selv.',
     },
     turruter && {
       key: 'turruter', layer: 'kv-turruter', title: 'Turruter',
@@ -2745,6 +2761,13 @@ export default function CampingMap() {
                     layout: { visibility: turruterRef.current ? 'visible' : 'none' },
                   }, firstSymbol)
                 }
+
+                // Terrengtype was added first, so it sits lowest. It has to be
+                // the top fill to combine: bog must cover "flat", not hide
+                // under it. Still below water, for the same reason as the rest.
+                if (map.getLayer('ar50-terrengtype')) {
+                  map.moveLayer('ar50-terrengtype', fillInsertId())
+                }
               }
 
               initTerrainLayers()
@@ -2922,13 +2945,13 @@ export default function CampingMap() {
               //
               // Still one exclusive set despite the divider: 'velg én' applies
               // across the whole list, which is why the divider is a rule and not
-              // a second group heading.
+              // a second group heading. Terrengtype sits outside it, in its own
+              // group, because it combines with any of these.
               const fills = [
                 { key: 'helning', on: helning, toggle: toggleHelning, icon: '⛺', label: 'Helning', hint: 'Finn flate teltplasser' },
                 { key: 'kronedekning', on: kronedekning, toggle: toggleKronedekning, icon: '🪢', label: 'Kronedekning', hint: 'Finn trær til hengekøyer' },
                 { divider: true },
                 { key: 'vern', on: vern, toggle: toggleVern, icon: '🛡', label: 'Vern', hint: 'Verneområder og regler' },
-                { key: 'terrengtype', on: terrengtype, toggle: toggleTerrengtype, icon: '🌲', label: 'Terrengtype', hint: 'Myr, bart fjell og åpen mark' },
               ].filter((f) => f.divider || visible(f.key))
                 // Drop a divider that ended up leading, trailing or doubled once
                 // the admin-only entries were filtered out.
@@ -2959,6 +2982,17 @@ export default function CampingMap() {
                           </span>
                         </button>
                       ))}
+                      <p className="ctrl-menu-group">Markdekke <span>· kan kombineres</span></p>
+                      <button
+                        className={`ctrl-menu-item${terrengtype ? ' ctrl-menu-item--on' : ''}`}
+                        onClick={toggleTerrengtype}
+                      >
+                        <span className="ctrl-menu-check">{terrengtype ? '✓' : ''}</span>
+                        <span className="ctrl-menu-item-text">
+                          <strong>🌲 Terrengtype</strong>
+                          <span>Myr, bart fjell og åpen mark</span>
+                        </span>
+                      </button>
                       {isAdmin && (
                         <>
                           <p className="ctrl-menu-group">Ruter</p>
