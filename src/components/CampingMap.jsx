@@ -63,6 +63,8 @@ const HELNING_MIN_ZOOM = 13
 // Bump when api/_slope-tile.js changes what it renders. The palette-derived key
 // cannot see a change like adding the land mask, and tiles cache for 30 days.
 const HELNING_VERSION = '3'
+// Same idea for Terrengtype. '2' = AR5 composited in from z13.
+const TERRENGTYPE_VERSION = '2'
 
 // Mirrors api/_slope-tile.js. Only campable ground is coloured; steeper ground is
 // left unmarked so the eye goes straight to where a tent could actually go.
@@ -2621,7 +2623,7 @@ export default function CampingMap() {
                 if (!map.getSource('ar50-terrengtype')) {
                   map.addSource('ar50-terrengtype', {
                     type: 'raster',
-                    tiles: [`/api/tile?layer=ar50&v=${styleKey(TERRENGTYPE_BANDS)}&bbox={bbox-epsg-3857}`],
+                    tiles: [`/api/tile?layer=ar50&v=${styleKey(TERRENGTYPE_BANDS)}-${TERRENGTYPE_VERSION}&bbox={bbox-epsg-3857}`],
                     tileSize: 256,
                     minzoom: TERRENGTYPE_MIN_ZOOM,
                     maxzoom: 16,
